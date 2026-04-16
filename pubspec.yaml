@@ -1,0 +1,92 @@
+# File: pubspec.yaml
+# Root: destiny/
+
+name: destiny
+description: "A new Flutter project for Destiny Travel & Tours."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.2.0
+  cloud_firestore: ^5.1.0
+  firebase_auth: ^5.1.2
+  google_sign_in: ^6.2.1
+  lottie: ^3.1.2
+
+  # State Management & Caching
+  flutter_bloc: ^8.1.6
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # UI, Fonts & Video
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.0.10+1
+  cupertino_icons: ^1.0.8
+  font_awesome_flutter: ^10.7.0
+  url_launcher: ^6.3.0
+  video_player: ^2.8.6
+  chewie: ^1.8.1
+  cached_network_image: ^3.3.1 # For smooth image loading
+  carousel_slider: ^5.1.1      # For the featured items carousel
+
+  # Networking & Utilities
+  http: ^1.2.1
+  intl: ^0.19.0
+  image_picker: ^1.2.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
+  webview_flutter: ^4.7.0
+  open_file: ^3.5.10
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.11
+  flutter_lints: ^4.0.0
+
+# Flutter-specific configuration
+flutter:
+  uses-material-design: true
+
+  # Asset declaration is crucial for the app to find images and animations.
+  assets:
+    - assets/
+    - assets/images/
+    - assets/videos/
+    - assets/animations/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo2.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/images/logo2.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "assets/images/logo2.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/images/logo2.png"
+
+# Configuration for the native splash screen
+flutter_native_splash:
+  color: "#0D47A1" # Deep Blue to match your branding
+  image: assets/images/logo2.png # Use a png for better quality
+  android: true
+  ios: true
+  web: false

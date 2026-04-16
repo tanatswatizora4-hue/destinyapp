@@ -1,0 +1,106 @@
+{
+  "project_info": {
+    "project_number": "153679250267",
+    "project_id": "destinytravel-1a16e",
+    "storage_bucket": "destinytravel-1a16e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:153679250267:android:f01f55255eabb4bbb3d07e",
+        "android_client_info": {
+          "package_name": "com.destinytravel.destiny"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "153679250267-6j80dufen31k7fs4v3cnb84b7cj3ikqr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.destinytravel.destiny",
+            "certificate_hash": "ec07c7e959e2b8c15173e7de02488a7cc04b1dfb"
+          }
+        },
+        {
+          "client_id": "153679250267-uqefu7982sirug880bcss6taq2j41pg1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.destinytravel.destiny",
+            "certificate_hash": "ece70605159f6a3599e8b2b95994e63c76af09e8"
+          }
+        },
+        {
+          "client_id": "153679250267-1u597he4i6l7j86ln2jm9ol2miibe9e0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCx1yxgZJHvysC2QxaCsSIdJtUVr_rsFRk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "153679250267-1u597he4i6l7j86ln2jm9ol2miibe9e0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "153679250267-ae6ojjh32k60bn8e3o7juppid7applkd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.destiny"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:153679250267:android:77d8dc46e566d320b3d07e",
+        "android_client_info": {
+          "package_name": "com.destinytravel.destinyapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "153679250267-1klpkfmegam5kpgcoopcj107dql64fld.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.destinytravel.destinyapp",
+            "certificate_hash": "ece70605159f6a3599e8b2b95994e63c76af09e8"
+          }
+        },
+        {
+          "client_id": "153679250267-1u597he4i6l7j86ln2jm9ol2miibe9e0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCx1yxgZJHvysC2QxaCsSIdJtUVr_rsFRk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "153679250267-1u597he4i6l7j86ln2jm9ol2miibe9e0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "153679250267-ae6ojjh32k60bn8e3o7juppid7applkd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.destiny"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
