@@ -3,3 +3,15 @@
 .vscode/
 build/
 *.lnk
+
+# Secrets and signing keys
+android/key.properties
+*.jks
+*.keystore
+.env
+
+# Flutter generated files
+.flutter-plugins-dependencies
+*.iml
+*.log
+android/app/build/
