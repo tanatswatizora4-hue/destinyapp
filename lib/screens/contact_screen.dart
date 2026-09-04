@@ -4,9 +4,7 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/resources/app_strings.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:destiny/widgets/custom_app_bar.dart'; // FIX: Added import for CustomAppBar
 
 class ContactScreen extends StatelessWidget {
   const ContactScreen({Key? key}) : super(key: key);
@@ -20,7 +18,6 @@ class ContactScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Added a Scaffold to give the screen its own header
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -30,9 +27,9 @@ class ContactScreen extends StatelessWidget {
             Text(
               AppStrings.catchPhrase,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primary,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primary,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -61,7 +58,7 @@ class ContactScreen extends StatelessWidget {
                     ),
                     const Divider(height: 32),
                     _buildContactCard(
-                      icon: FontAwesomeIcons.whatsapp,
+                      icon: Icons.chat_outlined,
                       title: 'WhatsApp Us',
                       subtitle: '+263 77 977 0430',
                       color: const Color(0xFF25D366),
@@ -75,9 +72,9 @@ class ContactScreen extends StatelessWidget {
             Text(
               'Follow Our Journey',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primary,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primary,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -85,22 +82,22 @@ class ContactScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildSocialIcon(
-                  FontAwesomeIcons.facebookF,
+                  Icons.facebook,
                   AppStrings.facebookUrl,
                   color: const Color(0xFF1877F2),
                 ),
                 _buildSocialIcon(
-                  FontAwesomeIcons.instagram,
+                  Icons.camera_alt_outlined,
                   AppStrings.instagramUrl,
                   color: const Color(0xFFC13584),
                 ),
                 _buildSocialIcon(
-                  FontAwesomeIcons.twitter,
+                  Icons.alternate_email,
                   AppStrings.twitterUrl,
                   color: const Color(0xFF1DA1F2),
                 ),
                 _buildSocialIcon(
-                  FontAwesomeIcons.linkedinIn,
+                  Icons.business_outlined,
                   AppStrings.linkedinUrl,
                   color: const Color(0xFF0A66C2),
                 ),
@@ -138,10 +135,10 @@ class ContactScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: FaIcon(icon, size: 24, color: color),
+              child: Icon(icon, size: 24, color: color),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -175,11 +172,11 @@ class ContactScreen extends StatelessWidget {
   Widget _buildSocialIcon(IconData icon, String url, {required Color color}) {
     return Container(
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: IconButton(
-        icon: FaIcon(icon, size: 30, color: color),
+        icon: Icon(icon, size: 30, color: color),
         onPressed: () => _launchUrl(url),
       ),
     );
