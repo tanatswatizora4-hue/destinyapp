@@ -1,7 +1,6 @@
 import 'package:destiny/resources/app_colors.dart';
 import 'package:destiny/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -11,15 +10,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Official Google Colors: Blue, Red, Yellow, Green
-  // Note: FontAwesomeIcons.google is a single glyph and can only use one color.
-  // We use the primary Google Blue color for the icon for brand recognition.
-  static const Color _googleBlue = Color(0xFF4285F4);
-  static const Color _googleRed = Color(0xFFDB4437);
-  static const Color _googleYellow = Color(0xFFF4B400);
-  static const Color _googleGreen = Color(0xFF0F9D58);
-
-
   final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
 

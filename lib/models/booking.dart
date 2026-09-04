@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:destiny/utils/destiny_media_url.dart';
+
 class Booking {
   final String id;
   final String userId;
@@ -26,11 +28,11 @@ class Booking {
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
-    List<String> imageUrls =
-    List<String>.from(jsonDecode(json['item_image_json'] ?? '[]'));
-    String mainImageUrl = imageUrls.isNotEmpty
-        ? 'https://bymapara.com/${imageUrls.first}'
-        : 'https://placehold.co/100x100/cccccc/ffffff?text=No+Image';
+    final List<String> imageUrls =
+        List<String>.from(jsonDecode(json['item_image_json'] ?? '[]'));
+    final String mainImageUrl = DestinyMediaUrl.resolve(
+      imageUrls.isNotEmpty ? imageUrls.first : null,
+    );
 
     final startDate = DateTime.tryParse(json['start_date'] ?? '') ?? DateTime.now();
     final endDate = json['end_date'] != null
