@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:destiny/models/tour.dart'; // Reusing Amenity model
+import 'package:destiny/utils/destiny_media_url.dart';
 
 class RoomType {
   final String name;
@@ -44,9 +46,13 @@ class Accommodation {
     required this.roomTypes,
   });
 
-  String get mainImageUrl => imageUrls.isNotEmpty
-      ? 'https://bymapara.com/${imageUrls.first}'
-      : 'https://placehold.co/800x600/cccccc/ffffff?text=No+Image';
+  String get mainImageUrl => DestinyMediaUrl.resolve(
+        imageUrls.isNotEmpty ? imageUrls.first : null,
+      );
+
+  /// Fully resolved, safely encoded URLs for every gallery image.
+  List<String> get resolvedImageUrls =>
+      imageUrls.map(DestinyMediaUrl.resolve).toList(growable: false);
 
   factory Accommodation.fromJson(Map<String, dynamic> json) {
     return Accommodation(

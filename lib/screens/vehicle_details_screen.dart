@@ -52,11 +52,11 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                   viewportFraction: 1.0,
                   autoPlay: true,
                 ),
-                items: widget.vehicle.imageUrls.map((i) {
+                items: widget.vehicle.resolvedImageUrls.map((imageUrl) {
                   return Builder(
                     builder: (BuildContext context) {
                       return CachedNetworkImage(
-                        imageUrl: 'https://bymapara.com/$i',
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
                         width: double.infinity,
                         placeholder: (context, url) =>
