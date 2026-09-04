@@ -2,17 +2,25 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+/// Full-bleed cinematic hero video used on Home.
+/// Overlay content (headline, search) is composed by the parent.
 class VideoHero extends StatefulWidget {
-  const VideoHero({super.key});
+  final double height;
+
+  const VideoHero({
+    super.key,
+    this.height = 420,
+  });
 
   @override
   State<VideoHero> createState() => _VideoHeroState();
 }
 
 class _VideoHeroState extends State<VideoHero> {
-  late VideoPlayerController _videoPlayerController;
-  late ChewieController _chewieController;
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
   bool _isLoading = true;
+  bool _hasError = false;
   bool _isMuted = true;
 
   @override
@@ -23,30 +31,40 @@ class _VideoHeroState extends State<VideoHero> {
 
   Future<void> _initializePlayer() async {
     try {
-      _videoPlayerController = VideoPlayerController.asset('assets/videos/main_video.mp4');
-      await _videoPlayerController.initialize();
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController,
+      final controller =
+          VideoPlayerController.asset('assets/videos/main_video.mp4');
+      await controller.initialize();
+      final chewie = ChewieController(
+        videoPlayerController: controller,
         autoPlay: true,
         looping: true,
         showControls: false,
         showControlsOnInitialize: false,
-        aspectRatio: 16 / 9,
+        aspectRatio: controller.value.aspectRatio == 0
+            ? 16 / 9
+            : controller.value.aspectRatio,
         autoInitialize: true,
       );
+      await controller.setVolume(0.0);
 
-      await _videoPlayerController.setVolume(0.0);
+      if (!mounted) {
+        controller.dispose();
+        chewie.dispose();
+        return;
+      }
 
+      setState(() {
+        _videoPlayerController = controller;
+        _chewieController = chewie;
+        _isLoading = false;
+        _hasError = false;
+      });
+    } catch (e) {
+      debugPrint('Error initializing video player: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print("Error initializing video player: $e");
-      if(mounted) {
-        setState(() {
-          _isLoading = false;
+          _hasError = true;
         });
       }
     }
@@ -54,43 +72,62 @@ class _VideoHeroState extends State<VideoHero> {
 
   @override
   void dispose() {
-    _videoPlayerController.dispose();
-    _chewieController.dispose();
+    _chewieController?.dispose();
+    _videoPlayerController?.dispose();
     super.dispose();
   }
 
   void _toggleMute() {
+    final controller = _videoPlayerController;
+    if (controller == null) return;
     setState(() {
       _isMuted = !_isMuted;
-      _videoPlayerController.setVolume(_isMuted ? 0.0 : 1.0);
+      controller.setVolume(_isMuted ? 0.0 : 1.0);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 16 / 9,
+    return SizedBox(
+      height: widget.height,
+      width: double.infinity,
       child: Stack(
-        alignment: Alignment.bottomRight,
+        fit: StackFit.expand,
         children: [
+          const ColoredBox(color: Color(0xFF0A2540)),
           if (_isLoading)
-            const Center(child: CircularProgressIndicator())
-          else if (_chewieController.videoPlayerController.value.hasError)
-            const Center(child: Icon(Icons.error, color: Colors.white, size: 48))
+            const Center(
+              child: CircularProgressIndicator(color: Colors.white70),
+            )
+          else if (_hasError || _chewieController == null)
+            const Center(
+              child: Icon(Icons.flight_takeoff, color: Colors.white54, size: 48),
+            )
           else
-            Chewie(controller: _chewieController),
-
-          // Mute/Unmute button
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: IconButton(
-              icon: Icon(
-                _isMuted ? Icons.volume_off : Icons.volume_up,
-                color: Colors.white,
-                shadows: const [Shadow(blurRadius: 4, color: Colors.black54)],
+            FittedBox(
+              fit: BoxFit.cover,
+              clipBehavior: Clip.hardEdge,
+              child: SizedBox(
+                width: _videoPlayerController!.value.size.width,
+                height: _videoPlayerController!.value.size.height,
+                child: Chewie(controller: _chewieController!),
               ),
-              onPressed: _toggleMute,
-              tooltip: _isMuted ? 'Unmute' : 'Mute',
+            ),
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.35),
+              shape: const CircleBorder(),
+              child: IconButton(
+                icon: Icon(
+                  _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                onPressed: _chewieController == null ? null : _toggleMute,
+                tooltip: _isMuted ? 'Unmute' : 'Mute',
+              ),
             ),
           ),
         ],
@@ -98,4 +135,3 @@ class _VideoHeroState extends State<VideoHero> {
     );
   }
 }
-

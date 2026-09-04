@@ -4,7 +4,6 @@ import 'package:destiny/screens/accommodation_list_screen.dart';
 import 'package:destiny/screens/contact_screen.dart';
 import 'package:destiny/screens/flights_screen.dart';
 import 'package:destiny/screens/home_screen.dart';
-import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/my_bookings_screen.dart';
 import 'package:destiny/screens/my_trips_screen.dart';
 import 'package:destiny/screens/profile_screen.dart';
@@ -14,8 +13,6 @@ import 'package:destiny/screens/vehicle_list_screen.dart';
 import 'package:destiny/services/api_service.dart';
 import 'package:destiny/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class NavigationScreen extends StatefulWidget {
@@ -214,7 +211,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> widgetOptions = _getWidgetOptions(context);
-    final isContactScreen = _selectedIndex == 9;
 
     return Scaffold(
       appBar: AppBar(
@@ -245,8 +241,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(FontAwesomeIcons.route),
-            activeIcon: Icon(FontAwesomeIcons.route),
+            icon: Icon(Icons.route_outlined),
+            activeIcon: Icon(Icons.route),
             label: 'Tours',
           ),
           BottomNavigationBarItem(
