@@ -575,6 +575,33 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Sizes Destiny Pick cards so an integer column count fits the shell width.
+  /// Prefers 4 on desktop when comfortable; never relies on a clipped peek.
+  double _destinyPickCardWidth({
+    required double availableWidth,
+    required double gap,
+    required bool isDesktop,
+    required bool isTablet,
+  }) {
+    if (!isDesktop && !isTablet) {
+      // Mobile carousel keeps a fixed card; existing horizontal scroll behavior.
+      return 292.0;
+    }
+
+    final preferredColumns = isDesktop ? 4 : 2;
+    final minCard = isDesktop ? 280.0 : 260.0;
+
+    var columns = preferredColumns;
+    while (columns > 1) {
+      final candidate = (availableWidth - gap * (columns - 1)) / columns;
+      if (candidate >= minCard) break;
+      columns--;
+    }
+
+    // Exact integer-pixel fit so the last visible card is never clipped.
+    return ((availableWidth - gap * (columns - 1)) / columns).floorToDouble();
+  }
+
   Widget _buildFeaturedToursSection({
     required bool isDesktop,
     required bool isTablet,
@@ -602,9 +629,9 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        // Wider editorial cards on Home; duration via TourDisplay.
-        final cardWidth = isDesktop ? 420.0 : (isTablet ? 340.0 : 292.0);
+        // Fit complete cards in the Home content width — never clip a partial.
         final cardHeight = isDesktop ? 460.0 : (isTablet ? 420.0 : 372.0);
+        final gap = isDesktop ? 20.0 : 12.0;
         final leadDuration =
             TourDisplay.meaningfulDuration(featuredTours.first.duration);
 
@@ -621,22 +648,33 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 10),
             ],
-            SizedBox(
-              height: cardHeight,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: featuredTours.length,
-                separatorBuilder: (_, __) =>
-                    SizedBox(width: isDesktop ? 20 : 12),
-                itemBuilder: (context, index) {
-                  return TourCard(
-                    tour: featuredTours[index],
-                    isFeatured: true,
-                    width: cardWidth,
-                    height: cardHeight,
-                  );
-                },
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final available = constraints.maxWidth;
+                final cardWidth = _destinyPickCardWidth(
+                  availableWidth: available,
+                  gap: gap,
+                  isDesktop: isDesktop,
+                  isTablet: isTablet,
+                );
+                return SizedBox(
+                  height: cardHeight,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.hardEdge,
+                    itemCount: featuredTours.length,
+                    separatorBuilder: (_, __) => SizedBox(width: gap),
+                    itemBuilder: (context, index) {
+                      return TourCard(
+                        tour: featuredTours[index],
+                        isFeatured: true,
+                        width: cardWidth,
+                        height: cardHeight,
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           ],
         );
