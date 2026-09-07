@@ -1,0 +1,20 @@
+# Reduce Cursor indexing noise while Flutter is the active priority.
+# Marketing website files remain in the repo; they are only ignored for indexing.
+
+# Legacy marketing website (root HTML) — NOT Flutter's web/ platform folder
+index.html
+about.html
+blog.html
+contact.html
+faq.html
+services.html
+dubai.html
+durban.html
+grand-prix.html
+mana-pools.html
+readme.html
+
+# Unrelated local junk
+handle.exe
+handle64.exe
+*.lnk
