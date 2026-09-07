@@ -202,10 +202,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   Future<void> _openAccountMenu(BuildContext buttonContext) async {
     final box = buttonContext.findRenderObject() as RenderBox?;
-    final overlay =
-        Navigator.of(buttonContext).overlay?.context.findRenderObject()
-            as RenderBox?;
-    if (box == null || overlay == null) return;
+    final overlayState = Overlay.maybeOf(buttonContext, rootOverlay: true);
+    final overlay = overlayState?.context.findRenderObject() as RenderBox?;
+    if (box == null || overlay == null || !buttonContext.mounted) return;
 
     final position = RelativeRect.fromRect(
       Rect.fromPoints(
@@ -281,14 +280,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
       ],
     );
 
-    if (selected != null) {
+    if (selected != null && mounted) {
       _handleMenuSelection(selected);
     }
   }
 
   Widget _buildPopupMenu({required bool compact}) {
-    // Explicit InkWell + showMenu (not PopupMenuButton) so the visible control
-    // is the sole hit target and cannot be swallowed by AppBar chrome.
+    // Explicit InkWell + showMenu so the visible control is the sole hit target.
     return Padding(
       padding: EdgeInsets.only(right: compact ? 10 : 16),
       child: Builder(
@@ -309,10 +307,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
                     ? const SizedBox(
                         width: 44,
                         height: 44,
-                        child: Icon(
-                          Icons.menu_rounded,
-                          color: AppColors.textPrimary,
-                          size: 22,
+                        child: Center(
+                          child: Icon(
+                            Icons.menu_rounded,
+                            color: AppColors.textPrimary,
+                            size: 22,
+                          ),
                         ),
                       )
                     : const SizedBox(
@@ -412,34 +412,37 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   Widget _buildFloatingDock({required bool isTablet}) {
-    // Material elevation keeps the dock above extendBody content for hit tests.
-    return Material(
-      color: Colors.transparent,
-      elevation: 0,
-      child: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.only(bottom: 8),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            isTablet ? 28 : 14,
-            0,
-            isTablet ? 28 : 14,
-            10,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isTablet ? 560 : 480,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(26),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    // Blur is decorative only (IgnorePointer). Interactive row sits above so
+    // BackdropFilter cannot swallow primary-tab taps on Flutter web.
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          isTablet ? 28 : 14,
+          0,
+          isTablet ? 28 : 14,
+          10,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isTablet ? 560 : 480,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(26),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                        child: const ColoredBox(color: Color(0xE6FFFFFF)),
+                      ),
+                    ),
+                  ),
+                  DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.90),
                       borderRadius: BorderRadius.circular(26),
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.85),
@@ -452,21 +455,27 @@ class _NavigationScreenState extends State<NavigationScreen> {
                         ),
                       ],
                     ),
-                    child: Row(
-                      children: [
-                        for (var i = 0; i < _primaryDestinations.length; i++)
-                          Expanded(
-                            child: _DockNavItem(
-                              key: Key('dock_nav_$i'),
-                              destination: _primaryDestinations[i],
-                              selected: _primaryHighlightIndex == i,
-                              onTap: () => _onItemTapped(i),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < _primaryDestinations.length; i++)
+                            Expanded(
+                              child: _DockNavItem(
+                                key: Key('dock_nav_$i'),
+                                destination: _primaryDestinations[i],
+                                selected: _primaryHighlightIndex == i,
+                                onTap: () => _onItemTapped(i),
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
