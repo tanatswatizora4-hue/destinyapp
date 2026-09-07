@@ -8,16 +8,21 @@ import 'package:destiny/screens/tour_list_screen.dart';
 import 'package:destiny/screens/vehicle_details_screen.dart';
 import 'package:destiny/screens/vehicle_list_screen.dart';
 import 'package:destiny/services/api_service.dart';
+import 'package:destiny/utils/tour_display.dart';
 import 'package:destiny/widgets/accommodation_card.dart';
 import 'package:destiny/widgets/award_card.dart';
 import 'package:destiny/widgets/tour_card.dart';
-import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:destiny/widgets/vehicle_card.dart';
 import 'package:destiny/widgets/video_hero.dart';
 import 'package:flutter/material.dart';
 
+/// Home-local wide measure — keeps Tours on [AppTheme.contentWideMaxWidth].
+const double _homeWideMax = 1520;
+
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final ValueChanged<double>? onScrollOffsetChanged;
+
+  const HomeScreen({super.key, this.onScrollOffsetChanged});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -28,6 +33,10 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<Tour>> _toursFuture;
   late Future<List<Accommodation>> _accommodationsFuture;
   late Future<List<Vehicle>> _vehiclesFuture;
+
+  static const Color _coolMist = Color(0xFFE6EDF4);
+  static const Color _coolBand = Color(0xFFDDE6EF);
+  static const Color _coolDeep = Color(0xFFD2DCE8);
 
   @override
   void initState() {
@@ -66,11 +75,18 @@ class _HomeScreenState extends State<HomeScreen> {
           final width = constraints.maxWidth;
           final isDesktop = width >= 1024;
           final isTablet = width >= 700 && width < 1024;
-          final pagePad = isDesktop ? 32.0 : (isTablet ? 20.0 : 16.0);
-          final heroHeight = isDesktop ? 520.0 : (isTablet ? 460.0 : 400.0);
-          final shortcutOverlap = isDesktop ? 40.0 : 34.0;
+          final pagePad = isDesktop ? 36.0 : (isTablet ? 22.0 : 16.0);
+          // Cinematic hero — desktop accounts for transparent AppBar overlay.
+          final heroHeight = isDesktop ? 640.0 : (isTablet ? 500.0 : 430.0);
 
-          return SingleChildScrollView(
+          return NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification.metrics.axis == Axis.vertical) {
+                widget.onScrollOffsetChanged?.call(notification.metrics.pixels);
+              }
+              return false;
+            },
+            child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -80,24 +96,45 @@ class _HomeScreenState extends State<HomeScreen> {
                   heroHeight: heroHeight,
                   isDesktop: isDesktop,
                   pagePad: pagePad,
-                  shortcutOverlap: shortcutOverlap,
                 ),
-                SizedBox(height: shortcutOverlap + 12),
-                _ContentShell(
-                  maxWidth: AppTheme.contentMaxWidth,
-                  padding: EdgeInsets.fromLTRB(pagePad, 0, pagePad, 0),
-                  child: _buildAskDestinaCompact(context, isDesktop: isDesktop),
+                // Soft cool surface → Destina (first component after hero).
+                DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFFEAF0F6),
+                        _coolMist,
+                        _coolBand,
+                      ],
+                      stops: [0.0, 0.45, 1.0],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: isDesktop ? 32 : 24),
+                      _ContentShell(
+                        maxWidth: _homeWideMax,
+                        padding: EdgeInsets.fromLTRB(pagePad, 0, pagePad, 28),
+                        child: _buildAskDestinaCompact(
+                          context,
+                          isDesktop: isDesktop,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 22),
                 _SectionBand(
-                  color: AppTheme.surfaceAlt,
+                  color: _coolDeep,
                   child: _ContentShell(
-                    maxWidth: AppTheme.contentWideMaxWidth,
+                    maxWidth: _homeWideMax,
                     padding: EdgeInsets.fromLTRB(
                       isDesktop ? 40 : pagePad,
-                      26,
-                      isDesktop ? 24 : pagePad,
-                      28,
+                      32,
+                      isDesktop ? 28 : pagePad,
+                      34,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           title: 'Destiny Picks',
                           subtitle: 'Featured journeys worth the flight',
+                          eyebrow: 'Curated',
                           onViewMore: () {
                             Navigator.push(
                               context,
@@ -115,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
                         _buildFeaturedToursSection(
                           isDesktop: isDesktop,
                           isTablet: isTablet,
@@ -128,12 +166,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 _SectionBand(
                   color: AppTheme.surface,
                   child: _ContentShell(
-                    maxWidth: AppTheme.contentWideMaxWidth,
+                    maxWidth: _homeWideMax,
                     padding: EdgeInsets.fromLTRB(
                       isDesktop ? 40 : pagePad,
-                      24,
+                      30,
                       isDesktop ? 40 : pagePad,
-                      26,
+                      32,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           title: 'Top Stays',
                           subtitle: 'Places guests actually want to linger',
+                          eyebrow: 'Stay',
                           onViewMore: () {
                             Navigator.push(
                               context,
@@ -152,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
                         _buildAccommodationsSection(
                           isDesktop: isDesktop,
                           isTablet: isTablet,
@@ -165,12 +204,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 _SectionBand(
                   color: AppTheme.surfaceAlt,
                   child: _ContentShell(
-                    maxWidth: AppTheme.contentWideMaxWidth,
+                    maxWidth: _homeWideMax,
                     padding: EdgeInsets.fromLTRB(
                       isDesktop ? 40 : pagePad,
-                      24,
+                      30,
                       isDesktop ? 40 : pagePad,
-                      26,
+                      32,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           title: 'Popular Rentals',
                           subtitle: 'Get around with confidence',
+                          eyebrow: 'Drive',
                           onViewMore: () {
                             Navigator.push(
                               context,
@@ -188,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                           },
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
                         _buildVehiclesSection(
                           isDesktop: isDesktop,
                           isTablet: isTablet,
@@ -199,22 +239,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildDarkDestinaBand(context, isDesktop: isDesktop),
                 _SectionBand(
-                  color: AppTheme.surface,
+                  color: const Color(0xFFF3F6FA),
                   child: _ContentShell(
                     maxWidth: AppTheme.contentMaxWidth,
-                    padding: EdgeInsets.fromLTRB(pagePad, 24, pagePad, 18),
+                    padding: EdgeInsets.fromLTRB(pagePad, 28, pagePad, 22),
                     child: _buildTrustSection(context, isDesktop: isDesktop),
                   ),
                 ),
                 _SectionBand(
-                  color: const Color(0xFFE8EEF5),
+                  color: _coolMist,
                   child: _ContentShell(
                     maxWidth: AppTheme.contentMaxWidth,
-                    padding: EdgeInsets.fromLTRB(pagePad, 22, pagePad, 36),
+                    padding: EdgeInsets.fromLTRB(pagePad, 26, pagePad, 40),
                     child: _buildAwardsSection(context),
                   ),
                 ),
               ],
+            ),
             ),
           );
         },
@@ -227,243 +268,94 @@ class _HomeScreenState extends State<HomeScreen> {
     required double heroHeight,
     required bool isDesktop,
     required double pagePad,
-    required double shortcutOverlap,
   }) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        SizedBox(
-          height: heroHeight,
-          width: double.infinity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              VideoHero(height: heroHeight),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x590A2540),
-                      Color(0x8C0A2540),
-                      Color(0xE60A2540),
-                    ],
-                    stops: [0.0, 0.42, 1.0],
-                  ),
-                ),
+    return SizedBox(
+      height: heroHeight,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          VideoHero(height: heroHeight),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x660A2540),
+                  Color(0x8C0A2540),
+                  Color(0xF00A2540),
+                ],
+                stops: [0.0, 0.38, 1.0],
               ),
-              SafeArea(
-                bottom: false,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: isDesktop
-                          ? AppTheme.contentWideMaxWidth
-                          : AppTheme.contentMaxWidth,
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        isDesktop ? 40 : pagePad,
-                        20,
-                        isDesktop ? 40 : pagePad,
-                        shortcutOverlap + 28,
-                      ),
-                      child: isDesktop
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Expanded(
-                                  flex: 7,
-                                  child: _HeroCopy(
-                                    textTheme: textTheme,
-                                    isDesktop: true,
-                                  ),
-                                ),
-                                const SizedBox(width: 28),
-                                Expanded(
-                                  flex: 5,
-                                  child: _HeroSearchField(
-                                    onSubmitted: (_) {
-                                      _showPreviewMessage(
-                                        'Search is coming soon — browse Destiny Picks below.',
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _HeroCopy(
-                                  textTheme: textTheme,
-                                  isDesktop: false,
-                                ),
-                                const SizedBox(height: 16),
-                                _HeroSearchField(
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth:
+                      isDesktop ? _homeWideMax : AppTheme.contentMaxWidth,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    isDesktop ? 40 : pagePad,
+                    isDesktop ? 88 : 24,
+                    isDesktop ? 40 : pagePad,
+                    isDesktop ? 40 : 28,
+                  ),
+                  child: isDesktop
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              flex: 7,
+                              child: _HeroCopy(
+                                textTheme: textTheme,
+                                isDesktop: true,
+                              ),
+                            ),
+                            const SizedBox(width: 36),
+                            Expanded(
+                              flex: 5,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: _HeroSearchField(
                                   onSubmitted: (_) {
                                     _showPreviewMessage(
                                       'Search is coming soon — browse Destiny Picks below.',
                                     );
                                   },
                                 ),
-                              ],
+                              ),
                             ),
-                    ),
-                  ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _HeroCopy(
+                              textTheme: textTheme,
+                              isDesktop: false,
+                            ),
+                            const SizedBox(height: 18),
+                            _HeroSearchField(
+                              onSubmitted: (_) {
+                                _showPreviewMessage(
+                                  'Search is coming soon — browse Destiny Picks below.',
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                 ),
               ),
-            ],
-          ),
-        ),
-        Positioned(
-          left: pagePad,
-          right: pagePad,
-          bottom: -shortcutOverlap,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: AppTheme.contentMaxWidth,
-              ),
-              child: _buildServiceShortcuts(context),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildServiceShortcuts(BuildContext context) {
-    final shortcuts = <_ServiceShortcutData>[
-      _ServiceShortcutData(
-        label: 'Flights',
-        icon: Icons.flight_takeoff_outlined,
-        onTap: () => _showPreviewMessage(
-          'Open Flights from the bottom navigation to plan air travel.',
-        ),
-      ),
-      _ServiceShortcutData(
-        label: 'Stays',
-        icon: Icons.hotel_outlined,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AccommodationListScreen()),
-          );
-        },
-      ),
-      _ServiceShortcutData(
-        label: 'Tours',
-        icon: Icons.route_outlined,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const TourListScreen()),
-          );
-        },
-      ),
-      _ServiceShortcutData(
-        label: 'Vehicles',
-        icon: Icons.directions_car_outlined,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const VehicleListScreen()),
-          );
-        },
-      ),
-      _ServiceShortcutData(
-        label: 'Visas',
-        icon: Icons.badge_outlined,
-        onTap: () => _showPreviewMessage(
-          'Visa assistance is available via Contact — Destina planning coming soon.',
-        ),
-      ),
-    ];
-
-    // Distinct from the global floating dock: labeled service discovery tiles
-    // (solid surface, square icon wells) rather than another nav bar.
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.97),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border.withValues(alpha: 0.95)),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.navy.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 3,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: AppTheme.accent,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Plan your trip',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.textPrimary,
-                      letterSpacing: 0.2,
-                      fontSize: 12.5,
-                    ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Book a service',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 11.5,
-                      ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 560) {
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final item in shortcuts) ...[
-                        _ServiceShortcutTile(data: item),
-                        const SizedBox(width: 8),
-                      ],
-                    ],
-                  ),
-                );
-              }
-              return Row(
-                children: [
-                  for (var i = 0; i < shortcuts.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 8),
-                    Expanded(child: _ServiceShortcutTile(data: shortcuts[i])),
-                  ],
-                ],
-              );
-            },
           ),
         ],
       ),
@@ -474,62 +366,77 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context, {
     required bool isDesktop,
   }) {
+    // Substantial navy signature panel — not a thin strip.
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 20 : 14,
-        vertical: isDesktop ? 14 : 12,
+        horizontal: isDesktop ? 28 : 18,
+        vertical: isDesktop ? 26 : 20,
       ),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppTheme.primary.withValues(alpha: 0.07),
-            const Color(0xFFEEF4FB),
-            Colors.white,
+            Color(0xFF0A2540),
+            Color(0xFF123A5C),
+            Color(0xFF1A4A72),
           ],
         ),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.14)),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.navy.withValues(alpha: 0.22),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: isDesktop
           ? Row(
               children: [
-                _DestinaMark(),
-                const SizedBox(width: 14),
+                const _DestinaMark(onDark: true),
+                const SizedBox(width: 18),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Ask Destina',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.2,
                             ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         '“5 nights in Zanzibar for two, around \$2,500…”',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.82),
                               fontStyle: FontStyle.italic,
+                              height: 1.35,
                             ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 18),
                 FilledButton(
-                  onPressed: null,
+                  onPressed: () => _showPreviewMessage(
+                    'Destina planning is coming soon — explore Destiny Picks meanwhile.',
+                  ),
                   style: FilledButton.styleFrom(
-                    disabledBackgroundColor: AppTheme.primary,
-                    disabledForegroundColor: Colors.white,
+                    backgroundColor: AppTheme.accent,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
+                      horizontal: 22,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text('Start planning'),
@@ -541,32 +448,40 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Row(
                   children: [
-                    _DestinaMark(),
-                    const SizedBox(width: 10),
+                    const _DestinaMark(onDark: true),
+                    const SizedBox(width: 12),
                     Text(
                       'Ask Destina',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w800,
+                            color: Colors.white,
                           ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
                   '“5 nights in Zanzibar for two, around \$2,500…”',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
+                        color: Colors.white.withValues(alpha: 0.82),
                         fontStyle: FontStyle.italic,
+                        height: 1.4,
                       ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: null,
+                    onPressed: () => _showPreviewMessage(
+                      'Destina planning is coming soon — explore Destiny Picks meanwhile.',
+                    ),
                     style: FilledButton.styleFrom(
-                      disabledBackgroundColor: AppTheme.primary,
-                      disabledForegroundColor: Colors.white,
+                      backgroundColor: AppTheme.accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: const Text('Start planning'),
                   ),
@@ -580,6 +495,7 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context, {
     required String title,
     String? subtitle,
+    String? eyebrow,
     VoidCallback? onViewMore,
   }) {
     return Row(
@@ -589,6 +505,41 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (eyebrow != null) ...[
+                Row(
+                  children: [
+                    Container(
+                      width: 18,
+                      height: 2.5,
+                      decoration: BoxDecoration(
+                        color: AppTheme.accent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      eyebrow.toUpperCase(),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppTheme.accent,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.4,
+                            fontSize: 11,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ] else ...[
+                Container(
+                  width: 22,
+                  height: 2.5,
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
               Text(
                 title,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -616,12 +567,39 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: onViewMore,
             style: TextButton.styleFrom(
               foregroundColor: AppTheme.accent,
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              textStyle: const TextStyle(fontWeight: FontWeight.w800),
             ),
             child: const Text('View all'),
           ),
       ],
     );
+  }
+
+  /// Sizes Destiny Pick cards so an integer column count fits the shell width.
+  /// Prefers 4 on desktop when comfortable; never relies on a clipped peek.
+  double _destinyPickCardWidth({
+    required double availableWidth,
+    required double gap,
+    required bool isDesktop,
+    required bool isTablet,
+  }) {
+    if (!isDesktop && !isTablet) {
+      // Mobile carousel keeps a fixed card; existing horizontal scroll behavior.
+      return 292.0;
+    }
+
+    final preferredColumns = isDesktop ? 4 : 2;
+    final minCard = isDesktop ? 280.0 : 260.0;
+
+    var columns = preferredColumns;
+    while (columns > 1) {
+      final candidate = (availableWidth - gap * (columns - 1)) / columns;
+      if (candidate >= minCard) break;
+      columns--;
+    }
+
+    // Exact integer-pixel fit so the last visible card is never clipped.
+    return ((availableWidth - gap * (columns - 1)) / columns).floorToDouble();
   }
 
   Widget _buildFeaturedToursSection({
@@ -632,7 +610,7 @@ class _HomeScreenState extends State<HomeScreen> {
       future: _toursFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _SectionLoading(height: 380);
+          return const _SectionLoading(height: 400);
         }
         if (snapshot.hasError) {
           return const _SectionMessage(text: 'Unable to load tours right now.');
@@ -651,24 +629,54 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        final cardWidth = isDesktop ? 380.0 : (isTablet ? 320.0 : 280.0);
-        final cardHeight = isDesktop ? 440.0 : (isTablet ? 400.0 : 360.0);
+        // Fit complete cards in the Home content width — never clip a partial.
+        final cardHeight = isDesktop ? 460.0 : (isTablet ? 420.0 : 372.0);
+        final gap = isDesktop ? 20.0 : 12.0;
+        final leadDuration =
+            TourDisplay.meaningfulDuration(featuredTours.first.duration);
 
-        return SizedBox(
-          height: cardHeight,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: featuredTours.length,
-            separatorBuilder: (_, __) => SizedBox(width: isDesktop ? 18 : 12),
-            itemBuilder: (context, index) {
-              return TourCard(
-                tour: featuredTours[index],
-                isFeatured: true,
-                width: cardWidth,
-                height: cardHeight,
-              );
-            },
-          ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (leadDuration != null) ...[
+              Text(
+                'Lead pick · $leadDuration',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final available = constraints.maxWidth;
+                final cardWidth = _destinyPickCardWidth(
+                  availableWidth: available,
+                  gap: gap,
+                  isDesktop: isDesktop,
+                  isTablet: isTablet,
+                );
+                return SizedBox(
+                  height: cardHeight,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.hardEdge,
+                    itemCount: featuredTours.length,
+                    separatorBuilder: (_, __) => SizedBox(width: gap),
+                    itemBuilder: (context, index) {
+                      return TourCard(
+                        tour: featuredTours[index],
+                        isFeatured: true,
+                        width: cardWidth,
+                        height: cardHeight,
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ],
         );
       },
     );
@@ -678,89 +686,148 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context, {
     required bool isDesktop,
   }) {
-    return FutureBuilder<List<Tour>>(
-      future: _toursFuture,
-      builder: (context, snapshot) {
-        final featured = snapshot.data
-                ?.where((t) => t.isFeatured)
-                .toList() ??
-            const <Tour>[];
-        final tour = featured.isNotEmpty ? featured.first : null;
+    void openTours() {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TourListScreen()),
+      );
+    }
 
-        return SizedBox(
-          height: isDesktop ? 280 : 240,
-          width: double.infinity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (tour != null)
-                TravelNetworkImage(imageUrl: tour.mainImageUrl)
-              else
-                Image.asset(
+    return ColoredBox(
+      color: AppTheme.navy,
+      child: SizedBox(
+        height: isDesktop ? 340 : 300,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Asymmetric local brand image — no remote URLs.
+            Align(
+              alignment: Alignment.centerRight,
+              child: FractionallySizedBox(
+                widthFactor: isDesktop ? 0.58 : 1,
+                child: Image.asset(
                   'assets/images/legend.jpg',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const ColoredBox(color: AppTheme.navy),
+                  alignment: Alignment.center,
+                  errorBuilder: (_, __, ___) => Image.asset(
+                    'assets/images/golden.jpg',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const ColoredBox(color: AppTheme.navy),
+                  ),
                 ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Color(0xF20A2540),
-                      Color(0x990A2540),
-                      Color(0x330A2540),
+              ),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: isDesktop
+                      ? const [
+                          Color(0xFF0A2540),
+                          Color(0xF20A2540),
+                          Color(0x660A2540),
+                          Color(0x1A0A2540),
+                        ]
+                      : const [
+                          Color(0xF20A2540),
+                          Color(0xCC0A2540),
+                          Color(0x990A2540),
+                        ],
+                  stops: isDesktop
+                      ? const [0.0, 0.32, 0.62, 1.0]
+                      : const [0.0, 0.45, 1.0],
+                ),
+              ),
+            ),
+            _ContentShell(
+              maxWidth: _homeWideMax,
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 48 : 20,
+                vertical: 32,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isDesktop ? 520 : double.infinity,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 18,
+                            height: 2.5,
+                            decoration: BoxDecoration(
+                              color: AppTheme.accent,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'DESTINY',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: AppTheme.accent,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.6,
+                                  fontSize: 11,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'More than a booking.\nA travel partner.',
+                        style:
+                            Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.08,
+                                  fontSize: isDesktop ? 40 : 30,
+                                  letterSpacing: -0.6,
+                                ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'From weekend escapes to once-in-a-lifetime routes — crafted with you.',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.88),
+                              fontWeight: FontWeight.w500,
+                              height: 1.35,
+                            ),
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: openTours,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.accent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Explore journeys'),
+                      ),
                     ],
                   ),
                 ),
               ),
-              _ContentShell(
-                maxWidth: AppTheme.contentWideMaxWidth,
-                padding: EdgeInsets.symmetric(
-                  horizontal: isDesktop ? 48 : 20,
-                  vertical: 28,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: isDesktop ? 520 : double.infinity,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Travel, edited for real life',
-                          style:
-                              Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.1,
-                                    fontSize: isDesktop ? 36 : 28,
-                                  ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          tour?.title ??
-                              'From weekend escapes to once-in-a-lifetime routes.',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontWeight: FontWeight.w500,
-                              ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -933,14 +1000,24 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return Container(
       width: double.infinity,
-      color: AppTheme.navy,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF071B30),
+            Color(0xFF0A2540),
+            Color(0xFF123A5C),
+          ],
+        ),
+      ),
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 48 : 20,
-        vertical: isDesktop ? 36 : 28,
+        vertical: isDesktop ? 44 : 32,
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: AppTheme.contentWideMaxWidth),
+          constraints: const BoxConstraints(maxWidth: _homeWideMax),
           child: isDesktop
               ? Row(
                   children: [
@@ -949,6 +1026,32 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 18,
+                                height: 2.5,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accent,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'DESTINA',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: AppTheme.accent,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.6,
+                                      fontSize: 11,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
                           Text(
                             'Your private travel desk',
                             style: Theme.of(context)
@@ -960,27 +1063,32 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontSize: 32,
                                 ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           Text(
                             'Destina helps shape itineraries, budgets and logistics — coming soon as a product experience.',
                             style:
                                 Theme.of(context).textTheme.titleMedium?.copyWith(
                                       color: Colors.white.withValues(alpha: 0.82),
-                                      height: 1.35,
+                                      height: 1.4,
                                     ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 28),
                     FilledButton(
-                      onPressed: null,
+                      onPressed: () => _showPreviewMessage(
+                        'We’ll notify you when Destina launches.',
+                      ),
                       style: FilledButton.styleFrom(
-                        disabledBackgroundColor: AppTheme.accent,
-                        disabledForegroundColor: Colors.white,
+                        backgroundColor: AppTheme.accent,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 22,
                           vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text('Notify me'),
@@ -990,6 +1098,30 @@ class _HomeScreenState extends State<HomeScreen> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 18,
+                          height: 2.5,
+                          decoration: BoxDecoration(
+                            color: AppTheme.accent,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'DESTINA',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.accent,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.6,
+                                    fontSize: 11,
+                                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     Text(
                       'Your private travel desk',
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -1002,14 +1134,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Destina helps shape itineraries, budgets and logistics — coming soon.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Colors.white.withValues(alpha: 0.82),
+                            height: 1.4,
                           ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     FilledButton(
-                      onPressed: null,
+                      onPressed: () => _showPreviewMessage(
+                        'We’ll notify you when Destina launches.',
+                      ),
                       style: FilledButton.styleFrom(
-                        disabledBackgroundColor: AppTheme.accent,
-                        disabledForegroundColor: Colors.white,
+                        backgroundColor: AppTheme.accent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: const Text('Notify me'),
                     ),
@@ -1042,6 +1180,29 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Container(
+              width: 18,
+              height: 2.5,
+              decoration: BoxDecoration(
+                color: AppTheme.accent,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'SUPPORT',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.accent,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.4,
+                    fontSize: 11,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
         Text(
           'Travel with confidence',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -1058,7 +1219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontWeight: FontWeight.w500,
               ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         LayoutBuilder(
           builder: (context, constraints) {
             final useRow = constraints.maxWidth >= 860;
@@ -1090,6 +1251,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAwardsSection(BuildContext context) {
     return Column(
       children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 18,
+              height: 2.5,
+              decoration: BoxDecoration(
+                color: AppTheme.accent,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'RECOGNITION',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.accent,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.4,
+                    fontSize: 11,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
         Text(
           'Our Accolades',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -1139,23 +1324,46 @@ class _HeroCopy extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Container(
+              width: 20,
+              height: 2.5,
+              decoration: BoxDecoration(
+                color: AppTheme.accent,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Discover more',
+              style: textTheme.labelMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.92),
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                fontSize: isDesktop ? 13 : 12,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: isDesktop ? 14 : 10),
         Text(
           'Where will destiny take you?',
           style: textTheme.headlineMedium?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w800,
             height: 1.05,
-            fontSize: isDesktop ? 48 : 32,
-            letterSpacing: -0.8,
+            fontSize: isDesktop ? 52 : 34,
+            letterSpacing: -0.9,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: isDesktop ? 12 : 8),
         Text(
           'Flights, stays, tours and unforgettable journeys.',
           style: textTheme.titleMedium?.copyWith(
             color: Colors.white.withValues(alpha: 0.9),
             fontWeight: FontWeight.w500,
-            height: 1.3,
+            height: 1.35,
             fontSize: isDesktop ? 18 : 15,
           ),
         ),
@@ -1165,20 +1373,27 @@ class _HeroCopy extends StatelessWidget {
 }
 
 class _DestinaMark extends StatelessWidget {
+  final bool onDark;
+
+  const _DestinaMark({this.onDark = false});
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 40,
-      height: 40,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
-        color: AppTheme.primary,
+        color: onDark ? Colors.white.withValues(alpha: 0.12) : AppTheme.primary,
         borderRadius: BorderRadius.circular(12),
+        border: onDark
+            ? Border.all(color: Colors.white.withValues(alpha: 0.2))
+            : null,
       ),
       alignment: Alignment.center,
-      child: const Icon(
+      child: Icon(
         Icons.auto_awesome,
-        color: Colors.white,
-        size: 20,
+        color: onDark ? Colors.white : Colors.white,
+        size: 22,
       ),
     );
   }
@@ -1266,70 +1481,6 @@ class _HeroSearchField extends StatelessWidget {
   }
 }
 
-class _ServiceShortcutData {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _ServiceShortcutData({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-}
-
-class _ServiceShortcutTile extends StatelessWidget {
-  final _ServiceShortcutData data;
-
-  const _ServiceShortcutTile({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.surfaceAlt,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: data.onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: 100,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.12),
-                  ),
-                ),
-                child: Icon(data.icon, size: 20, color: AppTheme.primary),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                data.label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                      fontSize: 12,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _TrustItem {
   final IconData icon;
   final String title;
@@ -1355,8 +1506,9 @@ class _TrustCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceAlt,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border.withValues(alpha: 0.7)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
