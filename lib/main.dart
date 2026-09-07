@@ -8,6 +8,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart'; // Import this
 import 'firebase_options.dart';
 
+/// DEV ONLY — UI redesign preview.
+/// Set to `false` (or remove this flag + the bypass branch) to restore
+/// the production auth landing/login flow. Does not delete Firebase Auth.
+const bool devBypassAuth = true;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -35,24 +40,28 @@ class MyApp extends StatelessWidget {
       title: 'Destiny Travel & Tours',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeData,
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          // Check if Firebase connection is still loading
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SplashScreen();
-          }
+      // Easy to remove: delete the `devBypassAuth` ternary and keep only
+      // the StreamBuilder below when restoring production auth gating.
+      home: devBypassAuth
+          ? const NavigationScreen()
+          : StreamBuilder<User?>(
+              stream: FirebaseAuth.instance.authStateChanges(),
+              builder: (context, snapshot) {
+                // Check if Firebase connection is still loading
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SplashScreen();
+                }
 
-          // Check if the user is authenticated
-          if (snapshot.hasData) {
-            // User is signed in, show the main navigation screen
-            return const NavigationScreen();
-          } else {
-            // User is not signed in, show the login screen
-            return const LoginScreen();
-          }
-        },
-      ),
+                // Check if the user is authenticated
+                if (snapshot.hasData) {
+                  // User is signed in, show the main navigation screen
+                  return const NavigationScreen();
+                } else {
+                  // User is not signed in, show the login screen
+                  return const LoginScreen();
+                }
+              },
+            ),
     );
   }
 }

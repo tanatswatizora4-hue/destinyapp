@@ -4,10 +4,9 @@ import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/user.dart';
 import 'package:destiny/resources/app_colors.dart';
 import 'package:destiny/services/auth_service.dart';
+import 'package:destiny/utils/destiny_media_url.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -287,13 +286,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Image.file(file, fit: BoxFit.cover)
                   else if (imageUrl != null && imageUrl.isNotEmpty)
                     CachedNetworkImage(
-                      imageUrl: 'https://bymapara.com/$imageUrl',
+                      imageUrl: DestinyMediaUrl.resolve(imageUrl),
                       fit: BoxFit.cover,
                       placeholder: (context, url) =>
                       const Center(child: CircularProgressIndicator()),
                       errorWidget: (context, url, error) => const Center(
-                        child: FaIcon(
-                          FontAwesomeIcons.solidUser,
+                        child: Icon(
+                          Icons.person,
                           size: 50,
                           color: AppTheme.textSecondary,
                         ),
@@ -301,8 +300,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     )
                   else
                     const Center(
-                      child: FaIcon(
-                        FontAwesomeIcons.solidUser,
+                      child: Icon(
+                        Icons.person,
                         size: 50,
                         color: AppTheme.textSecondary,
                       ),

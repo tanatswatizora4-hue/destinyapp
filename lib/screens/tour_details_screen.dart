@@ -52,11 +52,11 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                   viewportFraction: 1.0,
                   autoPlay: true,
                 ),
-                items: widget.tour.imageUrls.map((i) {
+                items: widget.tour.resolvedImageUrls.map((imageUrl) {
                   return Builder(
                     builder: (BuildContext context) {
                       return CachedNetworkImage(
-                        imageUrl: 'https://bymapara.com/$i',
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
                         width: double.infinity,
                         placeholder: (context, url) =>

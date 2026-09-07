@@ -1,79 +1,150 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/vehicle.dart';
+import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class VehicleCard extends StatelessWidget {
   final Vehicle vehicle;
   final VoidCallback? onTap;
+  final double? width;
 
-  const VehicleCard({super.key, required this.vehicle, this.onTap});
+  /// When true, uses a wider landscape tile distinct from stay cards.
+  final bool landscape;
+
+  const VehicleCard({
+    super.key,
+    required this.vehicle,
+    this.onTap,
+    this.width,
+    this.landscape = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    // FIX: Corrected the currency format initialization
     final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
+    final cardWidth = width ?? (landscape ? 340.0 : 260.0);
+    final name = '${vehicle.make} ${vehicle.model}'.trim();
 
     return SizedBox(
-      width: 280,
+      width: cardWidth,
       child: InkWell(
         onTap: onTap,
-        child: Card(
-          margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTheme.border.withValues(alpha: 0.7)),
+          ),
           clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Display the vehicle's primary image
-              CachedNetworkImage(
-                imageUrl: vehicle.mainImageUrl,
-                height: 140,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.error, color: AppTheme.textSecondary),
-                ),
-              ),
-              // Display vehicle details
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: landscape
+              ? Row(
                   children: [
-                    Text(
-                      '${vehicle.make} ${vehicle.model}',
-                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    SizedBox(
+                      width: cardWidth * 0.46,
+                      height: 132,
+                      child: TravelNetworkImage(
+                        imageUrl: vehicle.mainImageUrl,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          vehicle.type,
-                          style: textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                        child: _VehicleMeta(
+                          name: name,
+                          type: vehicle.type,
+                          priceLabel:
+                              '${currencyFormat.format(vehicle.pricePerDay)}/day',
+                          textTheme: textTheme,
                         ),
-                        Text(
-                          '${currencyFormat.format(vehicle.pricePerDay)}/day',
-                          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.primary),
-                        ),
-                      ],
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 148,
+                      width: double.infinity,
+                      child: TravelNetworkImage(
+                        imageUrl: vehicle.mainImageUrl,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                      child: _VehicleMeta(
+                        name: name,
+                        type: vehicle.type,
+                        priceLabel:
+                            '${currencyFormat.format(vehicle.pricePerDay)}/day',
+                        textTheme: textTheme,
+                      ),
                     ),
                   ],
                 ),
-              )
-            ],
-          ),
         ),
       ),
+    );
+  }
+}
+
+class _VehicleMeta extends StatelessWidget {
+  final String name;
+  final String type;
+  final String priceLabel;
+  final TextTheme textTheme;
+
+  const _VehicleMeta({
+    required this.name,
+    required this.type,
+    required this.priceLabel,
+    required this.textTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: AppTheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            type.toUpperCase(),
+            style: textTheme.labelSmall?.copyWith(
+              color: AppTheme.primary,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              fontSize: 10,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          name,
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            height: 1.2,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          priceLabel,
+          style: textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: AppTheme.accent,
+          ),
+        ),
+      ],
     );
   }
 }

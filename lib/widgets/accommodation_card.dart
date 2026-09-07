@@ -1,80 +1,88 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/accommodation.dart';
+import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:flutter/material.dart';
 
 class AccommodationCard extends StatelessWidget {
   final Accommodation accommodation;
   final VoidCallback? onTap;
+  final double? width;
+  final double imageHeight;
 
-  const AccommodationCard({super.key, required this.accommodation, this.onTap});
+  const AccommodationCard({
+    super.key,
+    required this.accommodation,
+    this.onTap,
+    this.width,
+    this.imageHeight = 186,
+  });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final cardWidth = width ?? 280.0;
+    final location = [
+      if (accommodation.city.trim().isNotEmpty) accommodation.city.trim(),
+      if (accommodation.country.trim().isNotEmpty) accommodation.country.trim(),
+    ].join(', ');
 
     return SizedBox(
-      width: 280,
+      width: cardWidth,
       child: InkWell(
         onTap: onTap,
-        child: Card(
-          margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CachedNetworkImage(
-                imageUrl: accommodation.mainImageUrl,
-                height: 140,
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: SizedBox(
+                height: imageHeight,
                 width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.error, color: AppTheme.textSecondary),
+                child: TravelNetworkImage(
+                  imageUrl: accommodation.mainImageUrl,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      accommodation.type.toUpperCase(),
-                      style: textTheme.bodySmall?.copyWith(color: AppTheme.primary, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      accommodation.name,
-                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.textSecondary),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            '${accommodation.city}, ${accommodation.country}',
-                            style: textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              accommodation.type.toUpperCase(),
+              style: textTheme.labelSmall?.copyWith(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.7,
+                fontSize: 11,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              accommodation.name,
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+                fontSize: 16,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (location.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                location,
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w500,
                 ),
-              )
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 }
-
