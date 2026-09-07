@@ -116,9 +116,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
         const VehicleListScreen(),
         FlightsScreen(userId: _sqlUserId!),
         MyTripsScreen(userId: _sqlUserId!),
-        MyBookingsScreen(),
+        const MyBookingsScreen(),
         TravelDocumentsScreen(userId: _sqlUserId!),
-        ProfileScreen(),
+        const ProfileScreen(),
         const ContactScreen(),
       ];
     } else {
