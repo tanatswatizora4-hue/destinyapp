@@ -52,11 +52,11 @@ class _AccommodationDetailsScreenState
                   viewportFraction: 1.0,
                   autoPlay: true,
                 ),
-                items: widget.accommodation.imageUrls.map((i) {
+                items: widget.accommodation.resolvedImageUrls.map((imageUrl) {
                   return Builder(
                     builder: (BuildContext context) {
                       return CachedNetworkImage(
-                        imageUrl: 'https://bymapara.com/$i',
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
                         width: double.infinity,
                         placeholder: (context, url) =>

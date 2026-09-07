@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:destiny/utils/destiny_media_url.dart';
+
 class Amenity {
   final String name;
   final bool included;
@@ -60,9 +62,13 @@ class Tour {
     required this.itinerary,
   });
 
-  String get mainImageUrl => imageUrls.isNotEmpty
-      ? 'https://bymapara.com/${imageUrls.first}'
-      : 'https://placehold.co/800x600/cccccc/ffffff?text=No+Image';
+  String get mainImageUrl => DestinyMediaUrl.resolve(
+        imageUrls.isNotEmpty ? imageUrls.first : null,
+      );
+
+  /// Fully resolved, safely encoded URLs for every gallery image.
+  List<String> get resolvedImageUrls =>
+      imageUrls.map(DestinyMediaUrl.resolve).toList(growable: false);
 
   factory Tour.fromJson(Map<String, dynamic> json) {
     return Tour(

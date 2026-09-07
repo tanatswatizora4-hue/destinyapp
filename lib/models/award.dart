@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:destiny/utils/destiny_media_url.dart';
+
 class Award {
   final int id;
   final String name;
@@ -16,7 +18,7 @@ class Award {
   });
 
   String get mainImageUrl => imageUrls.isNotEmpty
-      ? 'https://bymapara.com/${imageUrls.first}'
+      ? DestinyMediaUrl.resolve(imageUrls.first)
       : 'https://placehold.co/100x100/D4AF37/ffffff?text=AWARD';
 
   factory Award.fromJson(Map<String, dynamic> json) {
