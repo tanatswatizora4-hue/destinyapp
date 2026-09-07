@@ -31,6 +31,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
   late StreamSubscription<User?> _authSubscription;
   final ApiService _apiService = ApiService();
   bool _isLoadingSqlId = true;
+  /// Home desktop hero overlay becomes solid after the user scrolls.
+  bool _homeHeroScrolled = false;
 
   static const _primaryDestinations = <_NavDestination>[
     _NavDestination(
@@ -110,7 +112,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
     if (_sqlUserId != null) {
       return <Widget>[
-        const HomeScreen(),
+        HomeScreen(
+          onScrollOffsetChanged: (offset) {
+            final scrolled = offset > 72;
+            if (scrolled != _homeHeroScrolled) {
+              setState(() => _homeHeroScrolled = scrolled);
+            }
+          },
+        ),
         const TourListScreen(),
         const AccommodationListScreen(),
         const VehicleListScreen(),
@@ -124,7 +133,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
     } else {
       // If the user is not authenticated, show a placeholder for protected screens.
       return <Widget>[
-        const HomeScreen(),
+        HomeScreen(
+          onScrollOffsetChanged: (offset) {
+            final scrolled = offset > 72;
+            if (scrolled != _homeHeroScrolled) {
+              setState(() => _homeHeroScrolled = scrolled);
+            }
+          },
+        ),
         const TourListScreen(),
         const AccommodationListScreen(),
         const VehicleListScreen(),
@@ -169,6 +185,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
     setState(() {
       _selectedIndex = index;
+      if (index != 0) {
+        _homeHeroScrolled = false;
+      }
     });
   }
 
@@ -529,7 +548,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final isDesktop = width >= 1024;
     final isTablet = width >= 700 && width < 1024;
     // Home desktop only: present nav over the cinematic hero (no white bar).
-    final overlayHomeHero = isDesktop && _selectedIndex == 0;
+    // After scroll, restore solid chrome for contrast over Destina/Picks.
+    final overlayHomeHero =
+        isDesktop && _selectedIndex == 0 && !_homeHeroScrolled;
 
     return Scaffold(
       backgroundColor: AppTheme.background,

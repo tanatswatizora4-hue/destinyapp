@@ -20,7 +20,9 @@ import 'package:flutter/material.dart';
 const double _homeWideMax = 1520;
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final ValueChanged<double>? onScrollOffsetChanged;
+
+  const HomeScreen({super.key, this.onScrollOffsetChanged});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -78,7 +80,14 @@ class _HomeScreenState extends State<HomeScreen> {
           final heroHeight = isDesktop ? 640.0 : (isTablet ? 500.0 : 430.0);
           final shortcutOverlap = isDesktop ? 60.0 : (isTablet ? 48.0 : 40.0);
 
-          return SingleChildScrollView(
+          return NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification.metrics.axis == Axis.vertical) {
+                widget.onScrollOffsetChanged?.call(notification.metrics.pixels);
+              }
+              return false;
+            },
+            child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -248,6 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           );
         },
