@@ -8,21 +8,171 @@ class TourCard extends StatelessWidget {
   final Tour tour;
   final bool isFeatured;
   final double? width;
+  final double? height;
 
   const TourCard({
     super.key,
     required this.tour,
     this.isFeatured = false,
     this.width,
+    this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isFeatured) {
+      return _EditorialTourCard(tour: tour, width: width, height: height);
+    }
+    return _StandardTourCard(tour: tour, width: width);
+  }
+}
+
+class _EditorialTourCard extends StatelessWidget {
+  final Tour tour;
+  final double? width;
+  final double? height;
+
+  const _EditorialTourCard({
+    required this.tour,
+    this.width,
+    this.height,
   });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final imageHeight = isFeatured ? 200.0 : 180.0;
+    final cardWidth = width ?? 360.0;
+    final cardHeight = height ?? 420.0;
 
     return SizedBox(
-      width: width ?? (isFeatured ? 300 : null),
+      width: cardWidth,
+      height: cardHeight,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TourDetailsScreen(tour: tour),
+            ),
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Hero(
+                tag: 'tour_image_${tour.id}',
+                child: TravelNetworkImage(imageUrl: tour.mainImageUrl),
+              ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x330A2540),
+                      Color(0x000A2540),
+                      Color(0xCC0A2540),
+                      Color(0xF20A2540),
+                    ],
+                    stops: [0.0, 0.35, 0.72, 1.0],
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.28),
+                    ),
+                  ),
+                  child: Text(
+                    'Destiny Pick',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 18,
+                right: 18,
+                bottom: 18,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tour.title,
+                      style: textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        height: 1.15,
+                        fontSize: 22,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            tour.duration,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.88),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          'from ',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.75),
+                          ),
+                        ),
+                        Text(
+                          '\$${tour.price.toStringAsFixed(0)}',
+                          style: textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StandardTourCard extends StatelessWidget {
+  final Tour tour;
+  final double? width;
+
+  const _StandardTourCard({required this.tour, this.width});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return SizedBox(
+      width: width,
       child: GestureDetector(
         onTap: () {
           Navigator.push(
@@ -33,18 +183,15 @@ class TourCard extends StatelessWidget {
           );
         },
         child: Container(
-          margin: isFeatured
-              ? EdgeInsets.zero
-              : const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: AppTheme.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.border.withValues(alpha: 0.8)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
               ),
             ],
           ),
@@ -54,60 +201,11 @@ class TourCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                height: imageHeight,
+                height: 180,
                 width: double.infinity,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Hero(
-                      tag: 'tour_image_${tour.id}',
-                      child: TravelNetworkImage(imageUrl: tour.mainImageUrl),
-                    ),
-                    if (isFeatured)
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.92),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'Destiny Pick',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.95),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '\$${tour.price.toStringAsFixed(0)}',
-                          style: textTheme.labelLarge?.copyWith(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                child: Hero(
+                  tag: 'tour_image_${tour.id}',
+                  child: TravelNetworkImage(imageUrl: tour.mainImageUrl),
                 ),
               ),
               Padding(
@@ -124,15 +222,9 @@ class TourCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.schedule_rounded,
-                          size: 15,
-                          color: AppTheme.textSecondary,
-                        ),
-                        const SizedBox(width: 5),
                         Expanded(
                           child: Text(
                             tour.duration,
@@ -142,6 +234,13 @@ class TourCard extends StatelessWidget {
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          '\$${tour.price.toStringAsFixed(0)}',
+                          style: textTheme.titleSmall?.copyWith(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ],

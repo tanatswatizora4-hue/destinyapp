@@ -8,14 +8,19 @@ class AppTheme {
   static const Color accent = AppColors.accent;
   static const Color background = AppColors.background;
   static const Color surface = AppColors.surface;
+  static const Color surfaceAlt = AppColors.surfaceAlt;
+  static const Color navy = AppColors.navy;
   static const Color textPrimary = AppColors.textPrimary;
   static const Color textSecondary = AppColors.textSecondary;
   static const Color cardBackground = AppColors.surface;
   static const Color border = AppColors.border;
   static const Color imagePlaceholder = AppColors.imagePlaceholder;
 
-  /// Centered content max width for tablet/desktop Home layouts.
+  /// Default centered content width.
   static const double contentMaxWidth = 1240;
+
+  /// Wider shell for immersive Home sections on large desktops.
+  static const double contentWideMaxWidth = 1440;
 
   // --- THEME DATA ---
   static final ThemeData themeData = ThemeData(

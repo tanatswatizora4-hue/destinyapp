@@ -11,9 +11,11 @@ import 'package:destiny/services/api_service.dart';
 import 'package:destiny/widgets/accommodation_card.dart';
 import 'package:destiny/widgets/award_card.dart';
 import 'package:destiny/widgets/tour_card.dart';
+import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:destiny/widgets/vehicle_card.dart';
 import 'package:destiny/widgets/video_hero.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -65,82 +67,152 @@ class _HomeScreenState extends State<HomeScreen> {
           final width = constraints.maxWidth;
           final isDesktop = width >= 1024;
           final isTablet = width >= 700 && width < 1024;
-          final horizontalPad = isDesktop ? 28.0 : (isTablet ? 20.0 : 16.0);
-          final heroHeight = isDesktop ? 460.0 : (isTablet ? 420.0 : 380.0);
-          final cardWidth = isDesktop ? 300.0 : (isTablet ? 280.0 : 260.0);
+          final pagePad = isDesktop ? 32.0 : (isTablet ? 20.0 : 16.0);
+          final heroHeight = isDesktop ? 520.0 : (isTablet ? 460.0 : 400.0);
+          final shortcutOverlap = isDesktop ? 40.0 : 34.0;
 
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildHero(context, heroHeight: heroHeight, isDesktop: isDesktop),
+                _buildHeroCluster(
+                  context,
+                  heroHeight: heroHeight,
+                  isDesktop: isDesktop,
+                  pagePad: pagePad,
+                  shortcutOverlap: shortcutOverlap,
+                ),
+                SizedBox(height: shortcutOverlap + 12),
                 _ContentShell(
                   maxWidth: AppTheme.contentMaxWidth,
-                  padding: EdgeInsets.fromLTRB(horizontalPad, 28, horizontalPad, 40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildServiceShortcuts(context, isDesktop: isDesktop),
-                      const SizedBox(height: 36),
-                      _buildSectionHeader(
-                        context,
-                        title: 'Destiny Picks',
-                        subtitle: 'Featured tours curated for unforgettable journeys',
-                        onViewMore: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const TourListScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildFeaturedToursSection(cardWidth: cardWidth),
-                      const SizedBox(height: 40),
-                      _buildSectionHeader(
-                        context,
-                        title: 'Top Stays',
-                        subtitle: 'Handpicked places to rest and recharge',
-                        onViewMore: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AccommodationListScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildAccommodationsSection(
-                        cardWidth: cardWidth,
-                        isDesktop: isDesktop,
-                        isTablet: isTablet,
-                      ),
-                      const SizedBox(height: 40),
-                      _buildSectionHeader(
-                        context,
-                        title: 'Popular Rentals',
-                        subtitle: 'Reliable vehicles for every itinerary',
-                        onViewMore: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const VehicleListScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildVehiclesSection(cardWidth: cardWidth * 0.92),
-                      const SizedBox(height: 40),
-                      _buildAskDestina(context),
-                      const SizedBox(height: 40),
-                      _buildTrustSection(context, isDesktop: isDesktop),
-                      const SizedBox(height: 40),
-                      _buildAwardsSection(context),
-                    ],
+                  padding: EdgeInsets.fromLTRB(pagePad, 0, pagePad, 0),
+                  child: _buildAskDestinaCompact(context, isDesktop: isDesktop),
+                ),
+                const SizedBox(height: 22),
+                _SectionBand(
+                  color: AppTheme.surfaceAlt,
+                  child: _ContentShell(
+                    maxWidth: AppTheme.contentWideMaxWidth,
+                    padding: EdgeInsets.fromLTRB(
+                      isDesktop ? 40 : pagePad,
+                      26,
+                      isDesktop ? 24 : pagePad,
+                      28,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(
+                          context,
+                          title: 'Destiny Picks',
+                          subtitle: 'Featured journeys worth the flight',
+                          onViewMore: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const TourListScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        _buildFeaturedToursSection(
+                          isDesktop: isDesktop,
+                          isTablet: isTablet,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                _buildEditorialMoment(context, isDesktop: isDesktop),
+                _SectionBand(
+                  color: AppTheme.surface,
+                  child: _ContentShell(
+                    maxWidth: AppTheme.contentWideMaxWidth,
+                    padding: EdgeInsets.fromLTRB(
+                      isDesktop ? 40 : pagePad,
+                      24,
+                      isDesktop ? 40 : pagePad,
+                      26,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(
+                          context,
+                          title: 'Top Stays',
+                          subtitle: 'Places guests actually want to linger',
+                          onViewMore: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const AccommodationListScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        _buildAccommodationsSection(
+                          isDesktop: isDesktop,
+                          isTablet: isTablet,
+                          pagePad: pagePad,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                _SectionBand(
+                  color: AppTheme.surfaceAlt,
+                  child: _ContentShell(
+                    maxWidth: AppTheme.contentWideMaxWidth,
+                    padding: EdgeInsets.fromLTRB(
+                      isDesktop ? 40 : pagePad,
+                      24,
+                      isDesktop ? 40 : pagePad,
+                      26,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(
+                          context,
+                          title: 'Popular Rentals',
+                          subtitle: 'Get around with confidence',
+                          onViewMore: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const VehicleListScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        _buildVehiclesSection(
+                          isDesktop: isDesktop,
+                          isTablet: isTablet,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                _buildDarkDestinaBand(context, isDesktop: isDesktop),
+                _SectionBand(
+                  color: AppTheme.surface,
+                  child: _ContentShell(
+                    maxWidth: AppTheme.contentMaxWidth,
+                    padding: EdgeInsets.fromLTRB(pagePad, 24, pagePad, 18),
+                    child: _buildTrustSection(context, isDesktop: isDesktop),
+                  ),
+                ),
+                _SectionBand(
+                  color: const Color(0xFFE8EEF5),
+                  child: _ContentShell(
+                    maxWidth: AppTheme.contentMaxWidth,
+                    padding: EdgeInsets.fromLTRB(pagePad, 22, pagePad, 36),
+                    child: _buildAwardsSection(context),
                   ),
                 ),
               ],
@@ -151,89 +223,123 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHero(
+  Widget _buildHeroCluster(
     BuildContext context, {
     required double heroHeight,
     required bool isDesktop,
+    required double pagePad,
+    required double shortcutOverlap,
   }) {
     final textTheme = Theme.of(context).textTheme;
 
-    return SizedBox(
-      height: heroHeight,
-      width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          VideoHero(height: heroHeight),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0x660A2540),
-                  Color(0x990A2540),
-                  Color(0xE60A2540),
-                ],
-                stops: [0.0, 0.45, 1.0],
-              ),
-            ),
-          ),
-          SafeArea(
-            bottom: false,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: AppTheme.contentMaxWidth),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    isDesktop ? 36 : 20,
-                    24,
-                    isDesktop ? 36 : 20,
-                    isDesktop ? 40 : 28,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Where will destiny take you?',
-                        style: textTheme.headlineMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          height: 1.15,
-                          fontSize: isDesktop ? 42 : 30,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Flights, stays, tours and unforgettable journeys.',
-                        style: textTheme.titleMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.88),
-                          fontWeight: FontWeight.w500,
-                          height: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      _HeroSearchField(
-                        onSubmitted: (_) {
-                          _showPreviewMessage(
-                            'Search is coming soon — browse Destiny Picks below.',
-                          );
-                        },
-                      ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        SizedBox(
+          height: heroHeight,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              VideoHero(height: heroHeight),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x590A2540),
+                      Color(0x8C0A2540),
+                      Color(0xE60A2540),
                     ],
+                    stops: [0.0, 0.42, 1.0],
                   ),
                 ),
               ),
+              SafeArea(
+                bottom: false,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: isDesktop
+                          ? AppTheme.contentWideMaxWidth
+                          : AppTheme.contentMaxWidth,
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        isDesktop ? 40 : pagePad,
+                        20,
+                        isDesktop ? 40 : pagePad,
+                        shortcutOverlap + 28,
+                      ),
+                      child: isDesktop
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Expanded(
+                                  flex: 7,
+                                  child: _HeroCopy(
+                                    textTheme: textTheme,
+                                    isDesktop: true,
+                                  ),
+                                ),
+                                const SizedBox(width: 28),
+                                Expanded(
+                                  flex: 5,
+                                  child: _HeroSearchField(
+                                    onSubmitted: (_) {
+                                      _showPreviewMessage(
+                                        'Search is coming soon — browse Destiny Picks below.',
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _HeroCopy(
+                                  textTheme: textTheme,
+                                  isDesktop: false,
+                                ),
+                                const SizedBox(height: 16),
+                                _HeroSearchField(
+                                  onSubmitted: (_) {
+                                    _showPreviewMessage(
+                                      'Search is coming soon — browse Destiny Picks below.',
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          left: pagePad,
+          right: pagePad,
+          bottom: -shortcutOverlap,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppTheme.contentMaxWidth,
+              ),
+              child: _buildServiceShortcuts(context),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildServiceShortcuts(BuildContext context, {required bool isDesktop}) {
+  Widget _buildServiceShortcuts(BuildContext context) {
     final shortcuts = <_ServiceShortcutData>[
       _ServiceShortcutData(
         label: 'Flights',
@@ -281,52 +387,158 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
 
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.82),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 28,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 560) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Row(
+                    children: [
+                      for (final item in shortcuts) ...[
+                        _ServiceShortcutChip(data: item),
+                        const SizedBox(width: 2),
+                      ],
+                    ],
+                  ),
+                );
+              }
+              return Row(
+                children: [
+                  for (final item in shortcuts)
+                    Expanded(child: _ServiceShortcutChip(data: item)),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAskDestinaCompact(
+    BuildContext context, {
+    required bool isDesktop,
+  }) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 12 : 4,
-        vertical: 8,
+        horizontal: isDesktop ? 20 : 14,
+        vertical: isDesktop ? 14 : 12,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primary.withValues(alpha: 0.07),
+            const Color(0xFFEEF4FB),
+            Colors.white,
+          ],
+        ),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.14)),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 520) {
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  for (final item in shortcuts) ...[
-                    _ServiceShortcutChip(data: item),
-                    const SizedBox(width: 8),
-                  ],
-                ],
-              ),
-            );
-          }
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            child: Row(
+      child: isDesktop
+          ? Row(
               children: [
-                for (final item in shortcuts)
-                  Expanded(child: _ServiceShortcutChip(data: item)),
+                _DestinaMark(),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ask Destina',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '“5 nights in Zanzibar for two, around \$2,500…”',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontStyle: FontStyle.italic,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton(
+                  onPressed: null,
+                  style: FilledButton.styleFrom(
+                    disabledBackgroundColor: AppTheme.primary,
+                    disabledForegroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text('Start planning'),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _DestinaMark(),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Ask Destina',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '“5 nights in Zanzibar for two, around \$2,500…”',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.textSecondary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: null,
+                    style: FilledButton.styleFrom(
+                      disabledBackgroundColor: AppTheme.primary,
+                      disabledForegroundColor: Colors.white,
+                    ),
+                    child: const Text('Start planning'),
+                  ),
+                ),
               ],
             ),
-          );
-        },
-      ),
     );
   }
 
@@ -347,7 +559,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 title,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
-                      fontSize: 24,
+                      fontSize: 28,
+                      letterSpacing: -0.4,
+                      height: 1.1,
                     ),
               ),
               if (subtitle != null) ...[
@@ -356,6 +570,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   subtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
                       ),
                 ),
               ],
@@ -366,7 +581,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(
             onPressed: onViewMore,
             style: TextButton.styleFrom(
-              foregroundColor: AppTheme.primary,
+              foregroundColor: AppTheme.accent,
               textStyle: const TextStyle(fontWeight: FontWeight.w700),
             ),
             child: const Text('View all'),
@@ -375,37 +590,48 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFeaturedToursSection({required double cardWidth}) {
+  Widget _buildFeaturedToursSection({
+    required bool isDesktop,
+    required bool isTablet,
+  }) {
     return FutureBuilder<List<Tour>>(
       future: _toursFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _SectionLoading(height: 310);
+          return const _SectionLoading(height: 380);
         }
         if (snapshot.hasError) {
           return const _SectionMessage(text: 'Unable to load tours right now.');
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const _SectionMessage(text: 'No tours available at the moment.');
+          return const _SectionMessage(
+            text: 'No tours available at the moment.',
+          );
         }
 
         final featuredTours =
             snapshot.data!.where((t) => t.isFeatured).toList();
         if (featuredTours.isEmpty) {
-          return const _SectionMessage(text: 'No featured tours at the moment.');
+          return const _SectionMessage(
+            text: 'No featured tours at the moment.',
+          );
         }
 
+        final cardWidth = isDesktop ? 380.0 : (isTablet ? 320.0 : 280.0);
+        final cardHeight = isDesktop ? 440.0 : (isTablet ? 400.0 : 360.0);
+
         return SizedBox(
-          height: 310,
+          height: cardHeight,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: featuredTours.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            separatorBuilder: (_, __) => SizedBox(width: isDesktop ? 18 : 12),
             itemBuilder: (context, index) {
               return TourCard(
                 tour: featuredTours[index],
                 isFeatured: true,
                 width: cardWidth,
+                height: cardHeight,
               );
             },
           ),
@@ -414,45 +640,133 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildEditorialMoment(
+    BuildContext context, {
+    required bool isDesktop,
+  }) {
+    return FutureBuilder<List<Tour>>(
+      future: _toursFuture,
+      builder: (context, snapshot) {
+        final featured = snapshot.data
+                ?.where((t) => t.isFeatured)
+                .toList() ??
+            const <Tour>[];
+        final tour = featured.isNotEmpty ? featured.first : null;
+
+        return SizedBox(
+          height: isDesktop ? 280 : 240,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (tour != null)
+                TravelNetworkImage(imageUrl: tour.mainImageUrl)
+              else
+                Image.asset(
+                  'assets/images/legend.jpg',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const ColoredBox(color: AppTheme.navy),
+                ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color(0xF20A2540),
+                      Color(0x990A2540),
+                      Color(0x330A2540),
+                    ],
+                  ),
+                ),
+              ),
+              _ContentShell(
+                maxWidth: AppTheme.contentWideMaxWidth,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 48 : 20,
+                  vertical: 28,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: isDesktop ? 520 : double.infinity,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Travel, edited for real life',
+                          style:
+                              Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.1,
+                                    fontSize: isDesktop ? 36 : 28,
+                                  ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          tour?.title ??
+                              'From weekend escapes to once-in-a-lifetime routes.',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontWeight: FontWeight.w500,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildAccommodationsSection({
-    required double cardWidth,
     required bool isDesktop,
     required bool isTablet,
+    required double pagePad,
   }) {
     return FutureBuilder<List<Accommodation>>(
       future: _accommodationsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _SectionLoading(height: 290);
+          return const _SectionLoading(height: 280);
         }
         if (snapshot.hasError) {
-          return const _SectionMessage(
-            text: 'Unable to load stays right now.',
-          );
+          return const _SectionMessage(text: 'Unable to load stays right now.');
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const _SectionMessage(text: 'No accommodations available.');
         }
 
-        final accommodations = snapshot.data!.take(5).toList();
+        final accommodations = snapshot.data!.take(6).toList();
 
         if (isDesktop || isTablet) {
           final columns = isDesktop ? 3 : 2;
           return LayoutBuilder(
             builder: (context, gridConstraints) {
-              const spacing = 16.0;
+              const spacing = 14.0;
               final itemWidth =
                   (gridConstraints.maxWidth - spacing * (columns - 1)) /
                       columns;
               return Wrap(
                 spacing: spacing,
-                runSpacing: spacing,
+                runSpacing: 18,
                 children: [
-                  for (final accommodation
-                      in accommodations.take(columns * 2))
+                  for (final accommodation in accommodations)
                     AccommodationCard(
                       accommodation: accommodation,
                       width: itemWidth,
+                      imageHeight: isDesktop ? 210 : 180,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -471,7 +785,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         return SizedBox(
-          height: 290,
+          height: 268,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: accommodations.length,
@@ -480,7 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
               final accommodation = accommodations[index];
               return AccommodationCard(
                 accommodation: accommodation,
-                width: cardWidth,
+                width: 240,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -499,12 +813,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildVehiclesSection({required double cardWidth}) {
+  Widget _buildVehiclesSection({
+    required bool isDesktop,
+    required bool isTablet,
+  }) {
     return FutureBuilder<List<Vehicle>>(
       future: _vehiclesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _SectionLoading(height: 270);
+          return const _SectionLoading(height: 160);
         }
         if (snapshot.hasError) {
           return const _SectionMessage(
@@ -516,8 +833,39 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         final vehicles = snapshot.data!.take(5).toList();
+
+        if (isDesktop) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 14.0;
+              final itemWidth = (constraints.maxWidth - spacing * 2) / 3;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  for (final vehicle in vehicles.take(3))
+                    VehicleCard(
+                      vehicle: vehicle,
+                      width: itemWidth,
+                      landscape: true,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                VehicleDetailsScreen(vehicle: vehicle),
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              );
+            },
+          );
+        }
+
         return SizedBox(
-          height: 270,
+          height: isTablet ? 150 : 250,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: vehicles.length,
@@ -526,7 +874,8 @@ class _HomeScreenState extends State<HomeScreen> {
               final vehicle = vehicles[index];
               return VehicleCard(
                 vehicle: vehicle,
-                width: cardWidth,
+                width: isTablet ? 340 : 250,
+                landscape: isTablet,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -544,82 +893,95 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAskDestina(BuildContext context) {
+  Widget _buildDarkDestinaBand(
+    BuildContext context, {
+    required bool isDesktop,
+  }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0D47A1),
-            Color(0xFF1565C0),
-            Color(0xFF0A325C),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
+      color: AppTheme.navy,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 48 : 20,
+        vertical: isDesktop ? 36 : 28,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Destina',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                  ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Ask Destina',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: AppTheme.contentWideMaxWidth),
+          child: isDesktop
+              ? Row(
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Your private travel desk',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 32,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Destina helps shape itineraries, budgets and logistics — coming soon as a product experience.',
+                            style:
+                                Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: Colors.white.withValues(alpha: 0.82),
+                                      height: 1.35,
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    FilledButton(
+                      onPressed: null,
+                      style: FilledButton.styleFrom(
+                        disabledBackgroundColor: AppTheme.accent,
+                        disabledForegroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22,
+                          vertical: 16,
+                        ),
+                      ),
+                      child: const Text('Notify me'),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your private travel desk',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Destina helps shape itineraries, budgets and logistics — coming soon.',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.82),
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: null,
+                      style: FilledButton.styleFrom(
+                        disabledBackgroundColor: AppTheme.accent,
+                        disabledForegroundColor: Colors.white,
+                      ),
+                      child: const Text('Notify me'),
+                    ),
+                  ],
                 ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Tell me where you want to go. We'll help plan the rest.",
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.88),
-                  height: 1.4,
-                  fontWeight: FontWeight.w500,
-                ),
-          ),
-          const SizedBox(height: 22),
-          FilledButton(
-            onPressed: null,
-            style: FilledButton.styleFrom(
-              disabledBackgroundColor: Colors.white,
-              disabledForegroundColor: AppTheme.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-            ),
-            child: const Text('Start planning'),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Planning assistant preview — coming soon.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -650,17 +1012,19 @@ class _HomeScreenState extends State<HomeScreen> {
           'Travel with confidence',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w800,
-                fontSize: 24,
+                fontSize: 28,
+                letterSpacing: -0.3,
               ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
-          'Trusted support at every step of your trip.',
+          'Support that stays with you after booking.',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w500,
               ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
         LayoutBuilder(
           builder: (context, constraints) {
             final useRow = constraints.maxWidth >= 860;
@@ -669,8 +1033,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var i = 0; i < items.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 14),
-                    Expanded(child: _TrustCard(item: items[i])),
+                    if (i > 0) const SizedBox(width: 12),
+                    Expanded(child: _TrustCard(item: items[i], index: i)),
                   ],
                 ],
               );
@@ -678,8 +1042,8 @@ class _HomeScreenState extends State<HomeScreen> {
             return Column(
               children: [
                 for (var i = 0; i < items.length; i++) ...[
-                  if (i > 0) const SizedBox(height: 12),
-                  _TrustCard(item: items[i]),
+                  if (i > 0) const SizedBox(height: 10),
+                  _TrustCard(item: items[i], index: i),
                 ],
               ],
             );
@@ -690,50 +1054,111 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildAwardsSection(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          'Our Accolades',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 26,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Recognition that reflects our promise of exceptional hospitality.',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+        ),
+        const SizedBox(height: 18),
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AwardCard(
+              imagePath: 'assets/images/golden.jpg',
+              title: 'Gold Winner',
+              subtitle: 'Best Customer Service',
+            ),
+            SizedBox(width: 12),
+            AwardCard(
+              imagePath: 'assets/images/legend.jpg',
+              title: 'Hall of Fame',
+              subtitle: 'Legends in Hospitality',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroCopy extends StatelessWidget {
+  final TextTheme textTheme;
+  final bool isDesktop;
+
+  const _HeroCopy({required this.textTheme, required this.isDesktop});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Where will destiny take you?',
+          style: textTheme.headlineMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            height: 1.05,
+            fontSize: isDesktop ? 48 : 32,
+            letterSpacing: -0.8,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Flights, stays, tours and unforgettable journeys.',
+          style: textTheme.titleMedium?.copyWith(
+            color: Colors.white.withValues(alpha: 0.9),
+            fontWeight: FontWeight.w500,
+            height: 1.3,
+            fontSize: isDesktop ? 18 : 15,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DestinaMark extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 24, 18, 24),
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.border),
+        color: AppTheme.primary,
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        children: [
-          Text(
-            'Our Accolades',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Recognition that reflects our promise of exceptional hospitality.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
-          ),
-          const SizedBox(height: 22),
-          const Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AwardCard(
-                imagePath: 'assets/images/golden.jpg',
-                title: 'Gold Winner',
-                subtitle: 'Best Customer Service',
-              ),
-              SizedBox(width: 12),
-              AwardCard(
-                imagePath: 'assets/images/legend.jpg',
-                title: 'Hall of Fame',
-                subtitle: 'Legends in Hospitality',
-              ),
-            ],
-          ),
-        ],
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.auto_awesome,
+        color: Colors.white,
+        size: 20,
       ),
     );
+  }
+}
+
+class _SectionBand extends StatelessWidget {
+  final Color color;
+  final Widget child;
+
+  const _SectionBand({required this.color, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(color: color, child: child);
   }
 }
 
@@ -768,22 +1193,25 @@ class _HeroSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: 0.18),
+      elevation: 0,
       borderRadius: BorderRadius.circular(16),
-      color: Colors.white,
+      color: Colors.white.withValues(alpha: 0.96),
       child: TextField(
         onSubmitted: onSubmitted,
         textInputAction: TextInputAction.search,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: AppTheme.textPrimary,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
         decoration: InputDecoration(
           hintText: 'Search destinations, tours, or stays',
+          hintStyle: TextStyle(
+            color: AppTheme.textSecondary.withValues(alpha: 0.85),
+            fontWeight: FontWeight.w500,
+          ),
           prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primary),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Colors.white.withValues(alpha: 0.96),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -794,7 +1222,7 @@ class _HeroSearchField extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: AppTheme.primary, width: 1.4),
+            borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
           ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
@@ -831,13 +1259,14 @@ class _ServiceShortcutChip extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(data.icon, size: 24, color: AppTheme.primary),
-            const SizedBox(height: 8),
+            Icon(data.icon, size: 22, color: AppTheme.primary),
+            const SizedBox(height: 6),
             Text(
               data.label,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: AppTheme.textPrimary,
+                    fontSize: 12.5,
                   ),
             ),
           ],
@@ -861,37 +1290,54 @@ class _TrustItem {
 
 class _TrustCard extends StatelessWidget {
   final _TrustItem item;
+  final int index;
 
-  const _TrustCard({required this.item});
+  const _TrustCard({required this.item, required this.index});
 
   @override
   Widget build(BuildContext context) {
+    final accentBar = index == 1 ? AppTheme.accent : AppTheme.primary;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceAlt,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(item.icon, color: AppTheme.primary, size: 26),
-          const SizedBox(height: 12),
-          Text(
-            item.title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+          Container(
+            width: 3,
+            height: 42,
+            decoration: BoxDecoration(
+              color: accentBar,
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            item.subtitle,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                  height: 1.4,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(item.icon, color: AppTheme.primary, size: 22),
+                const SizedBox(height: 8),
+                Text(
+                  item.title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  item.subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textSecondary,
+                        height: 1.35,
+                      ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -923,7 +1369,7 @@ class _SectionMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.symmetric(vertical: 18),
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
