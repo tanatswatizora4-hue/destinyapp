@@ -78,7 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
           final pagePad = isDesktop ? 36.0 : (isTablet ? 22.0 : 16.0);
           // Cinematic hero — desktop accounts for transparent AppBar overlay.
           final heroHeight = isDesktop ? 640.0 : (isTablet ? 500.0 : 430.0);
-          final shortcutOverlap = isDesktop ? 60.0 : (isTablet ? 48.0 : 40.0);
 
           return NotificationListener<ScrollNotification>(
             onNotification: (notification) {
@@ -97,9 +96,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   heroHeight: heroHeight,
                   isDesktop: isDesktop,
                   pagePad: pagePad,
-                  shortcutOverlap: shortcutOverlap,
                 ),
-                // Soft cool surface under floating shortcuts → Destina.
+                // Soft cool surface → Destina (first component after hero).
                 DecoratedBox(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
@@ -116,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(height: shortcutOverlap + 18),
+                      SizedBox(height: isDesktop ? 32 : 24),
                       _ContentShell(
                         maxWidth: _homeWideMax,
                         padding: EdgeInsets.fromLTRB(pagePad, 0, pagePad, 28),
@@ -270,232 +268,97 @@ class _HomeScreenState extends State<HomeScreen> {
     required double heroHeight,
     required bool isDesktop,
     required double pagePad,
-    required double shortcutOverlap,
   }) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        SizedBox(
-          height: heroHeight,
-          width: double.infinity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              VideoHero(height: heroHeight),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x660A2540),
-                      Color(0x8C0A2540),
-                      Color(0xF00A2540),
-                    ],
-                    stops: [0.0, 0.38, 1.0],
-                  ),
-                ),
+    return SizedBox(
+      height: heroHeight,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          VideoHero(height: heroHeight),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x660A2540),
+                  Color(0x8C0A2540),
+                  Color(0xF00A2540),
+                ],
+                stops: [0.0, 0.38, 1.0],
               ),
-              SafeArea(
-                bottom: false,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth:
-                          isDesktop ? _homeWideMax : AppTheme.contentMaxWidth,
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        isDesktop ? 40 : pagePad,
-                        isDesktop ? 88 : 24,
-                        isDesktop ? 40 : pagePad,
-                        shortcutOverlap + (isDesktop ? 36 : 30),
-                      ),
-                      child: isDesktop
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Expanded(
-                                  flex: 7,
-                                  child: _HeroCopy(
-                                    textTheme: textTheme,
-                                    isDesktop: true,
-                                  ),
-                                ),
-                                const SizedBox(width: 36),
-                                Expanded(
-                                  flex: 5,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(bottom: 4),
-                                    child: _HeroSearchField(
-                                      onSubmitted: (_) {
-                                        _showPreviewMessage(
-                                          'Search is coming soon — browse Destiny Picks below.',
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _HeroCopy(
-                                  textTheme: textTheme,
-                                  isDesktop: false,
-                                ),
-                                const SizedBox(height: 18),
-                                _HeroSearchField(
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth:
+                      isDesktop ? _homeWideMax : AppTheme.contentMaxWidth,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    isDesktop ? 40 : pagePad,
+                    isDesktop ? 88 : 24,
+                    isDesktop ? 40 : pagePad,
+                    isDesktop ? 40 : 28,
+                  ),
+                  child: isDesktop
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              flex: 7,
+                              child: _HeroCopy(
+                                textTheme: textTheme,
+                                isDesktop: true,
+                              ),
+                            ),
+                            const SizedBox(width: 36),
+                            Expanded(
+                              flex: 5,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: _HeroSearchField(
                                   onSubmitted: (_) {
                                     _showPreviewMessage(
                                       'Search is coming soon — browse Destiny Picks below.',
                                     );
                                   },
                                 ),
-                              ],
+                              ),
                             ),
-                    ),
-                  ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _HeroCopy(
+                              textTheme: textTheme,
+                              isDesktop: false,
+                            ),
+                            const SizedBox(height: 18),
+                            _HeroSearchField(
+                              onSubmitted: (_) {
+                                _showPreviewMessage(
+                                  'Search is coming soon — browse Destiny Picks below.',
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                 ),
               ),
-            ],
-          ),
-        ),
-        Positioned(
-          left: pagePad,
-          right: pagePad,
-          bottom: -shortcutOverlap,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isDesktop ? _homeWideMax : AppTheme.contentMaxWidth,
-              ),
-              child: _buildServiceShortcuts(context, isDesktop: isDesktop),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildServiceShortcuts(
-    BuildContext context, {
-    required bool isDesktop,
-  }) {
-    final shortcuts = <_ServiceShortcutData>[
-      _ServiceShortcutData(
-        label: 'Flights',
-        icon: Icons.flight_takeoff_outlined,
-        onTap: () => _showPreviewMessage(
-          'Open Flights from the bottom navigation to plan air travel.',
-        ),
-      ),
-      _ServiceShortcutData(
-        label: 'Stays',
-        icon: Icons.hotel_outlined,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AccommodationListScreen()),
-          );
-        },
-      ),
-      _ServiceShortcutData(
-        label: 'Tours',
-        icon: Icons.route_outlined,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const TourListScreen()),
-          );
-        },
-      ),
-      _ServiceShortcutData(
-        label: 'Vehicles',
-        icon: Icons.directions_car_outlined,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const VehicleListScreen()),
-          );
-        },
-      ),
-      _ServiceShortcutData(
-        label: 'Visas',
-        icon: Icons.badge_outlined,
-        onTap: () => _showPreviewMessage(
-          'Visa assistance is available via Contact — Destina planning coming soon.',
-        ),
-      ),
-    ];
-
-    // Compact floating discovery strip — not a second nav dock.
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        isDesktop ? 16 : 12,
-        isDesktop ? 10 : 10,
-        isDesktop ? 12 : 12,
-        isDesktop ? 10 : 12,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.97),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border.withValues(alpha: 0.95)),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.navy.withValues(alpha: 0.09),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: isDesktop
-          ? Row(
-              children: [
-                const _PlanTripLabel(compact: false),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < shortcuts.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 6),
-                        Expanded(
-                          child: _ServiceShortcutTile(
-                            data: shortcuts[i],
-                            compact: true,
-                            expand: true,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _PlanTripLabel(compact: true),
-                const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final item in shortcuts) ...[
-                        _ServiceShortcutTile(data: item, compact: true),
-                        const SizedBox(width: 6),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
     );
   }
 
@@ -1471,39 +1334,6 @@ class _HeroCopy extends StatelessWidget {
   }
 }
 
-class _PlanTripLabel extends StatelessWidget {
-  final bool compact;
-
-  const _PlanTripLabel({required this.compact});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 3,
-          height: compact ? 12 : 28,
-          decoration: BoxDecoration(
-            color: AppTheme.accent,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        SizedBox(width: compact ? 8 : 10),
-        Text(
-          'Plan your trip',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimary,
-                letterSpacing: 0.15,
-                fontSize: compact ? 12 : 13,
-              ),
-        ),
-      ],
-    );
-  }
-}
-
 class _DestinaMark extends StatelessWidget {
   final bool onDark;
 
@@ -1607,82 +1437,6 @@ class _HeroSearchField extends StatelessWidget {
           ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-        ),
-      ),
-    );
-  }
-}
-
-class _ServiceShortcutData {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _ServiceShortcutData({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-}
-
-class _ServiceShortcutTile extends StatelessWidget {
-  final _ServiceShortcutData data;
-  final bool compact;
-  final bool expand;
-
-  const _ServiceShortcutTile({
-    required this.data,
-    this.compact = false,
-    this.expand = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final iconSize = compact ? 32.0 : 40.0;
-    final glyphSize = compact ? 16.0 : 20.0;
-
-    return Material(
-      color: AppTheme.surfaceAlt,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: data.onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: expand ? null : (compact ? 88 : 100),
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 6 : 8,
-            vertical: compact ? 8 : 12,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: iconSize,
-                height: iconSize,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.12),
-                  ),
-                ),
-                child: Icon(data.icon, size: glyphSize, color: AppTheme.primary),
-              ),
-              SizedBox(height: compact ? 5 : 8),
-              Text(
-                data.label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                      fontSize: compact ? 11.5 : 12,
-                    ),
-              ),
-            ],
-          ),
         ),
       ),
     );
