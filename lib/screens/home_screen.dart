@@ -15,7 +15,6 @@ import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:destiny/widgets/vehicle_card.dart';
 import 'package:destiny/widgets/video_hero.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -387,37 +386,70 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.82),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 28,
-                offset: const Offset(0, 14),
+    // Distinct from the global floating dock: labeled service discovery tiles
+    // (solid surface, square icon wells) rather than another nav bar.
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.border.withValues(alpha: 0.95)),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.navy.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: AppTheme.accent,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Plan your trip',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimary,
+                      letterSpacing: 0.2,
+                      fontSize: 12.5,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Book a service',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 11.5,
+                      ),
+                ),
               ),
             ],
           ),
-          child: LayoutBuilder(
+          const SizedBox(height: 12),
+          LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth < 560) {
                 return SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   child: Row(
                     children: [
                       for (final item in shortcuts) ...[
-                        _ServiceShortcutChip(data: item),
-                        const SizedBox(width: 2),
+                        _ServiceShortcutTile(data: item),
+                        const SizedBox(width: 8),
                       ],
                     ],
                   ),
@@ -425,13 +457,15 @@ class _HomeScreenState extends State<HomeScreen> {
               }
               return Row(
                 children: [
-                  for (final item in shortcuts)
-                    Expanded(child: _ServiceShortcutChip(data: item)),
+                  for (var i = 0; i < shortcuts.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    Expanded(child: _ServiceShortcutTile(data: shortcuts[i])),
+                  ],
                 ],
               );
             },
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1244,32 +1278,52 @@ class _ServiceShortcutData {
   });
 }
 
-class _ServiceShortcutChip extends StatelessWidget {
+class _ServiceShortcutTile extends StatelessWidget {
   final _ServiceShortcutData data;
 
-  const _ServiceShortcutChip({required this.data});
+  const _ServiceShortcutTile({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: data.onTap,
+    return Material(
+      color: AppTheme.surfaceAlt,
       borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(data.icon, size: 22, color: AppTheme.primary),
-            const SizedBox(height: 6),
-            Text(
-              data.label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                    fontSize: 12.5,
+      child: InkWell(
+        onTap: data.onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: 100,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.12),
                   ),
-            ),
-          ],
+                ),
+                child: Icon(data.icon, size: 20, color: AppTheme.primary),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                data.label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                      fontSize: 12,
+                    ),
+              ),
+            ],
+          ),
         ),
       ),
     );
