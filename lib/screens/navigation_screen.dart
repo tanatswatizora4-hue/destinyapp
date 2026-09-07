@@ -285,8 +285,21 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
 
-  Widget _buildPopupMenu({required bool compact}) {
+  Widget _buildPopupMenu({
+    required bool compact,
+    bool onHero = false,
+  }) {
     // Explicit InkWell + showMenu so the visible control is the sole hit target.
+    final fg = onHero ? Colors.white : AppColors.textPrimary;
+    final fgMuted =
+        onHero ? Colors.white.withValues(alpha: 0.82) : AppColors.textSecondary;
+    final fill = onHero
+        ? Colors.white.withValues(alpha: 0.12)
+        : AppTheme.surfaceAlt;
+    final border = onHero
+        ? Colors.white.withValues(alpha: 0.28)
+        : AppTheme.border;
+
     return Padding(
       padding: EdgeInsets.only(right: compact ? 10 : 16),
       child: Builder(
@@ -299,43 +312,43 @@ class _NavigationScreenState extends State<NavigationScreen> {
               borderRadius: BorderRadius.circular(12),
               child: Ink(
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceAlt,
+                  color: fill,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: border),
                 ),
                 child: compact
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 44,
                         height: 44,
                         child: Center(
                           child: Icon(
                             Icons.menu_rounded,
-                            color: AppColors.textPrimary,
+                            color: fg,
                             size: 22,
                           ),
                         ),
                       )
-                    : const SizedBox(
+                    : SizedBox(
                         height: 44,
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 14),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.person_outline_rounded,
-                                  size: 18, color: AppColors.textPrimary),
-                              SizedBox(width: 8),
+                                  size: 18, color: fg),
+                              const SizedBox(width: 8),
                               Text(
                                 'Account',
                                 style: TextStyle(
-                                  color: AppColors.textPrimary,
+                                  color: fg,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13.5,
                                 ),
                               ),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Icon(Icons.keyboard_arrow_down_rounded,
-                                  size: 18, color: AppColors.textSecondary),
+                                  size: 18, color: fgMuted),
                             ],
                           ),
                         ),
@@ -348,35 +361,56 @@ class _NavigationScreenState extends State<NavigationScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar({required bool isDesktop}) {
+  PreferredSizeWidget _buildAppBar({
+    required bool isDesktop,
+    required bool overlayHomeHero,
+  }) {
+    final toolbarHeight = isDesktop ? 72.0 : 64.0;
+
     return AppBar(
-      backgroundColor: AppTheme.surface.withValues(alpha: 0.96),
+      backgroundColor:
+          overlayHomeHero ? Colors.transparent : AppTheme.surface.withValues(alpha: 0.96),
       elevation: 0,
       scrolledUnderElevation: 0,
-      toolbarHeight: isDesktop ? 72 : 64,
+      forceMaterialTransparency: overlayHomeHero,
+      toolbarHeight: toolbarHeight,
       titleSpacing: isDesktop ? 20 : 12,
       automaticallyImplyLeading: false,
-      // Decorative only — must not intercept AppBar title/actions hit tests
-      // (especially PopupMenuButton on Flutter web).
-      flexibleSpace: IgnorePointer(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppTheme.surface.withValues(alpha: 0.96),
-            border: Border(
-              bottom: BorderSide(
-                color: AppTheme.border.withValues(alpha: 0.9),
+      // Decorative only — must not intercept AppBar title/actions hit tests.
+      flexibleSpace: overlayHomeHero
+          ? IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.38),
+                      Colors.black.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppTheme.surface.withValues(alpha: 0.96),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppTheme.border.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 12,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
               ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 12,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-        ),
-      ),
       title: isDesktop
           ? Row(
               children: [
@@ -392,6 +426,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                       destinations: _primaryDestinations,
                       selectedIndex: _primaryHighlightIndex,
                       onTap: _onItemTapped,
+                      onHero: overlayHomeHero,
                     ),
                   ),
                 ),
@@ -406,7 +441,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
               ),
             ),
       actions: [
-        _buildPopupMenu(compact: !isDesktop),
+        _buildPopupMenu(
+          compact: !isDesktop,
+          onHero: overlayHomeHero,
+        ),
       ],
     );
   }
@@ -490,11 +528,17 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= 1024;
     final isTablet = width >= 700 && width < 1024;
+    // Home desktop only: present nav over the cinematic hero (no white bar).
+    final overlayHomeHero = isDesktop && _selectedIndex == 0;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       extendBody: !isDesktop,
-      appBar: _buildAppBar(isDesktop: isDesktop),
+      extendBodyBehindAppBar: overlayHomeHero,
+      appBar: _buildAppBar(
+        isDesktop: isDesktop,
+        overlayHomeHero: overlayHomeHero,
+      ),
       body: widgetOptions.elementAt(_selectedIndex),
       bottomNavigationBar:
           isDesktop ? null : _buildFloatingDock(isTablet: isTablet),
@@ -592,17 +636,19 @@ class _DesktopTopNav extends StatelessWidget {
   final List<_NavDestination> destinations;
   final int selectedIndex;
   final ValueChanged<int> onTap;
+  final bool onHero;
 
   const _DesktopTopNav({
     required this.destinations,
     required this.selectedIndex,
     required this.onTap,
+    this.onHero = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 640),
+      constraints: const BoxConstraints(maxWidth: 720),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -613,6 +659,7 @@ class _DesktopTopNav extends StatelessWidget {
               destination: destinations[i],
               selected: selectedIndex == i,
               onTap: () => onTap(i),
+              onHero: onHero,
             ),
           ],
         ],
@@ -625,16 +672,33 @@ class _DesktopNavLink extends StatelessWidget {
   final _NavDestination destination;
   final bool selected;
   final VoidCallback onTap;
+  final bool onHero;
 
   const _DesktopNavLink({
     super.key,
     required this.destination,
     required this.selected,
     required this.onTap,
+    this.onHero = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final Color selectedFg =
+        onHero ? Colors.white : AppColors.primary;
+    final Color idleFg = onHero
+        ? Colors.white.withValues(alpha: 0.88)
+        : AppColors.textPrimary;
+    final Color idleIcon = onHero
+        ? Colors.white.withValues(alpha: 0.82)
+        : AppColors.textSecondary;
+    final Color selectedFill = onHero
+        ? Colors.white.withValues(alpha: 0.16)
+        : AppColors.primary.withValues(alpha: 0.09);
+    final Color selectedBorder = onHero
+        ? Colors.white.withValues(alpha: 0.22)
+        : AppColors.primary.withValues(alpha: 0.18);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -644,14 +708,10 @@ class _DesktopNavLink extends StatelessWidget {
           duration: const Duration(milliseconds: 160),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: selected
-                ? AppColors.primary.withValues(alpha: 0.09)
-                : Colors.transparent,
+            color: selected ? selectedFill : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected
-                  ? AppColors.primary.withValues(alpha: 0.18)
-                  : Colors.transparent,
+              color: selected ? selectedBorder : Colors.transparent,
             ),
           ),
           child: Row(
@@ -660,7 +720,7 @@ class _DesktopNavLink extends StatelessWidget {
               Icon(
                 selected ? destination.activeIcon : destination.icon,
                 size: 18,
-                color: selected ? AppColors.primary : AppColors.textSecondary,
+                color: selected ? selectedFg : idleIcon,
               ),
               const SizedBox(width: 8),
               Text(
@@ -668,7 +728,7 @@ class _DesktopNavLink extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? AppColors.primary : AppColors.textPrimary,
+                  color: selected ? selectedFg : idleFg,
                 ),
               ),
             ],
