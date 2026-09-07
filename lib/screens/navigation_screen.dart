@@ -177,143 +177,173 @@ class _NavigationScreenState extends State<NavigationScreen> {
   int get _primaryHighlightIndex =>
       _selectedIndex < 5 ? _selectedIndex : 0;
 
+  void _handleMenuSelection(String value) {
+    switch (value) {
+      case 'my_trips':
+        _onItemTapped(5);
+        break;
+      case 'my_bookings':
+        _onItemTapped(6);
+        break;
+      case 'travel_documents':
+        _onItemTapped(7);
+        break;
+      case 'profile':
+        _onItemTapped(8);
+        break;
+      case 'contact':
+        _onItemTapped(9);
+        break;
+      case 'logout':
+        AuthService().signOut();
+        break;
+    }
+  }
+
+  Future<void> _openAccountMenu(BuildContext buttonContext) async {
+    final box = buttonContext.findRenderObject() as RenderBox?;
+    final overlay =
+        Navigator.of(buttonContext).overlay?.context.findRenderObject()
+            as RenderBox?;
+    if (box == null || overlay == null) return;
+
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        box.localToGlobal(Offset.zero, ancestor: overlay),
+        box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    final selected = await showMenu<String>(
+      context: buttonContext,
+      position: position,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: AppTheme.surface,
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: 0.12),
+      items: const <PopupMenuEntry<String>>[
+        PopupMenuItem<String>(
+          value: 'my_trips',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.flight_takeoff_outlined),
+            title: Text('My Trips'),
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'my_bookings',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.receipt_long_outlined),
+            title: Text('My Bookings'),
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'travel_documents',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.folder_open_outlined),
+            title: Text('Travel Documents'),
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'profile',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.person_outline),
+            title: Text('Profile'),
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'contact',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.contact_mail_outlined),
+            title: Text('Contact Us'),
+          ),
+        ),
+        PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'logout',
+          child: ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.exit_to_app, color: AppColors.accent),
+            title: Text('Logout', style: TextStyle(color: AppColors.accent)),
+          ),
+        ),
+      ],
+    );
+
+    if (selected != null) {
+      _handleMenuSelection(selected);
+    }
+  }
+
   Widget _buildPopupMenu({required bool compact}) {
-    // Padding lives outside PopupMenuButton so the entire visible control is
-    // the button's hit target (margin on the child left dead zones / web misses).
+    // Explicit InkWell + showMenu (not PopupMenuButton) so the visible control
+    // is the sole hit target and cannot be swallowed by AppBar chrome.
     return Padding(
       padding: EdgeInsets.only(right: compact ? 10 : 16),
-      child: PopupMenuButton<String>(
-        tooltip: compact ? 'Menu' : 'Account',
-        padding: EdgeInsets.zero,
-        offset: const Offset(0, 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: AppTheme.surface,
-        elevation: 8,
-        shadowColor: Colors.black.withValues(alpha: 0.12),
-        onSelected: (value) {
-          switch (value) {
-            case 'my_trips':
-              _onItemTapped(5);
-              break;
-            case 'my_bookings':
-              _onItemTapped(6);
-              break;
-            case 'travel_documents':
-              _onItemTapped(7);
-              break;
-            case 'profile':
-              _onItemTapped(8);
-              break;
-            case 'contact':
-              _onItemTapped(9);
-              break;
-            case 'logout':
-              AuthService().signOut();
-              break;
-          }
-        },
-        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-          const PopupMenuItem<String>(
-            value: 'my_trips',
-            child: ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.flight_takeoff_outlined),
-              title: Text('My Trips'),
-            ),
-          ),
-          const PopupMenuItem<String>(
-            value: 'my_bookings',
-            child: ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.receipt_long_outlined),
-              title: Text('My Bookings'),
-            ),
-          ),
-          const PopupMenuItem<String>(
-            value: 'travel_documents',
-            child: ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.folder_open_outlined),
-              title: Text('Travel Documents'),
-            ),
-          ),
-          const PopupMenuItem<String>(
-            value: 'profile',
-            child: ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.person_outline),
-              title: Text('Profile'),
-            ),
-          ),
-          const PopupMenuItem<String>(
-            value: 'contact',
-            child: ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.contact_mail_outlined),
-              title: Text('Contact Us'),
-            ),
-          ),
-          const PopupMenuDivider(),
-          const PopupMenuItem<String>(
-            value: 'logout',
-            child: ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.exit_to_app, color: AppColors.accent),
-              title: Text('Logout', style: TextStyle(color: AppColors.accent)),
-            ),
-          ),
-        ],
-        child: compact
-            ? Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
+      child: Builder(
+        builder: (buttonContext) {
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: Key(compact ? 'nav_menu_button' : 'nav_account_button'),
+              onTap: () => _openAccountMenu(buttonContext),
+              borderRadius: BorderRadius.circular(12),
+              child: Ink(
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceAlt,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppTheme.border),
                 ),
-                child: const Icon(
-                  Icons.menu_rounded,
-                  color: AppColors.textPrimary,
-                  size: 22,
-                ),
-              )
-            : Container(
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceAlt,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.person_outline_rounded,
-                        size: 18, color: AppColors.textPrimary),
-                    SizedBox(width: 8),
-                    Text(
-                      'Account',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
+                child: compact
+                    ? const SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Icon(
+                          Icons.menu_rounded,
+                          color: AppColors.textPrimary,
+                          size: 22,
+                        ),
+                      )
+                    : const SizedBox(
+                        height: 44,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 14),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.person_outline_rounded,
+                                  size: 18, color: AppColors.textPrimary),
+                              SizedBox(width: 8),
+                              Text(
+                                'Account',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.keyboard_arrow_down_rounded,
+                                  size: 18, color: AppColors.textSecondary),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(Icons.keyboard_arrow_down_rounded,
-                        size: 18, color: AppColors.textSecondary),
-                  ],
-                ),
               ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -427,6 +457,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
                         for (var i = 0; i < _primaryDestinations.length; i++)
                           Expanded(
                             child: _DockNavItem(
+                              key: Key('dock_nav_$i'),
                               destination: _primaryDestinations[i],
                               selected: _primaryHighlightIndex == i,
                               onTap: () => _onItemTapped(i),
@@ -480,6 +511,7 @@ class _DockNavItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _DockNavItem({
+    super.key,
     required this.destination,
     required this.selected,
     required this.onTap,
@@ -568,6 +600,7 @@ class _DesktopTopNav extends StatelessWidget {
           for (var i = 0; i < destinations.length; i++) ...[
             if (i > 0) const SizedBox(width: 4),
             _DesktopNavLink(
+              key: Key('desktop_nav_$i'),
               destination: destinations[i],
               selected: selectedIndex == i,
               onTap: () => onTap(i),
@@ -585,6 +618,7 @@ class _DesktopNavLink extends StatelessWidget {
   final VoidCallback onTap;
 
   const _DesktopNavLink({
+    super.key,
     required this.destination,
     required this.selected,
     required this.onTap,

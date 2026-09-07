@@ -1292,7 +1292,7 @@ class _ServiceShortcutTile extends StatelessWidget {
         onTap: data.onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          width: 88,
+          width: 100,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
