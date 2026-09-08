@@ -1,4 +1,5 @@
 import 'package:destiny/config/theme/app_theme.dart';
+import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:flutter/material.dart';
 
 class AwardCard extends StatelessWidget {
@@ -27,22 +28,15 @@ class AwardCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: Image.asset(
-                imagePath,
+              child: SizedBox(
                 height: 120,
                 width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 120,
-                    color: AppTheme.imagePlaceholder,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.emoji_events_outlined,
-                      color: AppTheme.textSecondary,
-                    ),
-                  );
-                },
+                child: TravelNetworkImage(
+                  imageUrl: imagePath,
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(height: 12),

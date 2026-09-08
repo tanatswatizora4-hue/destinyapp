@@ -12,12 +12,19 @@ import 'package:destiny/utils/tour_display.dart';
 import 'package:destiny/widgets/accommodation_card.dart';
 import 'package:destiny/widgets/award_card.dart';
 import 'package:destiny/widgets/tour_card.dart';
+import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:destiny/widgets/vehicle_card.dart';
-import 'package:destiny/widgets/video_hero.dart';
 import 'package:flutter/material.dart';
 
 /// Home-local wide measure — keeps Tours on [AppTheme.contentWideMaxWidth].
 const double _homeWideMax = 1520;
+
+/// Canonical Home photographic surfaces (Destiny-owned refs, not absolute URLs).
+const String _homeHeroPosterRef = 'destiny-media/home/hero/main.webp';
+const String _homeTravelPartnerRef =
+    'destiny-media/home/editorial/travel-partner.webp';
+const String _homeDestinationInspirationRef =
+    'destiny-media/home/editorial/destination-inspiration.webp';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<double>? onScrollOffsetChanged;
@@ -277,7 +284,13 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          VideoHero(height: heroHeight),
+          // Primary Home hero — Destiny-owned photograph (video disabled on Home).
+          TravelNetworkImage(
+            imageUrl: _homeHeroPosterRef,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: heroHeight,
+          ),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -701,21 +714,16 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Asymmetric local brand image — no remote URLs.
+            // Owned editorial photography via Destiny media resolver.
             Align(
               alignment: Alignment.centerRight,
               child: FractionallySizedBox(
                 widthFactor: isDesktop ? 0.58 : 1,
-                child: Image.asset(
-                  'assets/images/legend.jpg',
+                child: const TravelNetworkImage(
+                  imageUrl: _homeTravelPartnerRef,
                   fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  errorBuilder: (_, __, ___) => Image.asset(
-                    'assets/images/golden.jpg',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const ColoredBox(color: AppTheme.navy),
-                  ),
+                  width: double.infinity,
+                  height: double.infinity,
                 ),
               ),
             ),
@@ -1291,17 +1299,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
         ),
         const SizedBox(height: 18),
+        // Accolades copy stays native; photography is destination-inspiration.webp.
         const Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AwardCard(
-              imagePath: 'assets/images/golden.jpg',
+              imagePath: _homeDestinationInspirationRef,
               title: 'Gold Winner',
               subtitle: 'Best Customer Service',
             ),
             SizedBox(width: 12),
             AwardCard(
-              imagePath: 'assets/images/legend.jpg',
+              imagePath: _homeDestinationInspirationRef,
               title: 'Hall of Fame',
               subtitle: 'Legends in Hospitality',
             ),
