@@ -61,7 +61,7 @@ Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard (login
 | Stays | 36 |
 | Vehicles | 3 |
 | Awards | 6 |
-| Media staged locally | 81 / 84 |
+| Media staged locally | 81 / 84 (also in repo via Git LFS tarball) |
 | Media missing (legacy 404) | 3 |
 
 ## After remote verify

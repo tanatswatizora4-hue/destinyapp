@@ -30,6 +30,7 @@ CATALOG = ROOT / "supabase" / "seed" / "destiny_inventory_catalog.json"
 MISSING = ROOT / "docs" / "m2_missing_media.json"
 STAGING = Path(os.environ.get("DESTINY_MEDIA_STAGING", "/tmp/destiny-media-staging"))
 TARBALLS = [
+    ROOT / "supabase" / "seed" / "destiny-inventory-media-staged.tar",
     ROOT / ".m2_staging" / "destiny-inventory-media-staged.tar",
     Path("/tmp/destiny-inventory-media-staged.tar"),
 ]
