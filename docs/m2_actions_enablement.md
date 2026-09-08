@@ -9,4 +9,8 @@ This PR registers `.github/workflows/m2-destiny-supabase-apply.yml` on `main` so
 3. **Branch:** `cursor/m2-destiny-backend-migration-194a` (required — scripts + LFS media live there).
 4. Leave `migrate_media` enabled.
 
+## LFS / media guards
+
+Checkout uses `lfs: true`. The extract step fails if the media tarball is still a Git LFS pointer, and requires ≥81 staged files before upload.
+
 Do not target Wanzwei. Never put `service_role` in the Flutter app.
