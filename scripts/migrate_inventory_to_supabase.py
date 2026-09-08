@@ -133,10 +133,15 @@ def download(url: str) -> tuple[bytes, str] | None:
 def resolve_legacy_url(path: str) -> str:
     path = path.strip()
     if path.startswith("http://") or path.startswith("https://"):
-        return path
+        parsed = urllib.parse.urlsplit(path)
+        encoded_path = urllib.parse.quote(parsed.path)
+        return urllib.parse.urlunsplit(
+            (parsed.scheme, parsed.netloc, encoded_path, parsed.query, parsed.fragment)
+        )
     if path.startswith("/"):
         path = path[1:]
-    return f"https://bymapara.com/{path}"
+    encoded = "/".join(urllib.parse.quote(seg) for seg in path.split("/"))
+    return f"https://bymapara.com/{encoded}"
 
 
 def migrate_images(
