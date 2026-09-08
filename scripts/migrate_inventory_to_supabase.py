@@ -6,8 +6,13 @@ Required env (never commit):
   SUPABASE_SERVICE_ROLE_KEY=...
 
 Optional:
+  DESTINY_MIGRATE_FROM_SNAPSHOT=1  # default: use repo snapshot (no live PHP)
   DESTINY_MIGRATE_MEDIA=1  # download legacy uploads into destiny-media bucket
   LEGACY_API=https://bymapara.com/destiny_api.php
+
+Prefer staged media upload via scripts/upload_staged_media.py over
+DESTINY_MIGRATE_MEDIA when /tmp/destiny-media-staging (or .m2_staging tarball)
+is available — WebP conversions are preserved.
 
 Idempotent on legacy_id (upsert).
 """
@@ -26,6 +31,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "docs" / "m2_data_migration_report.md"
+SNAPSHOT = ROOT / "supabase" / "seed" / "legacy_inventory_snapshot.json"
 
 SUPABASE_URL = os.environ.get(
     "SUPABASE_URL", "https://xchddfpfzrzhlbbmyhyn.supabase.co"
@@ -35,6 +41,8 @@ LEGACY_API = os.environ.get(
     "LEGACY_API", "https://bymapara.com/destiny_api.php"
 )
 MIGRATE_MEDIA = os.environ.get("DESTINY_MIGRATE_MEDIA", "0") == "1"
+# Default to repo snapshot so apply does not depend on live bymapara.
+USE_SNAPSHOT = os.environ.get("DESTINY_MIGRATE_FROM_SNAPSHOT", "1") == "1"
 
 
 def die(msg: str) -> None:
@@ -54,7 +62,41 @@ def http_json(url: str, *, method: str = "GET", headers: dict | None = None, bod
         return json.loads(raw) if raw else None
 
 
+_SNAPSHOT_CACHE: dict[str, list[dict]] | None = None
+
+
+def load_snapshot() -> dict[str, list[dict]]:
+    global _SNAPSHOT_CACHE
+    if _SNAPSHOT_CACHE is not None:
+        return _SNAPSHOT_CACHE
+    if not SNAPSHOT.is_file():
+        die(f"snapshot missing: {SNAPSHOT}")
+    raw = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        die("snapshot root must be an object")
+    out: dict[str, list[dict]] = {}
+    for key in ("tours", "stays", "vehicles", "awards"):
+        rows = raw.get(key) or []
+        if not isinstance(rows, list):
+            die(f"snapshot.{key} must be a list")
+        out[key] = [r for r in rows if isinstance(r, dict)]
+    _SNAPSHOT_CACHE = out
+    return out
+
+
 def legacy_action(action: str) -> list[dict]:
+    if USE_SNAPSHOT:
+        mapping = {
+            "get_tours": "tours",
+            "get_accommodations": "stays",
+            "get_vehicles": "vehicles",
+            "get_awards": "awards",
+        }
+        key = mapping.get(action)
+        if key is None:
+            die(f"unsupported snapshot action: {action}")
+        return load_snapshot()[key]
+
     url = f"{LEGACY_API}?action={urllib.parse.quote(action)}"
     payload = http_json(url)
     if not isinstance(payload, dict) or payload.get("status") != "success":
@@ -195,6 +237,11 @@ def main() -> None:
             "SUPABASE_SERVICE_ROLE_KEY is required to migrate. "
             "Export it in the environment (never commit)."
         )
+    if "xchddfpfzrzhlbbmyhyn" not in SUPABASE_URL:
+        die(f"refusing non-destiny-os URL: {SUPABASE_URL}")
+
+    source_label = f"snapshot:{SNAPSHOT.name}" if USE_SNAPSHOT else LEGACY_API
+    print(f"Inventory source: {source_label}")
 
     report = {
         "tours": {"source": 0, "upserted": 0, "skipped": 0},
@@ -205,6 +252,7 @@ def main() -> None:
         "media_failed": 0,
         "media_missing": 0,
         "malformed": [],
+        "source": source_label,
     }
 
     # --- Tours ---
@@ -493,7 +541,10 @@ def main() -> None:
     lines = [
         "# M2 data migration report",
         "",
+        f"**Status:** remote upsert completed",
+        f"**Date:** auto-updated by `scripts/migrate_inventory_to_supabase.py`",
         f"Supabase: `{SUPABASE_URL}`",
+        f"Inventory source: `{report['source']}`",
         f"Media copy enabled: `{MIGRATE_MEDIA}`",
         "",
         "| Entity | Source | Upserted | Skipped |",
