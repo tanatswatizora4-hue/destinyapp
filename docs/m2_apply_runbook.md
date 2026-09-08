@@ -31,7 +31,7 @@ DESTINY_SKIP_SCHEMA=1 bash scripts/apply_m2_remote.sh
 
 Workflow: `.github/workflows/m2-destiny-supabase-apply.yml`
 
-**Note:** GitHub only lists `workflow_dispatch` workflows that exist on the **default branch**. Merge/copy this workflow to `main` (or run via API with `--ref`) before using the Actions UI.
+**Note:** GitHub only lists `workflow_dispatch` workflows on the **default branch**. PR `cursor/m2-gha-enable-194a` → `main` registers the workflow; when running, select branch `cursor/m2-destiny-backend-migration-194a`.
 
 Repo Actions secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`, optional `DESTINY_SUPABASE_ANON_KEY`.  
 Then: Actions → **M2 Destiny Supabase apply** → Run workflow (branch = this PR).
