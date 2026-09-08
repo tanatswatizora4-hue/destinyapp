@@ -57,10 +57,17 @@ jobs:
           python3 scripts/apply_sql_management_api.py \
             supabase/migrations/20260908143000_destiny_inventory_schema.sql
 
-      - name: Migrate inventory (+ optional media)
+      - name: Migrate inventory (+ optional live media download)
         env:
+          DESTINY_MIGRATE_FROM_SNAPSHOT: "1"
           DESTINY_MIGRATE_MEDIA: ${{ inputs.migrate_media && '1' || '0' }}
         run: python3 scripts/migrate_inventory_to_supabase.py
+
+      - name: Upload public inventory catalog.json
+        env:
+          DESTINY_CATALOG_ONLY: "1"
+          DESTINY_UPLOAD_CATALOG: "1"
+        run: python3 scripts/upload_staged_media.py
 
       - name: Optional owned-media seed SQL
         if: ${{ inputs.apply_seed_sql }}
@@ -68,16 +75,6 @@ jobs:
           python3 scripts/apply_sql_management_api.py \
             supabase/seed/inventory_seed_owned_media.sql
 
-      - name: Verify anon reads
+      - name: Verify anon reads + counts
         if: ${{ env.DESTINY_SUPABASE_ANON_KEY != '' }}
-        run: |
-          set -euo pipefail
-          for table in tours stays vehicles awards; do
-            code=$(curl -sS -o /tmp/out.json -w '%{http_code}' \
-              "$SUPABASE_URL/rest/v1/$table?select=id&is_published=eq.true&limit=1" \
-              -H "apikey: $DESTINY_SUPABASE_ANON_KEY" \
-              -H "Authorization: Bearer $DESTINY_SUPABASE_ANON_KEY")
-            echo "$table HTTP $code"
-            test "$code" = "200"
-          done
-          echo "anon read verification passed"
+        run: python3 scripts/verify_m2_remote.py

@@ -7,24 +7,35 @@ Target: **xchddfpfzrzhlbbmyhyn** — never Wanzwei.
 
 ## Option A — New Cloud Agent run with secrets (preferred)
 
-1. Add environment secrets: `SUPABASE_SERVICE_ROLE_KEY`, `DESTINY_SUPABASE_ANON_KEY`, optional `SUPABASE_ACCESS_TOKEN`
-2. **Start a new agent** on `cursor/m2-destiny-backend-migration-194a` (mid-run secret adds may not inject)
-3. Agent runs:
+1. Add environment secrets: `SUPABASE_SERVICE_ROLE_KEY`, `DESTINY_SUPABASE_ANON_KEY`, `SUPABASE_ACCESS_TOKEN`
+2. **Start a new agent** on `cursor/m2-destiny-backend-migration-194a` (or this apply branch) — mid-run secret adds may not inject
+3. Agent runs the one-shot:
 
 ```bash
 export SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co
-python3 scripts/apply_sql_management_api.py \
-  supabase/migrations/20260908143000_destiny_inventory_schema.sql
-DESTINY_MIGRATE_MEDIA=1 python3 scripts/migrate_inventory_to_supabase.py
-# verify anon reads, update docs/m2_data_migration_report.md, flutter test
+export SUPABASE_SERVICE_ROLE_KEY=...
+export SUPABASE_ACCESS_TOKEN=...
+export DESTINY_SUPABASE_ANON_KEY=...
+bash scripts/apply_m2_remote.sh
+# schema + snapshot upsert + staged media + catalog.json + verify counts
+```
+
+If schema was already pasted in SQL Editor:
+
+```bash
+DESTINY_SKIP_SCHEMA=1 bash scripts/apply_m2_remote.sh
 ```
 
 ## Option B — GitHub Actions
 
-Workflow: `.github/workflows/m2-destiny-supabase-apply.yml` on this branch.
+Workflow: `.github/workflows/m2-destiny-supabase-apply.yml`
+
+**Note:** GitHub only lists `workflow_dispatch` workflows that exist on the **default branch**. Merge/copy this workflow to `main` (or run via API with `--ref`) before using the Actions UI.
 
 Repo Actions secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`, optional `DESTINY_SUPABASE_ANON_KEY`.  
-Then: Actions → **M2 Destiny Supabase apply** → Run workflow.
+Then: Actions → **M2 Destiny Supabase apply** → Run workflow (branch = this PR).
+
+Actions uses the repo snapshot + optional live media download (`DESTINY_MIGRATE_MEDIA`) and uploads `inventory/catalog.json`. For WebP-staged media, prefer Option A with the local `.m2_staging` tarball.
 
 ## Option C — Dashboard SQL (+ optional media)
 
@@ -33,7 +44,12 @@ Then: Actions → **M2 Destiny Supabase apply** → Run workflow.
 3. Storage → `destiny-media`:
    - Upload `supabase/seed/destiny_inventory_catalog.json` as `inventory/catalog.json`
    - Upload inventory images under `tours/`, `stays/`, `vehicles/`, `awards/` (object keys match `supabase/seed/media_manifest.json`)
-4. Put `DESTINY_SUPABASE_ANON_KEY` in a new agent env and verify PostgREST reads
+   - Or run `python3 scripts/upload_staged_media.py` with `SUPABASE_SERVICE_ROLE_KEY`
+4. Put `DESTINY_SUPABASE_ANON_KEY` in a new agent env and run `python3 scripts/verify_m2_remote.py`
+
+## Option D — Sign into Supabase on agent desktop
+
+Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard (login page is often already open), then tell the agent you are logged in so it can apply SQL and copy the publishable anon key (never paste `service_role` into chat if avoidable — use env secrets).
 
 ## Expected counts
 
@@ -48,6 +64,7 @@ Then: Actions → **M2 Destiny Supabase apply** → Run workflow.
 
 ## After remote verify
 
-- Update `docs/m2_data_migration_report.md` with upserted counts
+- Confirm `docs/m2_data_migration_report.md` upserted counts
 - Mark media rows migrated in `docs/destiny_media_inventory.md`
+- Set `docs/m2_status.md` criteria to live-verified
 - Keep bookings/profiles/docs on bymapara until auth bridge

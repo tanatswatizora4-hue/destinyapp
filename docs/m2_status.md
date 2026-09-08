@@ -4,25 +4,36 @@ Target: Destiny Supabase `xchddfpfzrzhlbbmyhyn` only.
 
 | Criterion | Evidence | Status |
 |-----------|----------|--------|
-| Schema exists on destiny-os | PostgREST `/rest/v1/tours` without key → no API key; with invalid key → Invalid API key; tables not verifiable | **BLOCKED** (not applied remotely) |
+| Schema exists on destiny-os | PostgREST `/rest/v1/tours` without key → missing API key; tables not live-verified | **BLOCKED** (not applied remotely) |
 | Migrations versioned in repo | `supabase/migrations/20260908143000_destiny_inventory_schema.sql` | **DONE** |
 | Public inventory RLS correct | SQL in migration; not live-verified | **IN REPO / NOT LIVE** |
 | Sensitive tables protected | RLS on, zero anon policies in SQL | **IN REPO / NOT LIVE** |
-| Tours/stays/vehicles/awards migrated to DB | Seed + migrator ready; remote upsert not run | **BLOCKED** |
-| Inventory media in destiny-media | 81/84 staged locally; Storage objects not uploaded (catalog HTTP 400) | **BLOCKED** |
+| Tours/stays/vehicles/awards migrated to DB | Snapshot migrator + seed ready; remote upsert not run | **BLOCKED** |
+| Inventory media in destiny-media | 81/84 staged (+ `.m2_staging` tarball); Storage objects not uploaded (`catalog.json` HTTP 400/NoSuchKey) | **BLOCKED** |
 | Flutter inventory reads use Supabase | Chain: PostgREST → Storage catalog → asset catalog (no bymapara) | **PARTIAL** (asset Destiny snapshot active; PostgREST/Storage pending) |
 | Product not depending on live bymapara for inventory API | Legacy removed from inventory chain in `main.dart` | **DONE** for inventory API (image `uploads/` host may remain until media migrate) |
 | Remaining legacy documented | `docs/m2_legacy_retirement_status.md` | **DONE** |
 | No secrets committed | Grep/env review | **DONE** |
-| Tests / analyze / web build | 28 tests, 0 analyze errors, web debug OK at `ef9ab83` | **DONE** |
+| Tests / analyze / web build | 28 tests, 0 analyze errors, web debug OK at prior M2 commits | **DONE** |
 | Security review doc | `docs/m2_security_review.md` | **DONE** |
+| One-shot remote apply | `scripts/apply_m2_remote.sh` (schema + snapshot upsert + staged media + catalog + verify) | **DONE** (repo; blocked on secrets) |
 
 ## Hard blocker
 
-`SUPABASE_SERVICE_ROLE_KEY` and/or Dashboard SQL apply + `DESTINY_SUPABASE_ANON_KEY` (and optionally `SUPABASE_ACCESS_TOKEN`).
+```
+STOP_REASON=CREDENTIAL_REQUIRED
+```
 
-If secrets are added in the Cloud Agent environment UI, **start a new agent run** (or reboot this environment) so they are injected into `printenv` — this long-running pod may not receive newly saved secrets until restart.
+Need `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_ACCESS_TOKEN` (or Dashboard SQL) + `DESTINY_SUPABASE_ANON_KEY`.
+
+If secrets are added in the Cloud Agent environment UI, **start a new agent run** on this branch so they inject into `printenv`.
+
+Supabase Dashboard on the agent VM is **not logged in** (login page ready for human VNC).
 
 ## Resume
 
-Follow `docs/m2_apply_runbook.md`.
+Follow `docs/m2_apply_runbook.md` Option A:
+
+```bash
+bash scripts/apply_m2_remote.sh
+```
