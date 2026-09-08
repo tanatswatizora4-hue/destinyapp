@@ -2,52 +2,38 @@
 
 Target: **xchddfpfzrzhlbbmyhyn** — never Wanzwei.
 
-## Option A — Cursor agent (preferred when secrets are in the Cloud Agent env)
+**Flutter inventory API** already avoids live bymapara (PostgREST → Storage catalog → bundled asset).  
+**Remaining M2 work** is remote schema/rows/media on destiny-os.
+
+## Option A — New Cloud Agent run with secrets (preferred)
+
+1. Add environment secrets: `SUPABASE_SERVICE_ROLE_KEY`, `DESTINY_SUPABASE_ANON_KEY`, optional `SUPABASE_ACCESS_TOKEN`
+2. **Start a new agent** on `cursor/m2-destiny-backend-migration-194a` (mid-run secret adds may not inject)
+3. Agent runs:
 
 ```bash
 export SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=...   # Dashboard → Project Settings → API
-export DESTINY_SUPABASE_ANON_KEY=...   # publishable anon / publishable key
-# Optional for schema apply without SQL Editor:
-export SUPABASE_ACCESS_TOKEN=...      # Dashboard → Account → Access Tokens
-
-# Schema (pick one):
-#   - SQL Editor paste: supabase/migrations/20260908143000_destiny_inventory_schema.sql
-#   - OR:
 python3 scripts/apply_sql_management_api.py \
   supabase/migrations/20260908143000_destiny_inventory_schema.sql
-
-# Media + rows:
-python3 scripts/upload_staged_media.py   # uses /tmp staging when present
 DESTINY_MIGRATE_MEDIA=1 python3 scripts/migrate_inventory_to_supabase.py
-
-# Verify + Flutter:
-curl "$SUPABASE_URL/rest/v1/tours?select=id&limit=1" \
-  -H "apikey: $DESTINY_SUPABASE_ANON_KEY" \
-  -H "Authorization: Bearer $DESTINY_SUPABASE_ANON_KEY"
-flutter run --dart-define=DESTINY_SUPABASE_ANON_KEY=$DESTINY_SUPABASE_ANON_KEY
+# verify anon reads, update docs/m2_data_migration_report.md, flutter test
 ```
 
-## Option B — GitHub Actions (manual workflow_dispatch)
+## Option B — GitHub Actions
 
-Workflow: `.github/workflows/m2-destiny-supabase-apply.yml`
+Workflow: `.github/workflows/m2-destiny-supabase-apply.yml` on this branch.
 
-Add repo Actions secrets:
+Repo Actions secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`, optional `DESTINY_SUPABASE_ANON_KEY`.  
+Then: Actions → **M2 Destiny Supabase apply** → Run workflow.
 
-| Secret | Purpose |
-|--------|---------|
-| `SUPABASE_ACCESS_TOKEN` | Management API schema apply |
-| `SUPABASE_SERVICE_ROLE_KEY` | Inventory upsert + Storage upload |
-| `DESTINY_SUPABASE_ANON_KEY` | Optional post-apply read verify |
+## Option C — Dashboard SQL (+ optional media)
 
-Then: Actions → **M2 Destiny Supabase apply** → Run workflow (`migrate_media` on).
-
-## Option C — Dashboard-only
-
-1. SQL Editor: schema migration
-2. SQL Editor: `supabase/seed/inventory_seed.sql` (legacy image paths OK temporarily)
-3. Provide agent `DESTINY_SUPABASE_ANON_KEY` for Flutter cutover
-4. Later: service_role for Storage media upload
+1. SQL Editor: paste `supabase/migrations/20260908143000_destiny_inventory_schema.sql`
+2. SQL Editor: paste `supabase/seed/inventory_seed_owned_media.sql` **or** `inventory_seed.sql`
+3. Storage → `destiny-media`:
+   - Upload `supabase/seed/destiny_inventory_catalog.json` as `inventory/catalog.json`
+   - Upload inventory images under `tours/`, `stays/`, `vehicles/`, `awards/` (object keys match `supabase/seed/media_manifest.json`)
+4. Put `DESTINY_SUPABASE_ANON_KEY` in a new agent env and verify PostgREST reads
 
 ## Expected counts
 
@@ -57,10 +43,11 @@ Then: Actions → **M2 Destiny Supabase apply** → Run workflow (`migrate_media
 | Stays | 36 |
 | Vehicles | 3 |
 | Awards | 6 |
-| Media staged | 81 / 84 |
+| Media staged locally | 81 / 84 |
 | Media missing (legacy 404) | 3 |
 
-## After verify
+## After remote verify
 
-- Mark inventory legacy PHP reads RETIRED in `docs/m2_legacy_retirement_status.md`
+- Update `docs/m2_data_migration_report.md` with upserted counts
+- Mark media rows migrated in `docs/destiny_media_inventory.md`
 - Keep bookings/profiles/docs on bymapara until auth bridge
