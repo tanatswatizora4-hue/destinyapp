@@ -2,15 +2,15 @@ name: M2 Destiny Supabase apply
 
 # Registered on default branch so workflow_dispatch appears in Actions UI.
 # When running: select branch cursor/m2-destiny-backend-migration-194a (has scripts + LFS media).
-# Required Actions secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_SERVICE_ROLE_KEY, optional DESTINY_SUPABASE_ANON_KEY.
+# Required Actions secret: SUPABASE_ACCESS_TOKEN (bootstraps service_role + anon when omitted).
 
 
 # Manual-only. Applies schema + inventory/media migration to destiny-os ONLY.
 # Required GitHub secrets (repo Settings → Secrets → Actions):
-#   SUPABASE_ACCESS_TOKEN       — for Management API SQL apply
-#   SUPABASE_SERVICE_ROLE_KEY   — for PostgREST upsert + Storage upload
-# Optional:
-#   DESTINY_SUPABASE_ANON_KEY   — verify public reads after apply
+#   SUPABASE_ACCESS_TOKEN       — PAT (can bootstrap service_role + anon)
+# Optional (bootstrapped from ACCESS_TOKEN when omitted):
+#   SUPABASE_SERVICE_ROLE_KEY
+#   DESTINY_SUPABASE_ANON_KEY
 #
 # Never targets Wanzwei.
 # Prefer staged LFS media (default). Live re-download is opt-in only.
@@ -57,12 +57,29 @@ jobs:
             *) echo "refusing non-destiny-os URL"; exit 1 ;;
           esac
           test -n "${SUPABASE_ACCESS_TOKEN}" || { echo "missing SUPABASE_ACCESS_TOKEN"; exit 1; }
-          test -n "${SUPABASE_SERVICE_ROLE_KEY}" || { echo "missing SUPABASE_SERVICE_ROLE_KEY"; exit 1; }
+          # SERVICE_ROLE may be bootstrapped from ACCESS_TOKEN in the next step
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Bootstrap Destiny API keys from access token (if needed)
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" || -z "${DESTINY_SUPABASE_ANON_KEY:-}" ]]; then
+            eval "$(python3 scripts/m2_bootstrap_keys.py --export)"
+            echo "SUPABASE_SERVICE_ROLE_KEY<<EOF" >> "$GITHUB_ENV"
+            echo "$SUPABASE_SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
+            if [[ -n "${DESTINY_SUPABASE_ANON_KEY:-}" ]]; then
+              echo "DESTINY_SUPABASE_ANON_KEY<<EOF" >> "$GITHUB_ENV"
+              echo "$DESTINY_SUPABASE_ANON_KEY" >> "$GITHUB_ENV"
+              echo "EOF" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "API keys already provided via Actions secrets"
+          fi
 
       - name: Apply schema + RLS + storage policies
         run: |
