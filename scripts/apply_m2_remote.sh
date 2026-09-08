@@ -54,8 +54,26 @@ python3 "$ROOT/scripts/migrate_inventory_to_supabase.py"
 if [[ "${DESTINY_SKIP_MEDIA:-0}" != "1" ]]; then
   echo "==> Uploading staged media + inventory/catalog.json"
   python3 "$ROOT/scripts/upload_staged_media.py"
+  echo "==> Rebuilding owned catalog from snapshot + manifest"
+  python3 "$ROOT/scripts/rebuild_owned_catalog.py"
+  # Re-upload catalog after rebuild (owned paths for awards bare strings, etc.)
+  DESTINY_CATALOG_ONLY=1 python3 "$ROOT/scripts/upload_staged_media.py"
+  if [[ "${DESTINY_SYNC_ASSET_CATALOG:-1}" == "1" ]]; then
+    echo "==> Syncing assets/data catalog to owned media paths"
+    python3 "$ROOT/scripts/rebuild_owned_catalog.py" --sync-assets
+  fi
 else
   echo "==> Skipping media upload (DESTINY_SKIP_MEDIA=1)"
+fi
+
+if [[ "${DESTINY_APPLY_OWNED_SEED:-0}" == "1" ]]; then
+  if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
+    echo "WARN: DESTINY_APPLY_OWNED_SEED=1 but SUPABASE_ACCESS_TOKEN unset" >&2
+  else
+    echo "==> Applying owned-media seed SQL"
+    python3 "$ROOT/scripts/apply_sql_management_api.py" \
+      "$ROOT/supabase/seed/inventory_seed_owned_media.sql"
+  fi
 fi
 
 if [[ -n "${DESTINY_SUPABASE_ANON_KEY:-}" ]]; then

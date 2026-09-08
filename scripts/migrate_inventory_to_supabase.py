@@ -129,12 +129,61 @@ def parse_json_list(raw: Any) -> list:
     if isinstance(raw, list):
         return raw
     if isinstance(raw, str):
-        try:
-            val = json.loads(raw or "[]")
-            return val if isinstance(val, list) else []
-        except json.JSONDecodeError:
+        text = raw.strip()
+        if not text:
             return []
+        try:
+            val = json.loads(text)
+            if isinstance(val, list):
+                return val
+            if isinstance(val, str) and val.strip():
+                return [val.strip()]
+            return []
+        except json.JSONDecodeError:
+            # Legacy sometimes stores a bare path string (not JSON).
+            return [text]
     return []
+
+
+def load_media_manifest() -> dict[str, str]:
+    """Map legacy upload path → destiny-media object path (skip missing)."""
+    path = ROOT / "supabase" / "seed" / "media_manifest.json"
+    if not path.is_file():
+        return {}
+    items = json.loads(path.read_text(encoding="utf-8"))
+    out: dict[str, str] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        legacy = (item.get("legacy") or "").strip()
+        object_path = (item.get("object_path") or "").strip()
+        status = (item.get("status") or "").strip()
+        if not legacy or not object_path:
+            continue
+        if status == "missing" or int(item.get("bytes") or 0) <= 0:
+            continue
+        # Prefer first mapping for a shared legacy path.
+        out.setdefault(legacy, object_path)
+        kind = item.get("kind")
+        legacy_id = item.get("legacy_id")
+        if kind is not None and legacy_id is not None:
+            out.setdefault(f"{kind}:{legacy_id}:{legacy}", object_path)
+    return out
+
+
+_MANIFEST_MAP: dict[str, str] | None = None
+
+
+def manifest_map() -> dict[str, str]:
+    global _MANIFEST_MAP
+    if _MANIFEST_MAP is None:
+        _MANIFEST_MAP = load_media_manifest()
+    return _MANIFEST_MAP
+
+
+def owned_path_for(kind: str, legacy_id: int, legacy: str) -> str | None:
+    m = manifest_map()
+    return m.get(f"{kind}:{legacy_id}:{legacy}") or m.get(legacy)
 
 
 def safe_name(value: str) -> str:
@@ -192,13 +241,22 @@ def migrate_images(
     image_urls: list[str],
     stats: dict,
 ) -> tuple[str | None, list[dict]]:
-    """Returns primary path + image rows (storage_path may still be legacy)."""
+    """Returns primary path + image rows.
+
+    Prefer destiny-media paths from media_manifest.json so PostgREST rows match
+    staged Storage objects even when DESTINY_MIGRATE_MEDIA=0.
+    """
     rows: list[dict] = []
     primary: str | None = None
     for idx, raw in enumerate(image_urls):
         legacy = raw if isinstance(raw, str) else str(raw)
+        legacy = legacy.strip()
         storage_path = legacy
-        if MIGRATE_MEDIA and legacy:
+        owned = owned_path_for(kind, legacy_id, legacy) if legacy else None
+        if owned:
+            storage_path = owned
+            stats["media_remapped"] = stats.get("media_remapped", 0) + 1
+        if MIGRATE_MEDIA and legacy and not owned:
             url = resolve_legacy_url(legacy)
             downloaded = download(url)
             if downloaded:
@@ -251,6 +309,7 @@ def main() -> None:
         "media_uploaded": 0,
         "media_failed": 0,
         "media_missing": 0,
+        "media_remapped": 0,
         "malformed": [],
         "source": source_label,
     }
@@ -555,6 +614,7 @@ def main() -> None:
         f"| Awards | {report['awards']['source']} | {report['awards']['upserted']} | {report['awards']['skipped']} |",
         "",
         f"Media uploaded: **{report['media_uploaded']}**",
+        f"Media remapped from manifest: **{report.get('media_remapped', 0)}**",
         f"Media failed: **{report['media_failed']}**",
         f"Media missing: **{report['media_missing']}**",
         "",

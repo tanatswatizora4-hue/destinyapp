@@ -17,7 +17,8 @@ export SUPABASE_SERVICE_ROLE_KEY=...
 export SUPABASE_ACCESS_TOKEN=...
 export DESTINY_SUPABASE_ANON_KEY=...
 bash scripts/apply_m2_remote.sh
-# schema + snapshot upsert + staged media + catalog.json + verify counts
+# schema + snapshot upsert (manifest→destiny-media paths) + staged media
+# + catalog.json + asset catalog sync + verify counts/media/sensitive deny
 ```
 
 If schema was already pasted in SQL Editor:

@@ -67,7 +67,9 @@ jobs:
         env:
           DESTINY_CATALOG_ONLY: "1"
           DESTINY_UPLOAD_CATALOG: "1"
-        run: python3 scripts/upload_staged_media.py
+        run: |
+          python3 scripts/rebuild_owned_catalog.py
+          python3 scripts/upload_staged_media.py
 
       - name: Optional owned-media seed SQL
         if: ${{ inputs.apply_seed_sql }}
