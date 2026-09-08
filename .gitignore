@@ -18,3 +18,4 @@ android/key.properties
 *.iml
 *.log
 android/app/build/
+__pycache__/
