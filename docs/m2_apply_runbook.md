@@ -51,9 +51,11 @@ The workflow checks out with `lfs: true`, fails if the media tarball is still an
    - Or run `python3 scripts/upload_staged_media.py` with `SUPABASE_SERVICE_ROLE_KEY`
 5. Put `DESTINY_SUPABASE_ANON_KEY` in a new agent env and run `python3 scripts/verify_m2_remote.py`
 
-## Option D — Sign into Supabase on agent desktop
+## Option D — Sign into Supabase on agent desktop / CLI login
 
-Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard (login page is often already open), then tell the agent you are logged in so it can apply SQL and copy the publishable anon key (never paste `service_role` into chat if avoidable — use env secrets).
+Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard, authorize the CLI login waiting in tmux `sb-login` (enter the verification code), then tell the agent “login done”.
+
+`apply_m2_remote.sh` auto-loads `SUPABASE_ACCESS_TOKEN` from `~/.supabase/access-token` when the env var is unset (after a successful `supabase login`). Do not paste tokens into chat.
 
 ## Expected counts
 

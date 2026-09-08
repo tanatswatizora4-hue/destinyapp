@@ -32,6 +32,10 @@ case "$URL" in
     ;;
 esac
 
+# Prefer env secret; else reuse Supabase CLI login (~/.supabase/access-token).
+# shellcheck disable=SC1091
+source "$ROOT/scripts/m2_load_access_token.sh"
+
 # If ACCESS_TOKEN is present, fill missing service_role / anon via Management API.
 if [[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
   if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" || -z "${DESTINY_SUPABASE_ANON_KEY:-}" ]]; then
