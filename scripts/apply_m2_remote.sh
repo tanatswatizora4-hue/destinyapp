@@ -53,6 +53,15 @@ echo "==> Upserting inventory (snapshot → PostgREST)"
 python3 "$ROOT/scripts/migrate_inventory_to_supabase.py"
 
 if [[ "${DESTINY_SKIP_MEDIA:-0}" != "1" ]]; then
+  echo "==> Ensuring media staging (extract seed tarball if needed)"
+  if [[ ! -d /tmp/destiny-media-staging ]] || [[ -z "$(find /tmp/destiny-media-staging -type f 2>/dev/null | head -1)" ]]; then
+    TARBALL="$ROOT/supabase/seed/destiny-inventory-media-staged.tar"
+    if [[ -f "$TARBALL" ]]; then
+      mkdir -p /tmp/destiny-media-staging
+      tar -xf "$TARBALL" -C /tmp/destiny-media-staging
+      echo "    extracted $TARBALL"
+    fi
+  fi
   echo "==> Uploading staged media + inventory/catalog.json"
   python3 "$ROOT/scripts/upload_staged_media.py"
   echo "==> Rebuilding owned catalog from snapshot + manifest"

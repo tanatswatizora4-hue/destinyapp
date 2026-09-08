@@ -58,6 +58,15 @@ jobs:
             supabase/migrations/20260908143000_destiny_inventory_schema.sql \
             supabase/migrations/20260908170000_destiny_media_storage_policies.sql
 
+      - name: Extract staged inventory media (Git LFS tarball)
+        if: ${{ inputs.migrate_media }}
+        run: |
+          set -euo pipefail
+          git lfs pull --include='supabase/seed/destiny-inventory-media-staged.tar'
+          mkdir -p /tmp/destiny-media-staging
+          tar -xf supabase/seed/destiny-inventory-media-staged.tar -C /tmp/destiny-media-staging
+          find /tmp/destiny-media-staging -type f | wc -l
+
       - name: Migrate inventory (+ download/upload media into owned paths)
         env:
           DESTINY_MIGRATE_FROM_SNAPSHOT: "1"
@@ -65,7 +74,16 @@ jobs:
           DESTINY_UPLOAD_OWNED: ${{ inputs.migrate_media && '1' || '0' }}
         run: python3 scripts/migrate_inventory_to_supabase.py
 
-      - name: Upload public inventory catalog.json
+      - name: Upload remaining staged media + catalog.json
+        if: ${{ inputs.migrate_media }}
+        env:
+          DESTINY_UPLOAD_CATALOG: "1"
+        run: |
+          python3 scripts/rebuild_owned_catalog.py
+          python3 scripts/upload_staged_media.py
+
+      - name: Upload catalog.json only (no media)
+        if: ${{ !inputs.migrate_media }}
         env:
           DESTINY_CATALOG_ONLY: "1"
           DESTINY_UPLOAD_CATALOG: "1"
