@@ -64,9 +64,11 @@ Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard (login
 | Media staged locally | 81 / 84 (also in repo via Git LFS tarball) |
 | Media missing (legacy 404) | 3 |
 
-## After remote verify
+After remote verify, run Flutter with owned inventory media live:
 
-- Confirm `docs/m2_data_migration_report.md` upserted counts
-- Mark media rows migrated in `docs/destiny_media_inventory.md`
-- Set `docs/m2_status.md` criteria to live-verified
-- Keep bookings/profiles/docs on bymapara until auth bridge
+```bash
+--dart-define=DESTINY_INVENTORY_MEDIA_LIVE=true
+--dart-define=DESTINY_SUPABASE_ANON_KEY=<publishable anon key>
+```
+
+(Until then, inventory `destiny-media/tours|stays|vehicles|awards` refs resolve through the legacy upload map so images keep working.)
