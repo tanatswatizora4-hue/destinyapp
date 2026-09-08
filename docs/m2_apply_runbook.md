@@ -41,12 +41,13 @@ Actions uses the repo snapshot + optional live media download (`DESTINY_MIGRATE_
 ## Option C — Dashboard SQL (+ optional media)
 
 1. SQL Editor: paste `supabase/migrations/20260908143000_destiny_inventory_schema.sql`
-2. SQL Editor: paste `supabase/seed/inventory_seed_owned_media.sql` **or** `inventory_seed.sql`
-3. Storage → `destiny-media`:
+2. SQL Editor: paste `supabase/migrations/20260908170000_destiny_media_storage_policies.sql`
+3. SQL Editor: paste `supabase/seed/inventory_seed_owned_media.sql` **or** `inventory_seed.sql`
+4. Storage → `destiny-media`:
    - Upload `supabase/seed/destiny_inventory_catalog.json` as `inventory/catalog.json`
    - Upload inventory images under `tours/`, `stays/`, `vehicles/`, `awards/` (object keys match `supabase/seed/media_manifest.json`)
    - Or run `python3 scripts/upload_staged_media.py` with `SUPABASE_SERVICE_ROLE_KEY`
-4. Put `DESTINY_SUPABASE_ANON_KEY` in a new agent env and run `python3 scripts/verify_m2_remote.py`
+5. Put `DESTINY_SUPABASE_ANON_KEY` in a new agent env and run `python3 scripts/verify_m2_remote.py`
 
 ## Option D — Sign into Supabase on agent desktop
 

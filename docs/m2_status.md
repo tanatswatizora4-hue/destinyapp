@@ -5,7 +5,7 @@ Target: Destiny Supabase `xchddfpfzrzhlbbmyhyn` only.
 | Criterion | Evidence | Status |
 |-----------|----------|--------|
 | Schema exists on destiny-os | PostgREST `/rest/v1/tours` without key → missing API key; tables not live-verified | **BLOCKED** (not applied remotely) |
-| Migrations versioned in repo | `supabase/migrations/20260908143000_destiny_inventory_schema.sql` | **DONE** |
+| Migrations versioned in repo | `20260908143000_destiny_inventory_schema.sql` + `20260908170000_destiny_media_storage_policies.sql` | **DONE** |
 | Public inventory RLS correct | SQL in migration; not live-verified | **IN REPO / NOT LIVE** |
 | Sensitive tables protected | RLS on, zero anon policies in SQL | **IN REPO / NOT LIVE** |
 | Tours/stays/vehicles/awards migrated to DB | Snapshot migrator + seed ready; remote upsert not run | **BLOCKED** |

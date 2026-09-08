@@ -52,15 +52,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Apply schema + RLS
+      - name: Apply schema + RLS + storage policies
         run: |
           python3 scripts/apply_sql_management_api.py \
-            supabase/migrations/20260908143000_destiny_inventory_schema.sql
+            supabase/migrations/20260908143000_destiny_inventory_schema.sql \
+            supabase/migrations/20260908170000_destiny_media_storage_policies.sql
 
-      - name: Migrate inventory (+ optional live media download)
+      - name: Migrate inventory (+ download/upload media into owned paths)
         env:
           DESTINY_MIGRATE_FROM_SNAPSHOT: "1"
           DESTINY_MIGRATE_MEDIA: ${{ inputs.migrate_media && '1' || '0' }}
+          DESTINY_UPLOAD_OWNED: ${{ inputs.migrate_media && '1' || '0' }}
         run: python3 scripts/migrate_inventory_to_supabase.py
 
       - name: Upload public inventory catalog.json

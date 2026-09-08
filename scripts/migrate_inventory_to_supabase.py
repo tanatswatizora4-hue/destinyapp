@@ -235,6 +235,32 @@ def resolve_legacy_url(path: str) -> str:
     return f"https://bymapara.com/{encoded}"
 
 
+STAGING = Path(os.environ.get("DESTINY_MEDIA_STAGING", "/tmp/destiny-media-staging"))
+# When 1, also push owned/staging bytes during migrate (GHA can set with MIGRATE_MEDIA).
+UPLOAD_OWNED = os.environ.get("DESTINY_UPLOAD_OWNED", "0") == "1"
+
+
+def guess_ctype(path: Path) -> str:
+    ext = path.suffix.lower()
+    return {
+        ".webp": "image/webp",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+    }.get(ext, "application/octet-stream")
+
+
+def staging_file_for(object_path: str) -> Path | None:
+    if not object_path.startswith("destiny-media/"):
+        return None
+    rel = object_path[len("destiny-media/") :]
+    candidate = STAGING / rel
+    if candidate.is_file() and candidate.stat().st_size > 0:
+        return candidate
+    return None
+
+
 def migrate_images(
     kind: str,
     legacy_id: int,
@@ -245,6 +271,9 @@ def migrate_images(
 
     Prefer destiny-media paths from media_manifest.json so PostgREST rows match
     staged Storage objects even when DESTINY_MIGRATE_MEDIA=0.
+
+    When DESTINY_MIGRATE_MEDIA=1 (or DESTINY_UPLOAD_OWNED=1 with staging),
+    upload bytes for owned paths so Storage is not left empty.
     """
     rows: list[dict] = []
     primary: str | None = None
@@ -256,7 +285,38 @@ def migrate_images(
         if owned:
             storage_path = owned
             stats["media_remapped"] = stats.get("media_remapped", 0) + 1
-        if MIGRATE_MEDIA and legacy and not owned:
+
+        should_upload = MIGRATE_MEDIA or (UPLOAD_OWNED and owned is not None)
+        if should_upload and legacy and storage_path.startswith("destiny-media/"):
+            uploaded = False
+            local = staging_file_for(storage_path)
+            if local is not None:
+                try:
+                    upload_storage(
+                        storage_path, local.read_bytes(), guess_ctype(local)
+                    )
+                    stats["media_uploaded"] += 1
+                    uploaded = True
+                except Exception as exc:  # noqa: BLE001
+                    print(f"  staging upload failed {storage_path}: {exc}")
+                    stats["media_failed"] += 1
+            if not uploaded and MIGRATE_MEDIA:
+                url = resolve_legacy_url(legacy)
+                downloaded = download(url)
+                if downloaded:
+                    content, ctype = downloaded
+                    try:
+                        upload_storage(
+                            storage_path, content, ctype.split(";")[0]
+                        )
+                        stats["media_uploaded"] += 1
+                        uploaded = True
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"  upload failed {storage_path}: {exc}")
+                        stats["media_failed"] += 1
+                else:
+                    stats["media_missing"] += 1
+        elif MIGRATE_MEDIA and legacy and not owned:
             url = resolve_legacy_url(legacy)
             downloaded = download(url)
             if downloaded:
@@ -277,6 +337,7 @@ def migrate_images(
                     stats["media_failed"] += 1
             else:
                 stats["media_missing"] += 1
+
         if idx == 0:
             primary = storage_path
         rows.append(
