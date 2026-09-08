@@ -6,6 +6,7 @@ import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/navigation_screen.dart';
 import 'package:destiny/screens/splash_screen.dart';
 import 'package:destiny/services/api_service.dart';
+import 'package:destiny/utils/destiny_media_legacy_map.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -33,10 +34,13 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Owned-media → bymapara uploads fallback while Storage objects catch up.
+  await DestinyMediaLegacyMap.load();
+
   // Inventory precedence (first non-empty wins; never merges sources):
   // 1) Supabase PostgREST when anon key is configured
   // 2) Public destiny-media catalog.json when uploaded
-  // 3) Bundled Destiny catalog asset (snapshot; not live bymapara)
+  // 3) Bundled Destiny catalog asset (owned paths; legacy image fallback)
   // Legacy bymapara PHP inventory reads are retired from this chain.
   // Bookings/profile/docs still use ApiService → bymapara intentionally.
   ApiService.inventoryRepository = ChainedInventoryRepository([

@@ -16,6 +16,7 @@ SNAPSHOT = ROOT / "supabase" / "seed" / "legacy_inventory_snapshot.json"
 MANIFEST = ROOT / "supabase" / "seed" / "media_manifest.json"
 OUT = ROOT / "supabase" / "seed" / "destiny_inventory_catalog.json"
 ASSET = ROOT / "assets" / "data" / "destiny_inventory_catalog.json"
+LEGACY_MAP = ROOT / "assets" / "data" / "destiny_media_legacy_map.json"
 
 
 def parse_json_list(raw):
@@ -218,6 +219,23 @@ def main() -> None:
         f"tours={len(catalog['tours'])} stays={len(catalog['stays'])} "
         f"vehicles={len(catalog['vehicles'])} awards={len(catalog['awards'])}"
     )
+
+    # Always refresh the owned→legacy fallback map used by Flutter.
+    items = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    rev: dict[str, str] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if item.get("status") == "missing" or int(item.get("bytes") or 0) <= 0:
+            continue
+        op = (item.get("object_path") or "").strip()
+        leg = (item.get("legacy") or "").strip()
+        if op.startswith("destiny-media/") and leg:
+            rev[op] = leg
+    LEGACY_MAP.parent.mkdir(parents=True, exist_ok=True)
+    LEGACY_MAP.write_text(json.dumps(rev, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote {LEGACY_MAP} entries={len(rev)}")
+
     if args.sync_assets:
         ASSET.write_text(json.dumps(catalog, separators=(",", ":")) + "\n", encoding="utf-8")
         print(f"Synced {ASSET}")
