@@ -63,9 +63,14 @@ def main() -> None:
 
     check(tarball.is_file(), "seed media tarball present (Git LFS)")
     if tarball.is_file():
-        with tarfile.open(tarball, "r") as tar:
-            files = [m for m in tar.getmembers() if m.isfile()]
-        check(len(files) >= 81, f"tarball files>=81 (got {len(files)})")
+        head = tarball.read_bytes()[:80]
+        if head.startswith(b"version https://git-lfs.github.com/spec/v1"):
+            errors.append("tarball is an LFS pointer — run: git lfs pull")
+            print("FAIL  tarball is an LFS pointer — run: git lfs pull")
+        else:
+            with tarfile.open(tarball, "r") as tar:
+                files = [m for m in tar.getmembers() if m.isfile()]
+            check(len(files) >= 81, f"tarball files>=81 (got {len(files)})")
 
     sql = schema.read_text(encoding="utf-8")
     check("enable row level security" in sql.lower(), "schema enables RLS")

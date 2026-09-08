@@ -57,6 +57,10 @@ if [[ "${DESTINY_SKIP_MEDIA:-0}" != "1" ]]; then
   if [[ ! -d /tmp/destiny-media-staging ]] || [[ -z "$(find /tmp/destiny-media-staging -type f 2>/dev/null | head -1)" ]]; then
     TARBALL="$ROOT/supabase/seed/destiny-inventory-media-staged.tar"
     if [[ -f "$TARBALL" ]]; then
+      # Resolve Git LFS pointer if needed
+      if head -1 "$TARBALL" 2>/dev/null | grep -q 'git-lfs'; then
+        (cd "$ROOT" && git lfs pull --include='supabase/seed/destiny-inventory-media-staged.tar')
+      fi
       mkdir -p /tmp/destiny-media-staging
       tar -xf "$TARBALL" -C /tmp/destiny-media-staging
       echo "    extracted $TARBALL"
