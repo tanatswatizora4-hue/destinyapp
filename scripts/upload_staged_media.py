@@ -152,29 +152,50 @@ def main() -> None:
             print(f"uploaded {item['object_path']}")
             kind = item["kind"]
             try:
+                legacy_q = urllib.parse.quote(item["legacy"], safe="")
                 if kind == "tours":
                     patch(
                         "tour_images",
-                        f"legacy_url=eq.{urllib.parse.quote(item['legacy'], safe='')}",
+                        f"legacy_url=eq.{legacy_q}",
                         {"storage_path": item["object_path"]},
+                    )
+                    patch(
+                        "tours",
+                        f"primary_image_path=eq.{legacy_q}",
+                        {"primary_image_path": item["object_path"]},
                     )
                 elif kind == "stays":
                     patch(
                         "stay_images",
-                        f"legacy_url=eq.{urllib.parse.quote(item['legacy'], safe='')}",
+                        f"legacy_url=eq.{legacy_q}",
                         {"storage_path": item["object_path"]},
+                    )
+                    patch(
+                        "stays",
+                        f"primary_image_path=eq.{legacy_q}",
+                        {"primary_image_path": item["object_path"]},
                     )
                 elif kind == "vehicles":
                     patch(
                         "vehicle_images",
-                        f"legacy_url=eq.{urllib.parse.quote(item['legacy'], safe='')}",
+                        f"legacy_url=eq.{legacy_q}",
                         {"storage_path": item["object_path"]},
+                    )
+                    patch(
+                        "vehicles",
+                        f"primary_image_path=eq.{legacy_q}",
+                        {"primary_image_path": item["object_path"]},
                     )
                 elif kind == "awards":
                     patch(
                         "award_images",
-                        f"legacy_url=eq.{urllib.parse.quote(item['legacy'], safe='')}",
+                        f"legacy_url=eq.{legacy_q}",
                         {"storage_path": item["object_path"]},
+                    )
+                    patch(
+                        "awards",
+                        f"primary_image_path=eq.{legacy_q}",
+                        {"primary_image_path": item["object_path"]},
                     )
             except Exception as exc:  # noqa: BLE001
                 print(f"  db patch skipped: {exc}")

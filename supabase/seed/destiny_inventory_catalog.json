@@ -1,6 +1,7 @@
 {
   "version": 1,
   "project": "xchddfpfzrzhlbbmyhyn",
+  "image_mode": "owned_media_with_legacy_fallback",
   "tours": [
     {
       "id": 39,
@@ -726,8 +727,8 @@
       "room_types": [
         {
           "name": "FRASER SUITS",
-          "price": "",
-          "capacity": ""
+          "price": 0.0,
+          "capacity": 0
         }
       ]
     },
@@ -807,8 +808,8 @@
       "room_types": [
         {
           "name": "QUEEN ROOM",
-          "price": "",
-          "capacity": "2"
+          "price": 0.0,
+          "capacity": 2
         }
       ]
     },
@@ -858,8 +859,8 @@
       "room_types": [
         {
           "name": "LUXURY ROOM",
-          "price": "",
-          "capacity": "2"
+          "price": 0.0,
+          "capacity": 2
         }
       ]
     },
@@ -1072,8 +1073,8 @@
       "room_types": [
         {
           "name": "DOUBLE ROOM",
-          "price": "06800",
-          "capacity": ""
+          "price": 6800.0,
+          "capacity": 0
         }
       ]
     },
@@ -1123,8 +1124,8 @@
       "room_types": [
         {
           "name": "DELUXE SUITE",
-          "price": "",
-          "capacity": ""
+          "price": 0.0,
+          "capacity": 0
         }
       ]
     },
@@ -1237,8 +1238,8 @@
       "room_types": [
         {
           "name": "Double Room",
-          "price": "240.00",
-          "capacity": "2"
+          "price": 240.0,
+          "capacity": 2
         }
       ]
     },
@@ -1305,18 +1306,18 @@
       "room_types": [
         {
           "name": "Standard Queen Room",
-          "price": "150.00",
-          "capacity": "2"
+          "price": 150.0,
+          "capacity": 2
         },
         {
           "name": "Executive Suite",
-          "price": "250.00",
-          "capacity": "2"
+          "price": 250.0,
+          "capacity": 2
         },
         {
           "name": "Family Room",
-          "price": "220.00",
-          "capacity": "4"
+          "price": 220.0,
+          "capacity": 4
         }
       ]
     },
@@ -1354,13 +1355,13 @@
       "room_types": [
         {
           "name": "River-Facing Double",
-          "price": "300.00",
-          "capacity": "2"
+          "price": 300.0,
+          "capacity": 2
         },
         {
           "name": "Luxury Tent",
-          "price": "450.00",
-          "capacity": "2"
+          "price": 450.0,
+          "capacity": 2
         }
       ]
     },
@@ -1395,8 +1396,8 @@
       "room_types": [
         {
           "name": "Luxury Safari Tent",
-          "price": "550.00",
-          "capacity": "2"
+          "price": 550.0,
+          "capacity": 2
         }
       ]
     }
@@ -1494,7 +1495,9 @@
       "name": "Best Customer Service - Gold Winner",
       "description": "Awarded by the Zimbabwe CEO's Network.",
       "year": 2024,
-      "image_urls": []
+      "image_urls": [
+        "destiny-media/awards/3/primary.jpg"
+      ]
     },
     {
       "id": 5,
@@ -1537,8 +1540,9 @@
       "name": "Hall Of Fame",
       "description": "Tourism Legends",
       "year": 2025,
-      "image_urls": []
+      "image_urls": [
+        "uploads/IMG-20250902-WA0007.jpg"
+      ]
     }
-  ],
-  "image_mode": "owned_paths_preferred"
+  ]
 }
