@@ -299,6 +299,11 @@ void main() {
       expect(awards, hasLength(6));
       expect(tours.first.title, isNotEmpty);
       expect(vehicles.first.make, isNotEmpty);
+      // Bundled catalog prefers Destiny-owned object refs.
+      expect(
+        tours.first.imageUrls.first,
+        startsWith('destiny-media/'),
+      );
     });
   });
 

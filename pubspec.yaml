@@ -64,6 +64,7 @@ flutter:
     - assets/videos/
     - assets/animations/
     - assets/data/destiny_inventory_catalog.json
+    - assets/data/destiny_media_legacy_map.json
 
 flutter_launcher_icons:
   android: "launcher_icon"
