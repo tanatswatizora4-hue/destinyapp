@@ -15,7 +15,7 @@ Objective: migrate inventory/media from bymapara PHP → Destiny Supabase (schem
 | Product not depending on live bymapara for inventory API | Legacy removed from inventory chain in `main.dart`; Tours UI shows 25 journeys from Destiny catalog | **DONE** for inventory API |
 | Remaining legacy documented | `docs/m2_legacy_retirement_status.md` | **DONE** |
 | No secrets committed | Grep/env review | **DONE** |
-| Tests / analyze / web build | 31 tests; analyze 0 errors; `flutter build web --debug` OK | **DONE** |
+| Tests / analyze / web build | 32 Flutter tests PASS; preflight PASS; analyze/build previously OK | **DONE** (re-verified tests 2026-09-08) |
 | Security review doc | `docs/m2_security_review.md` | **DONE** |
 | One-shot remote apply + doc finalize | `apply_m2_remote.sh` → verify → `m2_finalize_docs.py` | **DONE** (repo; blocked on secrets) |
 | Actions LFS media checkout | `checkout@v4` `lfs: true` + pointer guard + ≥81 files (M2 branch + PR #13) | **DONE** (repo) |
