@@ -14,7 +14,7 @@ Target: Destiny Supabase `xchddfpfzrzhlbbmyhyn` only.
 | Product not depending on live bymapara for inventory API | Legacy removed from inventory chain in `main.dart` | **DONE** for inventory API (image `uploads/` host may remain until media migrate) |
 | Remaining legacy documented | `docs/m2_legacy_retirement_status.md` | **DONE** |
 | No secrets committed | Grep/env review | **DONE** |
-| Tests / analyze / web build | 28 tests, 0 analyze errors, web debug OK at prior M2 commits | **DONE** |
+| Tests / analyze / web build | 31 tests pass; analyze 0 errors (baseline infos/warnings); `flutter build web --debug` OK at `f5238ba` | **DONE** |
 | Security review doc | `docs/m2_security_review.md` | **DONE** |
 | One-shot remote apply | `scripts/apply_m2_remote.sh` (schema + snapshot upsert with manifest remap + staged media + catalog + optional asset sync + verify) | **DONE** (repo; blocked on secrets) |
 | Migrator remaps to destiny-media via manifest | `scripts/migrate_inventory_to_supabase.py` + unit tests | **DONE** (repo) |
