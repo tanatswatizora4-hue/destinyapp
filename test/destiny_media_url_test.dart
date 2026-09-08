@@ -21,13 +21,36 @@ void main() {
         'https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media',
       );
     });
+
+    test('blank override does not permanently break defaults after clear', () {
+      DestinyMediaConfig.debugOverride(supabaseUrl: '');
+      expect(DestinyMediaConfig.isSupabaseConfigured, isFalse);
+      DestinyMediaConfig.debugClearOverrides();
+      expect(
+        DestinyMediaConfig.supabaseUrl,
+        DestinyMediaConfig.productionSupabaseUrl,
+      );
+      expect(DestinyMediaConfig.isSupabaseConfigured, isTrue);
+    });
   });
 
   group('DestinyMediaUrl.resolve', () {
-    test('resolves production Destiny refs to public Storage URLs', () {
+    test('resolves all Home owned media refs to public Storage URLs', () {
       expect(
         DestinyMediaUrl.resolve('destiny-media/home/hero/main.webp'),
         'https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/home/hero/main.webp',
+      );
+      expect(
+        DestinyMediaUrl.resolve(
+          'destiny-media/home/editorial/travel-partner.webp',
+        ),
+        'https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/home/editorial/travel-partner.webp',
+      );
+      expect(
+        DestinyMediaUrl.resolve(
+          'destiny-media/home/editorial/destination-inspiration.webp',
+        ),
+        'https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/home/editorial/destination-inspiration.webp',
       );
     });
 

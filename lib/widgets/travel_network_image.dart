@@ -1,11 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/utils/destiny_media_url.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 /// Tasteful travel image — resolves via [DestinyMediaUrl], intentional fallbacks.
 ///
 /// Accepts raw API paths, Destiny Supabase refs, absolute URLs, or `assets/...`.
+///
+/// On Flutter web, prefers HTML `<img>` rendering so public CDN/Storage images
+/// display without requiring CORS byte-fetch (CachedNetworkImage HTTP download).
 class TravelNetworkImage extends StatelessWidget {
   final String imageUrl;
   final double? width;
@@ -34,6 +38,21 @@ class TravelNetworkImage extends StatelessWidget {
         height: height,
         fit: fit,
         errorBuilder: (_, __, ___) => const _TravelImageFallback(loading: false),
+      );
+    } else if (kIsWeb) {
+      // Public Destiny Storage images must render via HTML elements on web.
+      // Byte-fetch (default NetworkImage / CachedNetworkImage) fails without CORS.
+      image = Image.network(
+        resolved,
+        width: width,
+        height: height,
+        fit: fit,
+        webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+        errorBuilder: (_, __, ___) => const _TravelImageFallback(loading: false),
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const _TravelImageFallback(loading: true);
+        },
       );
     } else {
       image = CachedNetworkImage(

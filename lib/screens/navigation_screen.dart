@@ -21,6 +21,10 @@ import 'package:flutter/material.dart';
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
 
+  /// Account-area tabs that require sign-in.
+  /// Public: 0 Home, 1 Tours, 2 Stays, 3 Vehicles, 4 Flights, 9 Contact.
+  static const List<int> protectedNavIndices = [5, 6, 7, 8];
+
   @override
   State<NavigationScreen> createState() => _NavigationScreenState();
 }
@@ -123,7 +127,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         const TourListScreen(),
         const AccommodationListScreen(),
         const VehicleListScreen(),
-        FlightsScreen(userId: _sqlUserId!),
+        FlightsScreen(userId: _sqlUserId),
         MyTripsScreen(userId: _sqlUserId!),
         const MyBookingsScreen(),
         TravelDocumentsScreen(userId: _sqlUserId!),
@@ -131,7 +135,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
         const ContactScreen(),
       ];
     } else {
-      // If the user is not authenticated, show a placeholder for protected screens.
+      // Public browse tabs remain available when signed out.
+      // Account-area tabs (5–8) show placeholders until sign-in.
       return <Widget>[
         HomeScreen(
           onScrollOffsetChanged: (offset) {
@@ -144,7 +149,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         const TourListScreen(),
         const AccommodationListScreen(),
         const VehicleListScreen(),
-        _buildPlaceholder('Please sign in to plan a trip.'),
+        const FlightsScreen(),
         _buildPlaceholder('Please sign in to view your trips.'),
         _buildPlaceholder('Please sign in to view your bookings.'),
         _buildPlaceholder('Please sign in to view your travel documents.'),
@@ -168,7 +173,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
   }
 
   void _onItemTapped(int index) {
-    final protectedIndices = [4, 5, 6, 7, 8];
+    // Public: 0 Home, 1 Tours, 2 Stays, 3 Vehicles, 4 Flights, 9 Contact.
+    // Protected account area: 5 My Trips, 6 Bookings, 7 Docs, 8 Profile.
+    const protectedIndices = NavigationScreen.protectedNavIndices;
 
     if (protectedIndices.contains(index) && _sqlUserId == null) {
       ScaffoldMessenger.of(context).showSnackBar(

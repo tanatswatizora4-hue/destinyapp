@@ -11,6 +11,9 @@ import 'package:flutter/foundation.dart';
 ///   --dart-define=DESTINY_MEDIA_BUCKET=destiny-media
 /// ```
 ///
+/// Empty dart-defines fall back to production defaults (an explicit empty
+/// `--dart-define=DESTINY_SUPABASE_URL=` must not wipe the live project URL).
+///
 /// Never put service_role, database passwords, or admin credentials here.
 class DestinyMediaConfig {
   /// Live Destiny OS public project URL (not a secret).
@@ -20,17 +23,13 @@ class DestinyMediaConfig {
   /// Public marketing media bucket name (not a secret).
   static const String productionMediaBucket = 'destiny-media';
 
-  /// Public Supabase project URL. Prefer `--dart-define=DESTINY_SUPABASE_URL=...`
-  /// for environment override; falls back to [productionSupabaseUrl].
+  /// Optional compile-time override. Prefer non-empty values only.
   static const String _supabaseUrlFromEnv = String.fromEnvironment(
     'DESTINY_SUPABASE_URL',
-    defaultValue: productionSupabaseUrl,
   );
 
-  /// Public marketing media bucket. Prefer `--dart-define=DESTINY_MEDIA_BUCKET=...`.
   static const String _mediaBucketFromEnv = String.fromEnvironment(
     'DESTINY_MEDIA_BUCKET',
-    defaultValue: productionMediaBucket,
   );
 
   static String? _supabaseUrlOverride;
@@ -49,14 +48,22 @@ class DestinyMediaConfig {
     _mediaBucketOverride = null;
   }
 
-  static String get supabaseUrl =>
-      (_supabaseUrlOverride ?? _supabaseUrlFromEnv)
-          .trim()
-          .replaceAll(RegExp(r'/+$'), '');
+  static String get supabaseUrl {
+    final override = _supabaseUrlOverride?.trim();
+    if (override != null) {
+      return override.replaceAll(RegExp(r'/+$'), '');
+    }
+    final env = _supabaseUrlFromEnv.trim();
+    if (env.isEmpty) return productionSupabaseUrl;
+    return env.replaceAll(RegExp(r'/+$'), '');
+  }
 
   static String get mediaBucket {
-    final raw = (_mediaBucketOverride ?? _mediaBucketFromEnv).trim();
-    return raw.isEmpty ? productionMediaBucket : raw;
+    final override = _mediaBucketOverride?.trim();
+    if (override != null && override.isNotEmpty) return override;
+    final env = _mediaBucketFromEnv.trim();
+    if (env.isEmpty) return productionMediaBucket;
+    return env;
   }
 
   /// True when a public Supabase project URL is available for media resolution.

@@ -54,6 +54,22 @@ class Accommodation {
   List<String> get resolvedImageUrls =>
       imageUrls.map(DestinyMediaUrl.resolve).toList(growable: false);
 
+  /// Lowest room nightly rate when room types exist.
+  double? get fromPrice {
+    if (roomTypes.isEmpty) return null;
+    return roomTypes
+        .map((r) => r.price)
+        .reduce((a, b) => a < b ? a : b);
+  }
+
+  String get locationLabel {
+    final parts = [
+      if (city.trim().isNotEmpty) city.trim(),
+      if (country.trim().isNotEmpty) country.trim(),
+    ];
+    return parts.join(', ');
+  }
+
   factory Accommodation.fromJson(Map<String, dynamic> json) {
     return Accommodation(
       id: int.tryParse(json['id'].toString()) ?? 0,
