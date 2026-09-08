@@ -28,17 +28,15 @@ Objective: migrate inventory/media from bymapara PHP → Destiny Supabase (schem
 STOP_REASON=CREDENTIAL_REQUIRED
 ```
 
-Need `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_ACCESS_TOKEN` (or Dashboard SQL) + `DESTINY_SUPABASE_ANON_KEY`.
+Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` bootstraps `service_role` + anon via Management API when unset. Dashboard SQL remains an alternative for schema.
 
-If secrets are added in the Cloud Agent environment UI, **start a new agent run** on this branch so they inject into `printenv`.
+If the PAT is added in the Cloud Agent environment UI, **start a new agent run** on this branch so it injects into `printenv`.
 
 ## Resume (closes milestone when verify passes)
 
 ```bash
 export SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=...
-export SUPABASE_ACCESS_TOKEN=...
-export DESTINY_SUPABASE_ANON_KEY=...
+export SUPABASE_ACCESS_TOKEN=...   # sufficient alone
 bash scripts/apply_m2_remote.sh
 # on success: docs auto-finalized; commit; Flutter:
 # --dart-define=DESTINY_SUPABASE_ANON_KEY=... --dart-define=DESTINY_INVENTORY_MEDIA_LIVE=true

@@ -7,18 +7,19 @@ Target: **xchddfpfzrzhlbbmyhyn** — never Wanzwei.
 
 ## Option A — New Cloud Agent run with secrets (preferred)
 
-1. Add environment secrets: `SUPABASE_SERVICE_ROLE_KEY`, `DESTINY_SUPABASE_ANON_KEY`, `SUPABASE_ACCESS_TOKEN`
-2. **Start a new agent** on `cursor/m2-destiny-backend-migration-194a` (or this apply branch) — mid-run secret adds may not inject
-3. Agent runs the one-shot:
+**Minimum:** one Personal Access Token (`SUPABASE_ACCESS_TOKEN`) with access to destiny-os.  
+`apply_m2_remote.sh` bootstraps `service_role` + anon from the Management API when those are unset.
+
+1. Create a PAT at https://supabase.com/dashboard/account/tokens (include API Keys read + SQL/database permissions needed for schema apply)
+2. Add environment secret: `SUPABASE_ACCESS_TOKEN` (optionally also `SUPABASE_SERVICE_ROLE_KEY` / `DESTINY_SUPABASE_ANON_KEY`)
+3. **Start a new agent** on `cursor/m2-destiny-backend-migration-194a` — mid-run secret adds may not inject
+4. Agent runs:
 
 ```bash
 export SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=...
-export SUPABASE_ACCESS_TOKEN=...
-export DESTINY_SUPABASE_ANON_KEY=...
+export SUPABASE_ACCESS_TOKEN=...   # sufficient alone
 bash scripts/apply_m2_remote.sh
-# schema + snapshot upsert (manifest→destiny-media paths) + staged media
-# + catalog.json + asset catalog sync + verify counts/media/sensitive deny
+# schema + snapshot upsert + staged media + catalog.json + verify + doc finalize
 ```
 
 If schema was already pasted in SQL Editor:
@@ -33,7 +34,8 @@ Workflow: `.github/workflows/m2-destiny-supabase-apply.yml`
 
 **Note:** GitHub only lists `workflow_dispatch` workflows on the **default branch**. PR #13 (`cursor/m2-gha-enable-194a` → `main`) registers the workflow; when running, select branch **`cursor/m2-destiny-backend-migration-194a`** (scripts + Git LFS media live there).
 
-Repo Actions secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`, optional `DESTINY_SUPABASE_ANON_KEY`.  
+Repo Actions secret **required:** `SUPABASE_ACCESS_TOKEN`.  
+Optional: `SUPABASE_SERVICE_ROLE_KEY`, `DESTINY_SUPABASE_ANON_KEY` (bootstrapped from the PAT when omitted).  
 Then: Actions → **M2 Destiny Supabase apply** → Run workflow.
 
 The workflow checks out with `lfs: true`, fails if the media tarball is still an LFS pointer, extracts ≥81 staged files, upserts inventory, uploads owned paths + `inventory/catalog.json`, then verifies when anon key is set.

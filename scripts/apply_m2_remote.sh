@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # One-shot M2 apply to destiny-os ONLY (never Wanzwei).
 #
-# Required:
-#   export SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co
+# Minimum required:
+#   export SUPABASE_ACCESS_TOKEN=...   # PAT — can bootstrap service_role + anon
+#
+# Or provide keys directly:
 #   export SUPABASE_SERVICE_ROLE_KEY=...
-#   export SUPABASE_ACCESS_TOKEN=...   # schema via Management API
+#   export DESTINY_SUPABASE_ANON_KEY=...
+#   export SUPABASE_ACCESS_TOKEN=...   # still needed for schema unless DESTINY_SKIP_SCHEMA=1
 #
 # Optional:
-#   export DESTINY_SUPABASE_ANON_KEY=...   # verify public reads
 #   export DESTINY_SKIP_SCHEMA=1          # schema already applied in SQL Editor
 #   export DESTINY_SKIP_MEDIA=1           # skip Storage upload
 #   export DESTINY_MIGRATE_MEDIA=0        # default 0 — prefer staged upload
@@ -22,11 +24,6 @@ export SUPABASE_PROJECT_REF="${SUPABASE_PROJECT_REF:-xchddfpfzrzhlbbmyhyn}"
 export DESTINY_MIGRATE_FROM_SNAPSHOT="${DESTINY_MIGRATE_FROM_SNAPSHOT:-1}"
 export DESTINY_MIGRATE_MEDIA="${DESTINY_MIGRATE_MEDIA:-0}"
 
-if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
-  echo "ERROR: SUPABASE_SERVICE_ROLE_KEY is required" >&2
-  exit 1
-fi
-
 case "$URL" in
   *xchddfpfzrzhlbbmyhyn*) ;;
   *)
@@ -34,6 +31,21 @@ case "$URL" in
     exit 1
     ;;
 esac
+
+# If ACCESS_TOKEN is present, fill missing service_role / anon via Management API.
+if [[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
+  if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" || -z "${DESTINY_SUPABASE_ANON_KEY:-}" ]]; then
+    echo "==> Bootstrapping Destiny API keys from SUPABASE_ACCESS_TOKEN"
+    # shellcheck disable=SC1090
+    eval "$(python3 "$ROOT/scripts/m2_bootstrap_keys.py" --export)"
+  fi
+fi
+
+if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+  echo "ERROR: SUPABASE_SERVICE_ROLE_KEY is required" >&2
+  echo "       Provide it directly, or set SUPABASE_ACCESS_TOKEN so keys can be bootstrapped." >&2
+  exit 1
+fi
 
 if [[ "${DESTINY_SKIP_SCHEMA:-0}" != "1" ]]; then
   if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then

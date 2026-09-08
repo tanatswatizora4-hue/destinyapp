@@ -163,5 +163,43 @@ class FinalizeDocsHelperTests(unittest.TestCase):
         )
 
 
+
+class BootstrapKeysTests(unittest.TestCase):
+    def test_pick_key_prefers_legacy_names(self):
+        from m2_bootstrap_keys import pick_key
+        items = [
+            {"name": "anon", "type": "legacy", "api_key": "anon-key"},
+            {"name": "service_role", "type": "legacy", "api_key": "svc-key"},
+        ]
+        self.assertEqual(
+            pick_key(items, prefer_names=("service_role",), prefer_types=("secret",)),
+            "svc-key",
+        )
+        self.assertEqual(
+            pick_key(items, prefer_names=("anon",), prefer_types=("publishable",)),
+            "anon-key",
+        )
+
+    def test_pick_key_falls_back_to_type(self):
+        from m2_bootstrap_keys import pick_key
+        items = [
+            {"name": "default", "type": "publishable", "api_key": "pub"},
+            {"name": "default", "type": "secret", "api_key": "sec"},
+        ]
+        self.assertEqual(
+            pick_key(items, prefer_names=("anon",), prefer_types=("publishable", "anon")),
+            "pub",
+        )
+        self.assertEqual(
+            pick_key(items, prefer_names=("service_role",), prefer_types=("secret", "service_role")),
+            "sec",
+        )
+
+    def test_refuses_non_destiny_ref(self):
+        from m2_bootstrap_keys import fetch_keys
+        with self.assertRaises(SystemExit):
+            fetch_keys("tok", "irgkeksrittimdwwxckl")
+
+
 if __name__ == "__main__":
     unittest.main()
