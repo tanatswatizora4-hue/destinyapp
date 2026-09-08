@@ -1,4 +1,5 @@
 import 'package:destiny/config/destiny_media_config.dart';
+import 'package:destiny/utils/destiny_media_legacy_map.dart';
 
 /// Centralized Destiny media URL resolution and safe path encoding.
 ///
@@ -21,6 +22,10 @@ class DestinyMediaUrl {
 
   static const String supabaseScheme = 'supabase:';
   static const String destinyMediaPrefix = 'destiny-media/';
+
+  static final RegExp _inventoryPrefix = RegExp(
+    r'^(tours|stays|vehicles|awards)/',
+  );
 
   /// Logical object-path helpers for the `destiny-media` bucket.
   /// These return **storage references**, not fabricated inventory URLs.
@@ -113,6 +118,19 @@ class DestinyMediaUrl {
 
     final destinyObject = _extractDestinyObjectPath(raw);
     if (destinyObject != null) {
+      // Until inventory objects are uploaded to Storage, prefer the mapped
+      // bymapara upload so web clients do not stick on Storage 400 bodies.
+      if (DestinyMediaConfig.preferLegacyInventoryMedia &&
+          _inventoryPrefix.hasMatch(destinyObject)) {
+        final ownedRef = raw.startsWith(destinyMediaPrefix)
+            ? raw
+            : destinyRef(destinyObject);
+        final legacy = DestinyMediaLegacyMap.legacyUploadFor(ownedRef);
+        if (legacy != null && legacy.isNotEmpty) {
+          final relative = legacy.startsWith('/') ? legacy.substring(1) : legacy;
+          return _normalizeAbsolute('$mediaOrigin/$relative');
+        }
+      }
       return _resolveDestinyObject(destinyObject);
     }
 

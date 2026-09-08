@@ -1,3 +1,4 @@
+import 'package:destiny/config/destiny_media_config.dart';
 import 'package:destiny/config/destiny_supabase_config.dart';
 import 'package:destiny/models/accommodation.dart';
 import 'package:destiny/models/award.dart';
@@ -8,8 +9,15 @@ import 'package:destiny/repositories/chained_inventory_repository.dart';
 import 'package:destiny/repositories/composite_inventory_repository.dart';
 import 'package:destiny/repositories/inventory_repository.dart';
 import 'package:destiny/repositories/supabase_inventory_mappers.dart';
+import 'package:destiny/utils/destiny_media_legacy_map.dart';
 import 'package:destiny/utils/destiny_media_url.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+void _clearMediaOverrides() {
+  DestinyMediaConfig.debugClearOverrides();
+  DestinyMediaLegacyMap.debugClear();
+  DestinySupabaseConfig.debugClearOverrides();
+}
 
 class _FakeRepo implements InventoryRepository {
   _FakeRepo({
@@ -46,9 +54,7 @@ class _FakeRepo implements InventoryRepository {
 }
 
 void main() {
-  tearDown(() {
-    DestinySupabaseConfig.debugClearOverrides();
-  });
+  tearDown(_clearMediaOverrides);
 
   final sampleTour = Tour(
     id: 1,
@@ -224,9 +230,27 @@ void main() {
   });
 
   test('owned inventory media paths resolve via DestinyMediaUrl', () {
+    DestinyMediaConfig.debugOverride(inventoryMediaLive: true);
     expect(
       DestinyMediaUrl.resolve('destiny-media/tours/1/primary.webp'),
       contains('/storage/v1/object/public/destiny-media/tours/1/primary.webp'),
+    );
+  });
+
+  test('inventory refs prefer legacy upload until media is live', () {
+    DestinyMediaConfig.debugOverride(inventoryMediaLive: false);
+    DestinyMediaLegacyMap.debugReplace({
+      'destiny-media/tours/39/primary.jpg':
+          'uploads/6a4f9a97e9470-example.jpg',
+    });
+    expect(
+      DestinyMediaUrl.resolve('destiny-media/tours/39/primary.jpg'),
+      'https://bymapara.com/uploads/6a4f9a97e9470-example.jpg',
+    );
+    // Home owned media always stays on Destiny Storage.
+    expect(
+      DestinyMediaUrl.resolve('destiny-media/home/hero/main.webp'),
+      contains('/storage/v1/object/public/destiny-media/home/hero/main.webp'),
     );
   });
 
