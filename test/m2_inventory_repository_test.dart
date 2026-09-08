@@ -284,37 +284,21 @@ void main() {
     });
   });
 
-  group('ChainedInventoryRepository', () {
-    test('uses first non-empty source and does not merge', () async {
-      final first = _FakeRepo(tours: [sampleTour]);
-      final second = _FakeRepo(
-        tours: [
-          Tour(
-            id: 99,
-            title: 'Other',
-            description: '',
-            price: 0,
-            duration: '',
-            isFeatured: false,
-            imageUrls: const [],
-            amenities: const [],
-            itinerary: const [],
-          ),
-        ],
-      );
-      final repo = ChainedInventoryRepository([first, second]);
-      final tours = await repo.getTours();
-      expect(tours, hasLength(1));
-      expect(tours.single.id, 1);
-    });
+  group('AssetCatalogInventoryRepository', () {
+    TestWidgetsFlutterBinding.ensureInitialized();
 
-    test('skips failing/empty sources', () async {
-      final repo = ChainedInventoryRepository([
-        _FakeRepo(throwOnCall: true),
-        _FakeRepo(),
-        _FakeRepo(tours: [sampleTour]),
-      ]);
-      expect((await repo.getTours()).single.id, 1);
+    test('loads bundled Destiny catalog with expected inventory counts', () async {
+      final repo = AssetCatalogInventoryRepository();
+      final tours = await repo.getTours();
+      final stays = await repo.getAccommodations();
+      final vehicles = await repo.getVehicles();
+      final awards = await repo.getAwards();
+      expect(tours, hasLength(25));
+      expect(stays, hasLength(36));
+      expect(vehicles, hasLength(3));
+      expect(awards, hasLength(6));
+      expect(tours.first.title, isNotEmpty);
+      expect(vehicles.first.make, isNotEmpty);
     });
   });
 }

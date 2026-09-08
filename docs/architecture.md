@@ -5,12 +5,14 @@
 ```
 Flutter UI
   → ApiService / InventoryRepository
-      → CompositeInventoryRepository
-          → SupabaseInventoryRepository (PostgREST + anon key)  [preferred when configured]
-          → LegacyInventoryRepository (bymapara destiny_api.php) [fallback]
+      → ChainedInventoryRepository (first non-empty wins; never merges)
+          1. SupabaseInventoryRepository (PostgREST + anon key)
+          2. StorageCatalogInventoryRepository (public destiny-media/inventory/catalog.json)
+          3. AssetCatalogInventoryRepository (bundled Destiny snapshot)
+          4. LegacyInventoryRepository (bymapara PHP — last resort)
   → DestinyMediaUrl → TravelNetworkImage
       → Destiny Supabase Storage bucket `destiny-media` (owned)
-      → temporary bymapara `uploads/` fallback
+      → temporary bymapara `uploads/` fallback for unmigrated images
 ```
 
 ## Ownership
