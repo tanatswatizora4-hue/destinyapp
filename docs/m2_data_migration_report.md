@@ -26,21 +26,21 @@
 | `scripts/upload_staged_media.py` | Upload `/tmp/destiny-media-staging` → Storage |
 | `scripts/apply_m2_remote.sh` | Orchestrator once service role is present |
 
-## Media staging (this VM, not committed)
+## Media staging / conversion
 
 | Metric | Count |
 |--------|------:|
 | Manifest entries | 84 |
-| Successfully staged locally | 81 |
-| Missing (HTTP 404 on legacy host) | 3 |
+| Ready (bytes > 0) | 81 |
+| Converted to WebP | 71 |
+| Already WebP (copied) | 2 |
+| Kept original after convert fail | 8 |
+| Missing (legacy HTTP 404) | 3 |
 
-Missing objects (do not invent replacements):
+Owned-path seed: `supabase/seed/inventory_seed_owned_media.sql`  
+Missing list: `docs/m2_missing_media.json`
 
-- `destiny-media/tours/21/primary.jpg` ← `uploads/IMG-20251025-WA0013.jpg`
-- `destiny-media/tours/24/primary.jpg` ← (legacy 404)
-- `destiny-media/awards/7/primary.jpg` ← (legacy 404)
-
-Details: `docs/m2_missing_media.json`
+**Status:** remote Storage upload + DB apply still require `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Migrated counts on remote Supabase
 
