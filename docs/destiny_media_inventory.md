@@ -16,6 +16,8 @@ https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/
 
 Status legend: `planned` = slot reserved, file not uploaded yet; `migrated` = Destiny object live and wired in app; `legacy` = still using bymapara `uploads/`.
 
+**M2 note (2026-09-08):** Inventory media copy into `destiny-media/tours|stays|vehicles|awards/...` is **blocked** pending `SUPABASE_SERVICE_ROLE_KEY`. Home objects remain `migrated`. Inventory rows below stay `planned` / `legacy` until `DESTINY_MIGRATE_MEDIA=1 python3 scripts/migrate_inventory_to_supabase.py` succeeds.
+
 Do not invent inventory. Rows below were pulled from the live PHP API (`get_tours` / `get_accommodations` / `get_vehicles`) for migration tracking only.
 
 ## Planned slots
