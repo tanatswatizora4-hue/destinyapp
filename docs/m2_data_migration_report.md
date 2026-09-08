@@ -1,12 +1,11 @@
 # M2 data migration report
 
-**Status:** BLOCKED — awaiting Supabase credentials  
-**Date audited:** 2026-09-08  
+**Status:** PARTIAL — seed + media staging ready; remote apply blocked on credentials  
+**Date:** 2026-09-08  
 **Source:** `https://bymapara.com/destiny_api.php`  
 **Target:** `https://xchddfpfzrzhlbbmyhyn.supabase.co`  
-**Tool:** `scripts/migrate_inventory_to_supabase.py`
 
-## Live legacy source counts (audited)
+## Live legacy source counts
 
 | Entity | Source action | Count |
 |--------|---------------|------:|
@@ -15,41 +14,59 @@
 | Vehicles | `get_vehicles` | 3 |
 | Awards | `get_awards` | 6 |
 
-## Migrated counts
+## Artifacts prepared (in repo)
 
-| Entity | Source | Upserted | Skipped | Notes |
-|--------|-------:|---------:|--------:|-------|
-| Tours | 25 | — | — | Not applied — no `SUPABASE_SERVICE_ROLE_KEY` |
-| Stays | 36 | — | — | Not applied |
-| Vehicles | 3 | — | — | Not applied |
-| Awards | 6 | — | — | Not applied |
+| Artifact | Purpose |
+|----------|---------|
+| `supabase/migrations/20260908143000_destiny_inventory_schema.sql` | Schema + RLS |
+| `supabase/seed/inventory_seed.sql` | Idempotent INSERT/UPSERT of all inventory + children (legacy image paths) |
+| `supabase/seed/legacy_inventory_snapshot.json` | Raw API snapshot |
+| `supabase/seed/media_manifest.json` | 84 image refs → destiny-media object paths |
+| `scripts/migrate_inventory_to_supabase.py` | PostgREST upsert migrator |
+| `scripts/upload_staged_media.py` | Upload `/tmp/destiny-media-staging` → Storage |
+| `scripts/apply_m2_remote.sh` | Orchestrator once service role is present |
 
-Media uploaded: **n/a**  
-Media failed: **n/a**  
-Media missing: **n/a**
+## Media staging (this VM, not committed)
 
-## Idempotency
+| Metric | Count |
+|--------|------:|
+| Manifest entries | 84 |
+| Successfully staged locally | 81 |
+| Missing (HTTP 404 on legacy host) | 3 |
 
-- Parent rows upsert on `legacy_id` (unique)
-- Child rows deleted + reinserted per parent UUID on each run
-- Optional media copy: `DESTINY_MIGRATE_MEDIA=1`
+Missing objects (do not invent replacements):
 
-## Required to complete
+- `destiny-media/tours/21/primary.jpg` ← `uploads/IMG-20251025-WA0013.jpg`
+- `destiny-media/tours/24/primary.jpg` ← (legacy 404)
+- `destiny-media/awards/7/primary.jpg` ← (legacy 404)
+
+Details: `docs/m2_missing_media.json`
+
+## Migrated counts on remote Supabase
+
+| Entity | Source | Upserted | Skipped |
+|--------|-------:|---------:|--------:|
+| Tours | 25 | — | blocked |
+| Stays | 36 | — | blocked |
+| Vehicles | 3 | — | blocked |
+| Awards | 6 | — | blocked |
+
+## Required to finish remote apply
 
 ```bash
 export SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=<service_role from destiny-os project>
-# Apply schema first (SQL Editor or supabase db push linked to xchddfpfzrzhlbbmyhyn)
+export SUPABASE_SERVICE_ROLE_KEY=<destiny-os service_role>
+# 1) Apply schema SQL in destiny-os SQL Editor (or supabase db push)
+# 2) Either paste supabase/seed/inventory_seed.sql OR:
 python3 scripts/migrate_inventory_to_supabase.py
+# 3) Media:
 DESTINY_MIGRATE_MEDIA=1 python3 scripts/migrate_inventory_to_supabase.py
+#    or from staging:
+python3 scripts/upload_staged_media.py
 ```
 
-Flutter cutover additionally needs publishable:
+Flutter cutover also needs:
 
 ```bash
---dart-define=DESTINY_SUPABASE_ANON_KEY=<anon key>
+--dart-define=DESTINY_SUPABASE_ANON_KEY=<publishable anon key>
 ```
-
-## Malformed / skipped
-
-- none yet (migration not executed against target)
