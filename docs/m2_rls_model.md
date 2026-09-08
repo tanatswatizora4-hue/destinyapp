@@ -43,5 +43,9 @@ M2 choice:
 
 ## Storage
 
-- Public bucket `destiny-media`: marketing / inventory imagery only
+Public bucket `destiny-media` (see `supabase/migrations/20260908170000_destiny_media_storage_policies.sql`):
+
+- Prefixes: `home/`, `tours/`, `stays/`, `vehicles/`, `awards/`, `inventory/`, `branding/`, `placeholders/`
+- Policy: **SELECT** for `anon` + `authenticated` on those prefixes only
+- **No** client write policies — uploads use `service_role` migration scripts only
 - Private customer documents must use a separate private bucket (M5) with authenticated policies

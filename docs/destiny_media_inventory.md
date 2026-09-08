@@ -16,7 +16,7 @@ https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/
 
 Status legend: `planned` = slot reserved, file not uploaded yet; `migrated` = Destiny object live and wired in app; `legacy` = still using bymapara `uploads/`.
 
-**M2 note (2026-09-08):** Home objects remain `migrated`. Inventory media is **staged locally** (81/84; WebP where converted) awaiting `SUPABASE_SERVICE_ROLE_KEY` upload to `destiny-media`. Three legacy sources 404. Status column: `staged (awaiting Storage upload)` vs `missing_legacy`.
+**M2 note (2026-09-08):** Home objects remain `migrated`. Inventory media is **staged locally** (81/84; mostly JPEG/PNG under staged filenames) awaiting `SUPABASE_SERVICE_ROLE_KEY` upload to `destiny-media`. Three legacy sources 404. Status: `staged (awaiting Storage upload)` vs `missing_legacy`. Paths below come from `supabase/seed/media_manifest.json`.
 
 Do not invent inventory. Rows below were pulled from the live PHP API (`get_tours` / `get_accommodations` / `get_vehicles`) for migration tracking only.
 
@@ -34,26 +34,109 @@ Home refs are Destiny storage references only (`destiny-media/...`), resolved vi
 
 ### TOURS
 
-| Object path pattern | Purpose |
-|---|---|
-| `tours/<tour-id>/primary.webp` | Card + details primary |
-| `tours/<tour-id>/gallery-01.webp` | Gallery image 1 |
-| `tours/<tour-id>/gallery-02.webp` | Gallery image 2 |
+| Object path | Legacy source | Status |
+|---|---|---|
+| `tours/39/primary.jpg` | `uploads/6a4f9a97e9470-615724801_1664832577822577_6837233941983207803_n.jpg` | staged (awaiting Storage upload) |
+| `tours/38/primary.jpg` | `uploads/6a4f55b845fa5-638097643_1697288214577013_700192901064861172_n.jpg` | staged (awaiting Storage upload) |
+| `tours/37/primary.png` | `uploads/6a4f54675bd28-ChatGPT Image Jul 9, 2026, 09_56_32 AM.png` | staged (awaiting Storage upload) |
+| `tours/36/primary.png` | `uploads/6a4f5295f1894-ChatGPT Image Jul 9, 2026, 09_49_04 AM.png` | staged (awaiting Storage upload) |
+| `tours/35/primary.jpg` | `uploads/6a4e176be2915-655699898_1724774848495016_9085784168804663092_n.jpg` | staged (awaiting Storage upload) |
+| `tours/34/primary.jpg` | `uploads/6a4e16b7113b4-659017522_1724776148494886_653600608863616191_n.jpg` | staged (awaiting Storage upload) |
+| `tours/33/primary.jpg` | `uploads/6a4e14e4cf46c-657364419_1724779385161229_2149096553167828688_n.jpg` | staged (awaiting Storage upload) |
+| `tours/32/primary.jpg` | `uploads/6a4e09e9e45cc-700499814_1768197580819409_6381454881535599423_n.jpg` | staged (awaiting Storage upload) |
+| `tours/31/primary.jpg` | `uploads/6a4e08b9d25a3-710739115_1781943649444802_2817451762723528287_n.jpg` | staged (awaiting Storage upload) |
+| `tours/30/primary.jpg` | `uploads/6a4e06df711f2-735150058_1811822186456948_101665622254047033_n.jpg` | staged (awaiting Storage upload) |
+| `tours/29/primary.jpg` | `uploads/6a4e0663112ef-742045552_1817725842533249_6048909638074682386_n (1).jpg` | staged (awaiting Storage upload) |
+| `tours/24/primary.webp` | `uploads/IMG-20251016-WA0002.jpg` | missing_legacy |
+| `tours/23/primary.jpg` | `uploads/IMG-20250902-WA0009.jpg` | staged (awaiting Storage upload) |
+| `tours/22/primary.jpg` | `uploads/IMG-20250902-WA0008.jpg` | staged (awaiting Storage upload) |
+| `tours/21/primary.webp` | `uploads/IMG-20251025-WA0013.jpg` | missing_legacy |
+| `tours/20/primary.jpg` | `uploads/IMG-20251024-WA0006.jpg` | staged (awaiting Storage upload) |
+| `tours/19/primary.jpg` | `uploads/IMG-20251004-WA0014.jpg` | staged (awaiting Storage upload) |
+| `tours/18/primary.jpg` | `uploads/IMG-20251004-WA0008.jpg` | staged (awaiting Storage upload) |
+| `tours/17/primary.jpg` | `uploads/IMG-20251016-WA0000.jpg` | staged (awaiting Storage upload) |
+| `tours/16/primary.jpg` | `uploads/IMG-20250902-WA0003.jpg` | staged (awaiting Storage upload) |
+| `tours/15/primary.jpg` | `uploads/IMG-20250908-WA0000.jpg` | staged (awaiting Storage upload) |
+| `tours/14/gallery-01.gif` | `uploads/68e49c71927a8-kadoma2.gif` | staged (awaiting Storage upload) |
+| `tours/14/gallery-02.jpg` | `uploads/68e49c7192afd-freekadoma.jpg` | staged (awaiting Storage upload) |
+| `tours/14/gallery-03.jpg` | `uploads/68e49c7192bc2-busykadom.jpg` | staged (awaiting Storage upload) |
+| `tours/14/primary.jpg` | `uploads/68e49bd28aec3-kadomamusicfestival.jpg` | staged (awaiting Storage upload) |
+| `tours/3/gallery-01.jpeg` | `uploads/68c21fce2ca63-gon2.jpeg` | staged (awaiting Storage upload) |
+| `tours/3/gallery-02.jpeg` | `uploads/68c21fce2cafd-gone1.jpeg` | staged (awaiting Storage upload) |
+| `tours/3/primary.jpeg` | `uploads/68c21fce2c93b-gone3.jpeg` | staged (awaiting Storage upload) |
+| `tours/2/gallery-01.jpg` | `uploads/68e4a7c27cc62-durban2.jpg` | staged (awaiting Storage upload) |
+| `tours/2/primary.jpg` | `uploads/68e4a7c27c9a3-durbanmozambiquecruise.jpg` | staged (awaiting Storage upload) |
+| `tours/1/gallery-01.jpeg` | `uploads/68c21f8416ea4-vic 2.jpeg` | staged (awaiting Storage upload) |
+| `tours/1/gallery-02.jpeg` | `uploads/68c21f8416f15-vic3.jpeg` | staged (awaiting Storage upload) |
+| `tours/1/gallery-03.jpeg` | `uploads/68c21f8416f7e-vic 4.jpeg` | staged (awaiting Storage upload) |
+| `tours/1/primary.jpeg` | `uploads/68c21f8416dbc-vic1.jpeg` | staged (awaiting Storage upload) |
 
 ### STAYS
 
-| Object path pattern | Purpose |
-|---|---|
-| `stays/<stay-id>/primary.webp` | Card + details primary |
-| `stays/<stay-id>/gallery-01.webp` | Gallery image 1 |
-| `stays/<stay-id>/gallery-02.webp` | Gallery image 2 |
+| Object path | Legacy source | Status |
+|---|---|---|
+| `stays/37/primary.jpg` | `uploads/6a54c1b399064-616835563_1664833494489152_6348076497884262295_n.jpg` | staged (awaiting Storage upload) |
+| `stays/36/primary.jpg` | `uploads/6a4f9dd72fab2-615471192_1663083854664116_2649064526261562484_n.jpg` | staged (awaiting Storage upload) |
+| `stays/35/primary.jpg` | `uploads/6a4f9b8069725-615434009_1663086194663882_123611080104403035_n.jpg` | staged (awaiting Storage upload) |
+| `stays/33/primary.jpg` | `uploads/6a4f5b6c2af0b-616827839_1669620824010419_5039646770684918639_n.jpg` | staged (awaiting Storage upload) |
+| `stays/32/primary.jpg` | `uploads/6a4f5a8df12bd-626999792_1681118199527348_8781928959766861665_n.jpg` | staged (awaiting Storage upload) |
+| `stays/31/primary.jpg` | `uploads/6a4f593b357f3-627143344_1682877346018100_4256269271618478209_n.jpg` | staged (awaiting Storage upload) |
+| `stays/30/primary.jpg` | `uploads/6a4f5851324d7-626158837_1682879592684542_3549665868704782837_n.jpg` | staged (awaiting Storage upload) |
+| `stays/29/primary.jpg` | `uploads/6a4f57861b988-639991094_1696240514681783_1183523098736264155_n.jpg` | staged (awaiting Storage upload) |
+| `stays/28/primary.jpg` | `uploads/6a4f56c33b8ef-639229923_1696241041348397_4416506335286417851_n.jpg` | staged (awaiting Storage upload) |
+| `stays/27/primary.jpg` | `uploads/6a4f553251c63-641399392_1699904650982036_9069118774992262354_n.jpg` | staged (awaiting Storage upload) |
+| `stays/26/primary.jpg` | `uploads/6a4e48ed3217b-651035371_1713846052921229_6431422086256641855_n.jpg` | staged (awaiting Storage upload) |
+| `stays/25/primary.jpg` | `uploads/6a4e451d4395a-653050733_1716642312641603_1757143874607527524_n.jpg` | staged (awaiting Storage upload) |
+| `stays/24/primary.jpg` | `uploads/6a4e444e2acef-651751033_1717060289266472_8582386724155725165_n.jpg` | staged (awaiting Storage upload) |
+| `stays/23/primary.jpg` | `uploads/6a4e4379acf58-653704075_1719141525725015_9167148484667333969_n.jpg` | staged (awaiting Storage upload) |
+| `stays/22/primary.jpg` | `uploads/6a4e415833cf9-656647058_1722145902091244_4829004906901322191_n.jpg` | staged (awaiting Storage upload) |
+| `stays/21/primary.png` | `uploads/6a4e3f81708b8-ChatGPT Image Jul 8, 2026, 02_08_19 PM.png` | staged (awaiting Storage upload) |
+| `stays/20/primary.png` | `uploads/6a4e3f7c569dc-ChatGPT Image Jul 8, 2026, 02_08_19 PM.png` | staged (awaiting Storage upload) |
+| `stays/19/primary.jpg` | `uploads/6a4e1bd3db9a2-657163835_1722491342056700_4321707265649208640_n.jpg` | staged (awaiting Storage upload) |
+| `stays/18/primary.jpg` | `uploads/6a4e194647330-656312260_1724773688495132_1174615719230396529_n.jpg` | staged (awaiting Storage upload) |
+| `stays/17/primary.jpg` | `uploads/6a4e142b7d0bc-657331897_1727557841550050_7331887577038956413_n.jpg` | staged (awaiting Storage upload) |
+| `stays/16/primary.jpg` | `uploads/6a4e1337034cf-675020679_1746704992968668_8195398866841603539_n.jpg` | staged (awaiting Storage upload) |
+| `stays/14/primary.jpg` | `uploads/6a4e12308366a-678655289_1747526919553142_1804452063333086943_n.jpg` | staged (awaiting Storage upload) |
+| `stays/13/primary.jpg` | `uploads/6a4e0ddb08cad-677055824_1747531492886018_465792238771702595_n.jpg` | staged (awaiting Storage upload) |
+| `stays/12/primary.jpg` | `uploads/6a4e0d8aeab65-679081833_1747531572886010_8241190597285094904_n.jpg` | staged (awaiting Storage upload) |
+| `stays/11/primary.jpg` | `uploads/6a4e0c9750e3d-677063597_1748458519459982_4606751693495945160_n.jpg` | staged (awaiting Storage upload) |
+| `stays/10/primary.jpg` | `uploads/6a4e0baa55e73-684908563_1754812892157878_7537154398826253792_n.jpg` | staged (awaiting Storage upload) |
+| `stays/9/primary.jpg` | `uploads/6a4e0ac5230f9-690178754_1762327108073123_5929880093508995947_n.jpg` | staged (awaiting Storage upload) |
+| `stays/8/primary.jpg` | `uploads/6a4e0973085fc-701757966_1771935113778989_4758451502969602632_n.jpg` | staged (awaiting Storage upload) |
+| `stays/7/primary.jpg` | `uploads/6a4e08459ab54-714989930_1786588908980276_8190643222706287963_n.jpg` | staged (awaiting Storage upload) |
+| `stays/6/primary.jpg` | `uploads/6a4e07a5c61d1-729186459_1806601646979002_8901278662318032669_n.jpg` | staged (awaiting Storage upload) |
+| `stays/5/primary.jpg` | `uploads/IMG-20250902-WA0009.jpg` | staged (awaiting Storage upload) |
+| `stays/4/gallery-01.jpeg` | `uploads/69fdb8cd0328a-e96a075e-bb9a-4d72-a1a4-6ea8ec26b059.jpeg` | staged (awaiting Storage upload) |
+| `stays/4/primary.jpeg` | `uploads/69fc507b55985-e96a075e-bb9a-4d72-a1a4-6ea8ec26b059.jpeg` | staged (awaiting Storage upload) |
+| `stays/3/gallery-01.jpg` | `uploads/68c222ad3d0a0-sa2.jpg` | staged (awaiting Storage upload) |
+| `stays/3/gallery-02.jpg` | `uploads/68c222ad3d18b-sa3.jpg` | staged (awaiting Storage upload) |
+| `stays/3/primary.jpg` | `uploads/68c222ad3cd52-sable1.jpg` | staged (awaiting Storage upload) |
+| `stays/2/gallery-01.jpg` | `uploads/68e49f88805e8-musumu1.jpg` | staged (awaiting Storage upload) |
+| `stays/2/primary.jpg` | `uploads/68e49f8880332-musumuriverlodgebinga.jpg` | staged (awaiting Storage upload) |
+| `stays/1/gallery-01.jpg` | `uploads/68e49df50379e-kariba2.jpg` | staged (awaiting Storage upload) |
+| `stays/1/gallery-02.jpg` | `uploads/68e49df5038d3-kariba3.jpg` | staged (awaiting Storage upload) |
+| `stays/1/primary.jpg` | `uploads/68e49df503656-karibasafarilodges.jpg` | staged (awaiting Storage upload) |
 
 ### VEHICLES
 
-| Object path pattern | Purpose |
-|---|---|
-| `vehicles/<vehicle-id>/primary.webp` | Card + details primary |
-| `vehicles/<vehicle-id>/gallery-01.webp` | Gallery image 1 |
+| Object path | Legacy source | Status |
+|---|---|---|
+| `vehicles/3/gallery-01.jpeg` | `uploads/68c223a631ac7-sprint2.jpeg` | staged (awaiting Storage upload) |
+| `vehicles/3/primary.jpg` | `uploads/68c223a6319a8-sprint1.avif` | staged (awaiting Storage upload) |
+| `vehicles/2/primary.jpg` | `uploads/68c2237c7a4da-co1.avif` | staged (awaiting Storage upload) |
+| `vehicles/1/gallery-01.webp` | `uploads/68c222df5c3ab-d42.webp` | staged (awaiting Storage upload) |
+| `vehicles/1/primary.webp` | `uploads/68c222df5c074-d41.webp` | staged (awaiting Storage upload) |
+
+### AWARDS
+
+| Object path | Legacy source | Status |
+|---|---|---|
+| `awards/7/primary.webp` | `uploads/IMG-20250902-WA0007.jpg` | missing_legacy |
+| `awards/6/primary.jpg` | `uploads/IMG-20251010-WA0024.jpg` | staged (awaiting Storage upload) |
+| `awards/5/primary.jpg` | `uploads/IMG-20251010-WA0025.jpg` | staged (awaiting Storage upload) |
+| `awards/3/primary.jpg` | `uploads/IMG-20250902-WA0010.jpg` | staged (awaiting Storage upload) |
+
+> Inventory object extensions match staged files (mostly `.jpg`/`.jpeg`/`.png`; only a few `.webp`). Do not assume `primary.webp` for every id.
 
 ### BRANDING
 

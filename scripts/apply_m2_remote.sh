@@ -41,9 +41,10 @@ if [[ "${DESTINY_SKIP_SCHEMA:-0}" != "1" ]]; then
     echo "       Or set DESTINY_SKIP_SCHEMA=1 after pasting the migration in SQL Editor." >&2
     exit 1
   fi
-  echo "==> Applying schema + RLS via Management API"
+  echo "==> Applying schema + RLS + storage policies via Management API"
   python3 "$ROOT/scripts/apply_sql_management_api.py" \
-    "$ROOT/supabase/migrations/20260908143000_destiny_inventory_schema.sql"
+    "$ROOT/supabase/migrations/20260908143000_destiny_inventory_schema.sql" \
+    "$ROOT/supabase/migrations/20260908170000_destiny_media_storage_policies.sql"
 else
   echo "==> Skipping schema (DESTINY_SKIP_SCHEMA=1)"
 fi
