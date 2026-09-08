@@ -18,7 +18,7 @@ Objective: migrate inventory/media from bymapara PHP → Destiny Supabase (schem
 | Tests / analyze / web build | 32 Flutter tests PASS; preflight PASS; analyze/build previously OK | **DONE** (re-verified tests 2026-09-08) |
 | Security review doc | `docs/m2_security_review.md` | **DONE** |
 | One-shot remote apply + doc finalize | `apply_m2_remote.sh` → verify → `m2_finalize_docs.py` | **DONE** (repo; blocked on secrets) |
-| Actions LFS media checkout | `checkout@v4` `lfs: true` + pointer guard + ≥81 files (M2 branch + PR #13) | **DONE** (repo; PR #13 unmerged) |
+| Actions LFS media checkout | `checkout@v4` `lfs: true` + pointer guard + ≥81 files (M2 branch + PR #13) | **DONE** (repo; PR #13 ready/MERGEABLE, awaiting human merge to main) |
 | Apply hardening | verify catalog counts + ≥90% owned paths; finalize rewrites migration report + media inventory; Actions defaults to staged upload (no live re-download); owned seed LF-only | **DONE** (repo) |
 | Offline preflight | `python3 scripts/m2_preflight.py` PASS (81-file LFS tarball; asset==seed catalog) | **DONE** |
 
