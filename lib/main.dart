@@ -1,7 +1,6 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/repositories/catalog_inventory_repository.dart';
 import 'package:destiny/repositories/chained_inventory_repository.dart';
-import 'package:destiny/repositories/legacy_inventory_repository.dart';
 import 'package:destiny/repositories/supabase_inventory_repository.dart';
 import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/navigation_screen.dart';
@@ -38,12 +37,12 @@ void main() async {
   // 1) Supabase PostgREST when anon key is configured
   // 2) Public destiny-media catalog.json when uploaded
   // 3) Bundled Destiny catalog asset (snapshot; not live bymapara)
-  // 4) Legacy bymapara PHP (temporary)
+  // Legacy bymapara PHP inventory reads are retired from this chain.
+  // Bookings/profile/docs still use ApiService → bymapara intentionally.
   ApiService.inventoryRepository = ChainedInventoryRepository([
     SupabaseInventoryRepository(),
     StorageCatalogInventoryRepository(),
     AssetCatalogInventoryRepository(),
-    LegacyInventoryRepository(),
   ]);
 
   runApp(const MyApp());

@@ -10,8 +10,8 @@ Target: Destiny Supabase `xchddfpfzrzhlbbmyhyn` only.
 | Sensitive tables protected | RLS on, zero anon policies in SQL | **IN REPO / NOT LIVE** |
 | Tours/stays/vehicles/awards migrated to DB | Seed + migrator ready; remote upsert not run | **BLOCKED** |
 | Inventory media in destiny-media | 81/84 staged locally; Storage objects not uploaded (catalog HTTP 400) | **BLOCKED** |
-| Flutter inventory reads use Supabase | Chain: PostgREST → Storage catalog → **asset catalog** → legacy | **PARTIAL** (asset Destiny snapshot active; PostgREST/Storage pending) |
-| Product not depending on live bymapara for inventory | Asset catalog precedes legacy in `ChainedInventoryRepository` | **MOSTLY** (legacy last-resort only; images may still use `uploads/`) |
+| Flutter inventory reads use Supabase | Chain: PostgREST → Storage catalog → asset catalog (no bymapara) | **PARTIAL** (asset Destiny snapshot active; PostgREST/Storage pending) |
+| Product not depending on live bymapara for inventory API | Legacy removed from inventory chain in `main.dart` | **DONE** for inventory API (image `uploads/` host may remain until media migrate) |
 | Remaining legacy documented | `docs/m2_legacy_retirement_status.md` | **DONE** |
 | No secrets committed | Grep/env review | **DONE** |
 | Tests / analyze / web build | 28 tests, 0 analyze errors, web debug OK at `ef9ab83` | **DONE** |

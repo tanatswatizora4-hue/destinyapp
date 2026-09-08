@@ -4,10 +4,10 @@ Classification after M2 scaffolding (credentials not yet applied to remote).
 
 | Dependency | Classification | Notes |
 |------------|----------------|-------|
-| Inventory reads (`get_tours`, `get_accommodations`, `get_vehicles`, `get_awards`) | TEMPORARILY_RETAINED (legacy last-resort only) | Flutter chain: PostgREST → Storage `catalog.json` → **bundled Destiny asset catalog** → legacy PHP. Live bymapara is no longer the primary inventory source. |
-| Bundled `assets/data/destiny_inventory_catalog.json` | MOVED_TO_DESTINY (interim) | Destiny-owned snapshot (25/36/3/6); images may still use legacy `uploads/` paths until Storage media upload |
-| Storage catalog `destiny-media/inventory/catalog.json` | BLOCKED (awaiting Dashboard upload or service_role) | Upload `supabase/seed/destiny_inventory_catalog.json` to that object path |
-| Inventory image `uploads/...` paths | TEMPORARILY_RETAINED | Resolver still supports legacy host; media copy pending service role |
+| Inventory reads (`get_tours`, `get_accommodations`, `get_vehicles`, `get_awards`) | RETIRED (from live product path) | Flutter chain no longer calls bymapara for inventory. PostgREST → Storage catalog → bundled Destiny asset. `LegacyInventoryRepository` retained in repo for tooling/tests only. |
+| Bundled `assets/data/destiny_inventory_catalog.json` | TEMPORARILY_RETAINED (Destiny-owned interim) | Snapshot 25/36/3/6 until PostgREST is live |
+| Storage catalog `destiny-media/inventory/catalog.json` | BLOCKED (awaiting upload) | Upload `supabase/seed/destiny_inventory_catalog.json` |
+| Inventory image `uploads/...` paths | TEMPORARILY_RETAINED | Asset catalog still references legacy uploads until Storage media migration |
 | Home owned WebP (`destiny-media/home/...`) | RETIRED (from bymapara) | Already Destiny Storage (M0/M1) |
 | Bookings create/list/delete | TEMPORARILY_RETAINED | Sensitive; no secure Firebase→Supabase RLS bridge in M2 |
 | Flight enquiry create/list/delete | TEMPORARILY_RETAINED | Same — deferred to M3 auth/server bridge |
