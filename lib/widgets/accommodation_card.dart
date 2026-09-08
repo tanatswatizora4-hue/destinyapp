@@ -2,12 +2,14 @@ import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/accommodation.dart';
 import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class AccommodationCard extends StatelessWidget {
   final Accommodation accommodation;
   final VoidCallback? onTap;
   final double? width;
   final double imageHeight;
+  final bool expand;
 
   const AccommodationCard({
     super.key,
@@ -15,37 +17,65 @@ class AccommodationCard extends StatelessWidget {
     this.onTap,
     this.width,
     this.imageHeight = 186,
+    this.expand = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final cardWidth = width ?? 280.0;
-    final location = [
-      if (accommodation.city.trim().isNotEmpty) accommodation.city.trim(),
-      if (accommodation.country.trim().isNotEmpty) accommodation.country.trim(),
-    ].join(', ');
+    final currency = NumberFormat.currency(locale: 'en_US', symbol: '\$');
+    final location = accommodation.locationLabel;
+    final from = accommodation.fromPrice;
 
-    return SizedBox(
-      width: cardWidth,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: SizedBox(
-                height: imageHeight,
-                width: double.infinity,
-                child: TravelNetworkImage(
-                  imageUrl: accommodation.mainImageUrl,
+    final content = InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Stack(
+              children: [
+                Hero(
+                  tag: 'accommodation_image_${accommodation.id}',
+                  child: SizedBox(
+                    height: imageHeight,
+                    width: double.infinity,
+                    child: TravelNetworkImage(
+                      imageUrl: accommodation.mainImageUrl,
+                    ),
+                  ),
                 ),
-              ),
+                if (accommodation.isFeatured)
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Destiny Pick',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 10),
+          ),
+          const SizedBox(height: 10),
+          if (accommodation.type.trim().isNotEmpty)
             Text(
               accommodation.type.toUpperCase(),
               style: textTheme.labelSmall?.copyWith(
@@ -57,32 +87,44 @@ class AccommodationCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 3),
+          const SizedBox(height: 3),
+          Text(
+            accommodation.name,
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              height: 1.2,
+              fontSize: 16,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (location.isNotEmpty) ...[
+            const SizedBox(height: 4),
             Text(
-              accommodation.name,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                height: 1.2,
-                fontSize: 16,
+              location,
+              style: textTheme.bodySmall?.copyWith(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w500,
               ),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            if (location.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                location,
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
           ],
-        ),
+          if (from != null && from > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'From ${currency.format(from)} / night',
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppTheme.navy,
+              ),
+            ),
+          ],
+        ],
       ),
     );
+
+    if (expand) return content;
+    return SizedBox(width: width ?? 280.0, child: content);
   }
 }

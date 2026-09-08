@@ -356,3 +356,36 @@ Home Destina (`_buildAskDestinaCompact` / `_DestinaMark`): navy gradient panel +
 
 - **Stays & Vehicles:** real inventory APIs + agent `create_booking`; UI is pre-Tours list/detail. Data is sufficient for a Tours-parity premium catalog (images, type, location, amenities; stays add room types/prices; vehicles add daily rate/year).
 - **Flights:** real **enquiry** write (`create_flight_booking`); **not** shopping; **no search**. Redesign should treat it as planning/enquiry (Destina-adjacent), not a faux results marketplace, unless backend flight search is added later.
+
+---
+
+## Phase 2+ — Implemented in M1
+
+### Shared primitives (`lib/widgets/destiny_discovery.dart`)
+- `DestinyDiscoveryIntro`, `DestinyControlsBand`, `DestinyFilterChip`
+- `DestinyMessageState`, `DestinyDestinaAssist`
+- `DestinyMediaGallery`, `DestinyMobileCtaBar`, `DestinyDesktopBookingRail`
+- `DestinyContentShell`, `showDestinyPreviewMessage`
+
+### Stays
+- Responsive discovery grid (1/2/3 cols), search + type + Destiny Picks filters
+- Cards: Hero, featured badge, location, from-price / night
+- Details: gallery, rooms, amenities, Destina assist, mobile CTA + desktop rail
+- CTA labeled **Request stay** (agent `create_booking`, not live hotel confirmation)
+
+### Vehicles
+- Same discovery shell; type + Destiny Picks filters; price/day cards with Hero
+- Details: gallery, year/pickup/features, Destina assist, request booking sheet
+
+### Flights
+- Nested Scaffold removed
+- Honest enquiry form with validation, round-trip/one-way, stopovers, assist options
+- Copy clarifies **no live fares / inventory search**
+- Destina entry + `create_flight_booking` with `isEnquiry: true`
+
+### Known limitations (carry to M2/M3)
+- Stay/vehicle imagery still mostly legacy `uploads/` until media migration
+- No real-time hotel/vehicle availability
+- Flights remains enquiry-only until Travelport/GDS (M3)
+- Destina CTAs are preview snackbars until Destina production (M4)
+- Seat/transmission/fuel specs not in vehicle model — not invented

@@ -157,4 +157,6 @@ Source count: **3** vehicles from live API.
 - Files are **not** uploaded by this inventory document.
 - Legacy bymapara `uploads/...` paths remain resolvable until each row is migrated.
 - After upload, store either `destiny-media/...` refs or full public HTTPS URLs in API image JSON (API migration is a later phase).
+- **M1 customer product** still renders stay/vehicle/tour cards via `DestinyMediaUrl` + `TravelNetworkImage`. Inventory rows above remain **planned/legacy** unless marked migrated — M1 did not upload stay/vehicle photography.
 
+## Notes

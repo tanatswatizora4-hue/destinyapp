@@ -40,6 +40,16 @@ class Vehicle {
   List<String> get resolvedImageUrls =>
       imageUrls.map(DestinyMediaUrl.resolve).toList(growable: false);
 
+  String get displayName => '${make.trim()} ${model.trim()}'.trim();
+
+  String get locationLabel {
+    final parts = [
+      if (city.trim().isNotEmpty) city.trim(),
+      if (country.trim().isNotEmpty) country.trim(),
+    ];
+    return parts.join(', ');
+  }
+
   factory Vehicle.fromJson(Map<String, dynamic> json) {
     return Vehicle(
       id: int.tryParse(json['id'].toString()) ?? 0,

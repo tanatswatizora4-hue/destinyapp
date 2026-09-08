@@ -8,9 +8,8 @@ class VehicleCard extends StatelessWidget {
   final Vehicle vehicle;
   final VoidCallback? onTap;
   final double? width;
-
-  /// When true, uses a wider landscape tile distinct from stay cards.
   final bool landscape;
+  final bool expand;
 
   const VehicleCard({
     super.key,
@@ -18,6 +17,7 @@ class VehicleCard extends StatelessWidget {
     this.onTap,
     this.width,
     this.landscape = false,
+    this.expand = false,
   });
 
   @override
@@ -25,126 +25,117 @@ class VehicleCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
     final cardWidth = width ?? (landscape ? 340.0 : 260.0);
-    final name = '${vehicle.make} ${vehicle.model}'.trim();
+    final name = vehicle.displayName;
+    final location = vehicle.locationLabel;
 
-    return SizedBox(
-      width: cardWidth,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.border.withValues(alpha: 0.7)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: landscape
-              ? Row(
-                  children: [
-                    SizedBox(
-                      width: cardWidth * 0.46,
-                      height: 132,
-                      child: TravelNetworkImage(
-                        imageUrl: vehicle.mainImageUrl,
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                        child: _VehicleMeta(
-                          name: name,
-                          type: vehicle.type,
-                          priceLabel:
-                              '${currencyFormat.format(vehicle.pricePerDay)}/day',
-                          textTheme: textTheme,
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      height: 148,
-                      width: double.infinity,
-                      child: TravelNetworkImage(
-                        imageUrl: vehicle.mainImageUrl,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                      child: _VehicleMeta(
-                        name: name,
-                        type: vehicle.type,
-                        priceLabel:
-                            '${currencyFormat.format(vehicle.pricePerDay)}/day',
-                        textTheme: textTheme,
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VehicleMeta extends StatelessWidget {
-  final String name;
-  final String type;
-  final String priceLabel;
-  final TextTheme textTheme;
-
-  const _VehicleMeta({
-    required this.name,
-    required this.type,
-    required this.priceLabel,
-    required this.textTheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
+    final column = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            type.toUpperCase(),
-            style: textTheme.labelSmall?.copyWith(
-              color: AppTheme.primary,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              fontSize: 10,
-            ),
+        ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          child: Stack(
+            children: [
+              Hero(
+                tag: 'vehicle_image_${vehicle.id}',
+                child: SizedBox(
+                  height: landscape ? 132 : 160,
+                  width: double.infinity,
+                  child: TravelNetworkImage(imageUrl: vehicle.mainImageUrl),
+                ),
+              ),
+              if (vehicle.isFeatured)
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Destiny Pick',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          name,
-          style: textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            height: 1.2,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          priceLabel,
-          style: textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: AppTheme.accent,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (vehicle.type.trim().isNotEmpty)
+                Text(
+                  vehicle.type.toUpperCase(),
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                    fontSize: 10,
+                  ),
+                ),
+              const SizedBox(height: 6),
+              Text(
+                name,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (location.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  location,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              const SizedBox(height: 8),
+              Text(
+                '${currencyFormat.format(vehicle.pricePerDay)}/day',
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.navy,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
+
+    final card = Material(
+      color: AppTheme.surface,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTheme.border.withValues(alpha: 0.7)),
+          ),
+          child: column,
+        ),
+      ),
+    );
+
+    if (expand) return card;
+    return SizedBox(width: cardWidth, child: card);
   }
 }
