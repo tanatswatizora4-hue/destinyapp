@@ -18,7 +18,8 @@ Objective: migrate inventory/media from bymapara PHP → Destiny Supabase (schem
 | Tests / analyze / web build | 31 tests; analyze 0 errors; `flutter build web --debug` OK | **DONE** |
 | Security review doc | `docs/m2_security_review.md` | **DONE** |
 | One-shot remote apply + doc finalize | `apply_m2_remote.sh` → verify → `m2_finalize_docs.py` | **DONE** (repo; blocked on secrets) |
-| Offline preflight | `python3 scripts/m2_preflight.py` PASS | **DONE** |
+| Actions LFS media checkout | `checkout@v4` `lfs: true` + pointer guard + ≥81 files (M2 branch + PR #13) | **DONE** (repo) |
+| Offline preflight | `python3 scripts/m2_preflight.py` PASS (81-file LFS tarball) | **DONE** |
 
 ## Hard blocker
 
