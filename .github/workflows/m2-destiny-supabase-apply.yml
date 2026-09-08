@@ -1,0 +1,83 @@
+name: M2 Destiny Supabase apply
+
+# Manual-only. Applies schema + inventory/media migration to destiny-os ONLY.
+# Required GitHub secrets (repo Settings → Secrets → Actions):
+#   SUPABASE_ACCESS_TOKEN       — for Management API SQL apply
+#   SUPABASE_SERVICE_ROLE_KEY   — for PostgREST upsert + Storage upload
+# Optional:
+#   DESTINY_SUPABASE_ANON_KEY   — verify public reads after apply
+#
+# Never targets Wanzwei.
+
+on:
+  workflow_dispatch:
+    inputs:
+      migrate_media:
+        description: Download legacy images into destiny-media during migrate
+        type: boolean
+        default: true
+      apply_seed_sql:
+        description: Also apply inventory_seed_owned_media.sql after migrator
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://xchddfpfzrzhlbbmyhyn.supabase.co
+      SUPABASE_PROJECT_REF: xchddfpfzrzhlbbmyhyn
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DESTINY_SUPABASE_ANON_KEY: ${{ secrets.DESTINY_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Guard project target
+        run: |
+          set -euo pipefail
+          case "$SUPABASE_URL" in
+            *xchddfpfzrzhlbbmyhyn*) echo "target ok: $SUPABASE_URL" ;;
+            *) echo "refusing non-destiny-os URL"; exit 1 ;;
+          esac
+          test -n "${SUPABASE_ACCESS_TOKEN}" || { echo "missing SUPABASE_ACCESS_TOKEN"; exit 1; }
+          test -n "${SUPABASE_SERVICE_ROLE_KEY}" || { echo "missing SUPABASE_SERVICE_ROLE_KEY"; exit 1; }
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply schema + RLS
+        run: |
+          python3 scripts/apply_sql_management_api.py \
+            supabase/migrations/20260908143000_destiny_inventory_schema.sql
+
+      - name: Migrate inventory (+ optional media)
+        env:
+          DESTINY_MIGRATE_MEDIA: ${{ inputs.migrate_media && '1' || '0' }}
+        run: python3 scripts/migrate_inventory_to_supabase.py
+
+      - name: Optional owned-media seed SQL
+        if: ${{ inputs.apply_seed_sql }}
+        run: |
+          python3 scripts/apply_sql_management_api.py \
+            supabase/seed/inventory_seed_owned_media.sql
+
+      - name: Verify anon reads
+        if: ${{ env.DESTINY_SUPABASE_ANON_KEY != '' }}
+        run: |
+          set -euo pipefail
+          for table in tours stays vehicles awards; do
+            code=$(curl -sS -o /tmp/out.json -w '%{http_code}' \
+              "$SUPABASE_URL/rest/v1/$table?select=id&is_published=eq.true&limit=1" \
+              -H "apikey: $DESTINY_SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $DESTINY_SUPABASE_ANON_KEY")
+            echo "$table HTTP $code"
+            test "$code" = "200"
+          done
+          echo "anon read verification passed"
