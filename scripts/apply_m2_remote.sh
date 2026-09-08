@@ -93,10 +93,12 @@ fi
 if [[ -n "${DESTINY_SUPABASE_ANON_KEY:-}" ]]; then
   echo "==> Verifying anon reads + counts"
   python3 "$ROOT/scripts/verify_m2_remote.py"
+  echo "==> Finalizing M2 docs from live evidence"
+  python3 "$ROOT/scripts/m2_finalize_docs.py"
 else
   echo "==> Skipping anon verify (DESTINY_SUPABASE_ANON_KEY unset)"
   echo "    Service-role count check:"
   python3 "$ROOT/scripts/verify_m2_remote.py" --service-role || true
 fi
 
-echo "Done. Update docs/m2_status.md after confirming remote evidence."
+echo "Done. If verify passed: commit doc updates, set DESTINY_INVENTORY_MEDIA_LIVE=true for Flutter."
