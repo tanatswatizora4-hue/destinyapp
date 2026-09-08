@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       migrate_media:
-        description: Download legacy images into destiny-media during migrate
+        description: Upload staged LFS media (and/or re-download) into destiny-media
         type: boolean
         default: true
       apply_seed_sql:
@@ -41,6 +41,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Guard project target
         run: |
@@ -67,10 +69,17 @@ jobs:
         if: ${{ inputs.migrate_media }}
         run: |
           set -euo pipefail
+          # Ensure real blob (not pointer) even if checkout lfs smudge was skipped
           git lfs pull --include='supabase/seed/destiny-inventory-media-staged.tar'
+          if head -1 supabase/seed/destiny-inventory-media-staged.tar | grep -q 'git-lfs'; then
+            echo "ERROR: LFS pointer not resolved for media tarball" >&2
+            exit 1
+          fi
           mkdir -p /tmp/destiny-media-staging
           tar -xf supabase/seed/destiny-inventory-media-staged.tar -C /tmp/destiny-media-staging
-          find /tmp/destiny-media-staging -type f | wc -l
+          count=$(find /tmp/destiny-media-staging -type f | wc -l)
+          echo "staged files: $count"
+          test "$count" -ge 81
 
       - name: Migrate inventory (+ download/upload media into owned paths)
         env:
