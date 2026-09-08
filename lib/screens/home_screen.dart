@@ -14,7 +14,6 @@ import 'package:destiny/widgets/award_card.dart';
 import 'package:destiny/widgets/tour_card.dart';
 import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:destiny/widgets/vehicle_card.dart';
-import 'package:destiny/widgets/video_hero.dart';
 import 'package:flutter/material.dart';
 
 /// Home-local wide measure — keeps Tours on [AppTheme.contentWideMaxWidth].
@@ -285,9 +284,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          VideoHero(
+          // Primary Home hero — Destiny-owned photograph (video disabled on Home).
+          TravelNetworkImage(
+            imageUrl: _homeHeroPosterRef,
+            fit: BoxFit.cover,
+            width: double.infinity,
             height: heroHeight,
-            posterRef: _homeHeroPosterRef,
           ),
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -1297,6 +1299,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
         ),
         const SizedBox(height: 18),
+        // Accolades copy stays native; photography is destination-inspiration.webp.
         const Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1307,7 +1310,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SizedBox(width: 12),
             AwardCard(
-              imagePath: _homeTravelPartnerRef,
+              imagePath: _homeDestinationInspirationRef,
               title: 'Hall of Fame',
               subtitle: 'Legends in Hospitality',
             ),

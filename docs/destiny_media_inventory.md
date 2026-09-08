@@ -14,7 +14,7 @@ Public URL form:
 https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/<object-path>
 ```
 
-Status legend: `planned` = slot reserved, file not uploaded yet; `migrated` = Destiny object live; `legacy` = still using bymapara `uploads/`.
+Status legend: `planned` = slot reserved, file not uploaded yet; `migrated` = Destiny object live and wired in app; `legacy` = still using bymapara `uploads/`.
 
 Do not invent inventory. Rows below were pulled from the live PHP API (`get_tours` / `get_accommodations` / `get_vehicles`) for migration tracking only.
 
@@ -22,11 +22,13 @@ Do not invent inventory. Rows below were pulled from the live PHP API (`get_tour
 
 ### HOME
 
-| Object path | Purpose | Status |
+| Object path | App placement | Status |
 |---|---|---|
-| `home/hero/main.webp` | Cinematic Home hero still/poster | planned |
-| `home/editorial/travel-partner.webp` | Editorial travel-partner band | planned |
-| `home/editorial/destination-inspiration.webp` | Destination inspiration editorial | planned |
+| `home/hero/main.webp` | **Primary** Home hero background (`HomeScreen` → `TravelNetworkImage`). Local promo `VideoHero` / `assets/videos/main_video.mp4` is **not** used on Home. | migrated |
+| `home/editorial/travel-partner.webp` | **Primary** right-side image in “More than a booking. A travel partner.” editorial band | migrated |
+| `home/editorial/destination-inspiration.webp` | **Primary** photography for Our Accolades cards (award titles remain native Flutter UI; no legacy plaque assets) | migrated |
+
+Home refs are Destiny storage references only (`destiny-media/...`), resolved via `DestinyMediaUrl` → `TravelNetworkImage`. No hardcoded Supabase absolute URLs in Home widgets.
 
 ### TOURS
 
