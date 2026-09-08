@@ -301,4 +301,38 @@ void main() {
       expect(vehicles.first.make, isNotEmpty);
     });
   });
+
+  group('ChainedInventoryRepository', () {
+    test('uses first non-empty source and does not merge', () async {
+      final first = _FakeRepo(tours: [sampleTour]);
+      final second = _FakeRepo(
+        tours: [
+          Tour(
+            id: 99,
+            title: 'Other',
+            description: '',
+            price: 0,
+            duration: '',
+            isFeatured: false,
+            imageUrls: const [],
+            amenities: const [],
+            itinerary: const [],
+          ),
+        ],
+      );
+      final repo = ChainedInventoryRepository([first, second]);
+      final tours = await repo.getTours();
+      expect(tours, hasLength(1));
+      expect(tours.single.id, 1);
+    });
+
+    test('skips failing/empty sources', () async {
+      final repo = ChainedInventoryRepository([
+        _FakeRepo(throwOnCall: true),
+        _FakeRepo(),
+        _FakeRepo(tours: [sampleTour]),
+      ]);
+      expect((await repo.getTours()).single.id, 1);
+    });
+  });
 }
