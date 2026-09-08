@@ -1,15 +1,24 @@
 import 'package:chewie/chewie.dart';
+import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 /// Full-bleed cinematic hero video used on Home.
 /// Overlay content (headline, search) is composed by the parent.
+///
+/// Owned-media [posterRef] (Destiny storage reference) is always painted as the
+/// base layer so loading / video failure stay full-bleed without layout shift.
 class VideoHero extends StatefulWidget {
   final double height;
+
+  /// Destiny media reference for the hero poster / fallback still.
+  /// Defaults to `destiny-media/home/hero/main.webp`.
+  final String posterRef;
 
   const VideoHero({
     super.key,
     this.height = 420,
+    this.posterRef = 'destiny-media/home/hero/main.webp',
   });
 
   @override
@@ -88,6 +97,9 @@ class _VideoHeroState extends State<VideoHero> {
 
   @override
   Widget build(BuildContext context) {
+    final videoReady =
+        !_isLoading && !_hasError && _chewieController != null;
+
     return SizedBox(
       height: widget.height,
       width: double.infinity,
@@ -95,15 +107,18 @@ class _VideoHeroState extends State<VideoHero> {
         fit: StackFit.expand,
         children: [
           const ColoredBox(color: Color(0xFF0A2540)),
+          // Owned hero still — poster while video loads, and fallback if video fails.
+          TravelNetworkImage(
+            imageUrl: widget.posterRef,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: widget.height,
+          ),
           if (_isLoading)
             const Center(
               child: CircularProgressIndicator(color: Colors.white70),
             )
-          else if (_hasError || _chewieController == null)
-            const Center(
-              child: Icon(Icons.flight_takeoff, color: Colors.white54, size: 48),
-            )
-          else
+          else if (videoReady)
             FittedBox(
               fit: BoxFit.cover,
               clipBehavior: Clip.hardEdge,
@@ -125,7 +140,7 @@ class _VideoHeroState extends State<VideoHero> {
                   color: Colors.white,
                   size: 20,
                 ),
-                onPressed: _chewieController == null ? null : _toggleMute,
+                onPressed: videoReady ? _toggleMute : null,
                 tooltip: _isMuted ? 'Unmute' : 'Mute',
               ),
             ),

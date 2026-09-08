@@ -24,10 +24,15 @@ class DestinyMediaUrl {
 
   /// Logical object-path helpers for the `destiny-media` bucket.
   /// These return **storage references**, not fabricated inventory URLs.
-  static String homeHeroObject([String fileName = 'primary.webp']) =>
+  static String homeHeroObject([String fileName = 'main.webp']) =>
       'home/hero/$fileName';
 
   static String homeEditorialObject([String fileName = 'travel-partner.webp']) =>
+      'home/editorial/$fileName';
+
+  static String homeDestinationInspirationObject([
+    String fileName = 'destination-inspiration.webp',
+  ]) =>
       'home/editorial/$fileName';
 
   static String homeDestinaObject([String fileName = 'destina.webp']) =>
