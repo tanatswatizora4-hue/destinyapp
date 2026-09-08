@@ -1,7 +1,11 @@
 import 'package:destiny/config/theme/app_theme.dart';
+import 'package:destiny/repositories/composite_inventory_repository.dart';
+import 'package:destiny/repositories/legacy_inventory_repository.dart';
+import 'package:destiny/repositories/supabase_inventory_repository.dart';
 import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/navigation_screen.dart';
 import 'package:destiny/screens/splash_screen.dart';
+import 'package:destiny/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -28,6 +32,13 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Inventory: Supabase-primary when anon key is configured; else legacy PHP.
+  ApiService.inventoryRepository = CompositeInventoryRepository(
+    primary: SupabaseInventoryRepository(),
+    fallback: LegacyInventoryRepository(),
+  );
+
   runApp(const MyApp());
 }
 
