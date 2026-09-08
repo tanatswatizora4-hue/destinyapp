@@ -6,8 +6,9 @@ import 'package:intl/intl.dart';
 
 /// Agent-assisted flight / trip enquiry — not live fare shopping.
 class FlightsScreen extends StatefulWidget {
-  final int userId;
-  const FlightsScreen({super.key, required this.userId});
+  /// SQL user id when signed in. Null for public enquiry browsing.
+  final int? userId;
+  const FlightsScreen({super.key, this.userId});
 
   @override
   State<FlightsScreen> createState() => _FlightsScreenState();
@@ -109,14 +110,27 @@ class _FlightsScreenState extends State<FlightsScreen> {
       return;
     }
 
+    if (widget.userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Sign in to send your flight enquiry so Destiny agents can follow up.',
+          ),
+          backgroundColor: AppTheme.primary,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
+      final signedInUserId = widget.userId!;
       final midPlaces = _midPlaceControllers
           .map((c) => c.text.trim())
           .where((t) => t.isNotEmpty)
           .toList();
       await _apiService.createFlightBooking(
-        userId: widget.userId,
+        userId: signedInUserId,
         origin: _fromController.text.trim(),
         destination: _toController.text.trim(),
         midPlaces: midPlaces,

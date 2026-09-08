@@ -14,7 +14,8 @@
 - Destina assist entry points on Stays / Vehicles / Flights
 - Loading / empty / error / retry states
 - Responsive grids + desktop booking rails
-- Home / Tours left intact; nav indices + auth unchanged
+- Home / Tours left intact; nav indices unchanged
+- Final QA repair: web HTML-element media loading for owned Home WebP; Flights public browse (account tabs still protected)
 
 ## M2 — Destiny backend migration
 - Migrate inventory/booking APIs off bymapara PHP

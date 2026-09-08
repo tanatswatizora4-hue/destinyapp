@@ -389,3 +389,7 @@ Home Destina (`_buildAskDestinaCompact` / `_DestinaMark`): navy gradient panel +
 - Flights remains enquiry-only until Travelport/GDS (M3)
 - Destina CTAs are preview snackbars until Destina production (M4)
 - Seat/transmission/fuel specs not in vehicle model — not invented
+
+### Final integration repair
+- **Home media:** Flutter web `TravelNetworkImage` now prefers HTML `<img>` (`WebHtmlElementStrategy.prefer`) so public Supabase Storage WebP renders without CORS byte-fetch failures; empty dart-defines no longer wipe production Supabase defaults.
+- **Flights auth:** Index 4 removed from `protectedNavIndices`; logged-out users see the enquiry UI. Submit still requires sign-in. Account tabs 5–8 remain protected.
