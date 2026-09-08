@@ -1,5 +1,6 @@
 import 'package:destiny/config/theme/app_theme.dart';
-import 'package:destiny/repositories/composite_inventory_repository.dart';
+import 'package:destiny/repositories/catalog_inventory_repository.dart';
+import 'package:destiny/repositories/chained_inventory_repository.dart';
 import 'package:destiny/repositories/legacy_inventory_repository.dart';
 import 'package:destiny/repositories/supabase_inventory_repository.dart';
 import 'package:destiny/screens/login_screen.dart';
@@ -33,11 +34,17 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Inventory: Supabase-primary when anon key is configured; else legacy PHP.
-  ApiService.inventoryRepository = CompositeInventoryRepository(
-    primary: SupabaseInventoryRepository(),
-    fallback: LegacyInventoryRepository(),
-  );
+  // Inventory precedence (first non-empty wins; never merges sources):
+  // 1) Supabase PostgREST when anon key is configured
+  // 2) Public destiny-media catalog.json when uploaded
+  // 3) Bundled Destiny catalog asset (snapshot; not live bymapara)
+  // 4) Legacy bymapara PHP (temporary)
+  ApiService.inventoryRepository = ChainedInventoryRepository([
+    SupabaseInventoryRepository(),
+    StorageCatalogInventoryRepository(),
+    AssetCatalogInventoryRepository(),
+    LegacyInventoryRepository(),
+  ]);
 
   runApp(const MyApp());
 }

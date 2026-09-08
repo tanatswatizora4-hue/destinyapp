@@ -3,6 +3,8 @@ import 'package:destiny/models/accommodation.dart';
 import 'package:destiny/models/award.dart';
 import 'package:destiny/models/tour.dart';
 import 'package:destiny/models/vehicle.dart';
+import 'package:destiny/repositories/catalog_inventory_repository.dart';
+import 'package:destiny/repositories/chained_inventory_repository.dart';
 import 'package:destiny/repositories/composite_inventory_repository.dart';
 import 'package:destiny/repositories/inventory_repository.dart';
 import 'package:destiny/repositories/supabase_inventory_mappers.dart';
@@ -47,6 +49,18 @@ void main() {
   tearDown(() {
     DestinySupabaseConfig.debugClearOverrides();
   });
+
+  final sampleTour = Tour(
+    id: 1,
+    title: 'Legacy Tour',
+    description: '',
+    price: 1,
+    duration: '1d',
+    isFeatured: false,
+    imageUrls: const [],
+    amenities: const [],
+    itinerary: const [],
+  );
 
   group('SupabaseInventoryMappers', () {
     test('prefers owned storage_path over legacy_url and de-dupes primary', () {
@@ -155,18 +169,6 @@ void main() {
   });
 
   group('CompositeInventoryRepository', () {
-    final sampleTour = Tour(
-      id: 1,
-      title: 'Legacy Tour',
-      description: '',
-      price: 1,
-      duration: '1d',
-      isFeatured: false,
-      imageUrls: const [],
-      amenities: const [],
-      itinerary: const [],
-    );
-
     test('uses legacy when Supabase not preferred', () async {
       DestinySupabaseConfig.debugOverride(preferSupabase: false);
       final repo = CompositeInventoryRepository(
@@ -226,5 +228,93 @@ void main() {
       DestinyMediaUrl.resolve('destiny-media/tours/1/primary.webp'),
       contains('/storage/v1/object/public/destiny-media/tours/1/primary.webp'),
     );
+  });
+
+  group('CatalogInventoryMappers', () {
+    test('maps bundled catalog shape including null-safe fields', () {
+      final catalog = {
+        'tours': [
+          {
+            'id': 9,
+            'title': null,
+            'description': '',
+            'price': '10',
+            'duration': '2d',
+            'is_featured': true,
+            'image_urls': ['uploads/a.jpg'],
+            'amenities': [
+              {'name': 'Guide', 'included': true},
+            ],
+            'itinerary': [
+              {
+                'date': 'Day 1',
+                'location': 'Harare',
+                'activity': 'Meet',
+                'description': '',
+              },
+            ],
+          },
+        ],
+        'stays': [
+          {
+            'id': 1,
+            'name': 'Lodge',
+            'type': 'Hotel',
+            'description': '',
+            'address': '',
+            'city': 'Harare',
+            'country': 'Zimbabwe',
+            'is_featured': false,
+            'image_urls': const <String>[],
+            'amenities': const [],
+            'room_types': [
+              {'name': 'Deluxe', 'price': 100, 'capacity': 2},
+            ],
+          },
+        ],
+        'vehicles': const [],
+        'awards': const [],
+      };
+      final tours = CatalogInventoryMappers.tours(catalog);
+      expect(tours.single.title, 'No Title');
+      expect(tours.single.price, 10);
+      expect(tours.single.amenities.single.name, 'Guide');
+      final stays = CatalogInventoryMappers.stays(catalog);
+      expect(stays.single.roomTypes.single.price, 100);
+    });
+  });
+
+  group('ChainedInventoryRepository', () {
+    test('uses first non-empty source and does not merge', () async {
+      final first = _FakeRepo(tours: [sampleTour]);
+      final second = _FakeRepo(
+        tours: [
+          Tour(
+            id: 99,
+            title: 'Other',
+            description: '',
+            price: 0,
+            duration: '',
+            isFeatured: false,
+            imageUrls: const [],
+            amenities: const [],
+            itinerary: const [],
+          ),
+        ],
+      );
+      final repo = ChainedInventoryRepository([first, second]);
+      final tours = await repo.getTours();
+      expect(tours, hasLength(1));
+      expect(tours.single.id, 1);
+    });
+
+    test('skips failing/empty sources', () async {
+      final repo = ChainedInventoryRepository([
+        _FakeRepo(throwOnCall: true),
+        _FakeRepo(),
+        _FakeRepo(tours: [sampleTour]),
+      ]);
+      expect((await repo.getTours()).single.id, 1);
+    });
   });
 }
