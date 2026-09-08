@@ -28,9 +28,11 @@ Objective: migrate inventory/media from bymapara PHP → Destiny Supabase (schem
 STOP_REASON=CREDENTIAL_REQUIRED
 ```
 
-Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` bootstraps `service_role` + anon via Management API when unset. Dashboard SQL remains an alternative for schema.
+Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` bootstraps `service_role` + anon via Management API when unset. Dashboard SQL remains an alternative for schema (`supabase/seed/m2_dashboard_one_paste.sql`).
 
 If the PAT is added in the Cloud Agent environment UI, **start a new agent run** on this branch so it injects into `printenv`.
+
+Last credential recheck (agent): 2026-09-08T21:56Z — still missing env/CLI token; remote `inventory/catalog.json` HTTP 400.
 
 ## Resume (closes milestone when verify passes)
 
