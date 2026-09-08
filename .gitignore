@@ -10,6 +10,9 @@ android/key.properties
 *.keystore
 .env
 
+# Local M2 media staging (do not commit binaries)
+.m2_staging/
+
 # Flutter generated files
 .flutter-plugins-dependencies
 *.iml
