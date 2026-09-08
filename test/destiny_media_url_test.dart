@@ -5,7 +5,32 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   tearDown(DestinyMediaConfig.debugClearOverrides);
 
+  group('DestinyMediaConfig production defaults', () {
+    test('defaults to live destiny-os public project and bucket', () {
+      expect(
+        DestinyMediaConfig.supabaseUrl,
+        DestinyMediaConfig.productionSupabaseUrl,
+      );
+      expect(
+        DestinyMediaConfig.mediaBucket,
+        DestinyMediaConfig.productionMediaBucket,
+      );
+      expect(DestinyMediaConfig.isSupabaseConfigured, isTrue);
+      expect(
+        DestinyMediaConfig.publicStorageBase,
+        'https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media',
+      );
+    });
+  });
+
   group('DestinyMediaUrl.resolve', () {
+    test('resolves production Destiny refs to public Storage URLs', () {
+      expect(
+        DestinyMediaUrl.resolve('destiny-media/home/hero/main.webp'),
+        'https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/home/hero/main.webp',
+      );
+    });
+
     test('encodes spaces and parentheses in relative legacy uploads paths', () {
       const spaced =
           'uploads/6a4f54675bd28-ChatGPT Image Jul 9, 2026, 09_56_32 AM.png';
@@ -101,6 +126,7 @@ void main() {
     test('Destiny refs without Supabase config use placeholder (not bymapara)',
         () {
       DestinyMediaConfig.debugOverride(supabaseUrl: '');
+      expect(DestinyMediaConfig.isSupabaseConfigured, isFalse);
       expect(
         DestinyMediaUrl.resolve('destiny-media/tours/1/primary.webp'),
         DestinyMediaUrl.placeholder,

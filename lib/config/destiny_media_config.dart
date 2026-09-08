@@ -2,25 +2,35 @@ import 'package:flutter/foundation.dart';
 
 /// Public Destiny media configuration (no secrets).
 ///
-/// Supabase **public** Storage object URLs do not require a service_role key.
-/// Pass the project URL at build time:
+/// Defaults target the live Destiny OS Supabase project (`destiny-os`) and the
+/// public `destiny-media` bucket. Override at build/run time when needed:
 ///
 /// ```
-/// flutter run --dart-define=DESTINY_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-/// flutter run --dart-define=DESTINY_MEDIA_BUCKET=destiny-media
+/// flutter run \
+///   --dart-define=DESTINY_SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co \
+///   --dart-define=DESTINY_MEDIA_BUCKET=destiny-media
 /// ```
 ///
 /// Never put service_role, database passwords, or admin credentials here.
 class DestinyMediaConfig {
-  /// Public Supabase project URL, e.g. `https://abcd1234.supabase.co`.
+  /// Live Destiny OS public project URL (not a secret).
+  static const String productionSupabaseUrl =
+      'https://xchddfpfzrzhlbbmyhyn.supabase.co';
+
+  /// Public marketing media bucket name (not a secret).
+  static const String productionMediaBucket = 'destiny-media';
+
+  /// Public Supabase project URL. Prefer `--dart-define=DESTINY_SUPABASE_URL=...`
+  /// for environment override; falls back to [productionSupabaseUrl].
   static const String _supabaseUrlFromEnv = String.fromEnvironment(
     'DESTINY_SUPABASE_URL',
+    defaultValue: productionSupabaseUrl,
   );
 
-  /// Public marketing media bucket (default: destiny-media).
+  /// Public marketing media bucket. Prefer `--dart-define=DESTINY_MEDIA_BUCKET=...`.
   static const String _mediaBucketFromEnv = String.fromEnvironment(
     'DESTINY_MEDIA_BUCKET',
-    defaultValue: 'destiny-media',
+    defaultValue: productionMediaBucket,
   );
 
   static String? _supabaseUrlOverride;
@@ -40,11 +50,13 @@ class DestinyMediaConfig {
   }
 
   static String get supabaseUrl =>
-      (_supabaseUrlOverride ?? _supabaseUrlFromEnv).trim().replaceAll(RegExp(r'/+$'), '');
+      (_supabaseUrlOverride ?? _supabaseUrlFromEnv)
+          .trim()
+          .replaceAll(RegExp(r'/+$'), '');
 
   static String get mediaBucket {
     final raw = (_mediaBucketOverride ?? _mediaBucketFromEnv).trim();
-    return raw.isEmpty ? 'destiny-media' : raw;
+    return raw.isEmpty ? productionMediaBucket : raw;
   }
 
   /// True when a public Supabase project URL is available for media resolution.

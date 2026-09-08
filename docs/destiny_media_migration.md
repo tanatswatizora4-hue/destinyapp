@@ -97,20 +97,24 @@ is preferred for production inventory.
 
 ## Client configuration (public only)
 
-Build/run with dart-defines (no service_role, no DB password):
+Live Destiny OS defaults are baked into `DestinyMediaConfig`:
+
+- Project URL: `https://xchddfpfzrzhlbbmyhyn.supabase.co`
+- Bucket: `destiny-media`
+
+Override at build/run time when needed (no service_role, no DB password):
 
 ```bash
 flutter run \
-  --dart-define=DESTINY_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co \
+  --dart-define=DESTINY_SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co \
   --dart-define=DESTINY_MEDIA_BUCKET=destiny-media
 ```
 
-Obtain `DESTINY_SUPABASE_URL` from the Supabase dashboard:
-
-**Project Settings → API → Project URL**
-
 The anon/publishable key is **not required** for resolving public Storage object
 URLs. Do not embed `service_role` in the Flutter app.
+
+See also: [destiny_media_inventory.md](./destiny_media_inventory.md) for planned
+object slots and the live tour/stay/vehicle migration map.
 
 ## How references resolve
 
