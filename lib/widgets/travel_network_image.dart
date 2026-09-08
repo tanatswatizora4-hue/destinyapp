@@ -1,8 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:destiny/config/theme/app_theme.dart';
+import 'package:destiny/utils/destiny_media_url.dart';
 import 'package:flutter/material.dart';
 
-/// Tasteful network image for travel cards — intentional placeholders on load/fail.
+/// Tasteful travel image — resolves via [DestinyMediaUrl], intentional fallbacks.
+///
+/// Accepts raw API paths, Destiny Supabase refs, absolute URLs, or `assets/...`.
 class TravelNetworkImage extends StatelessWidget {
   final String imageUrl;
   final double? width;
@@ -21,16 +24,29 @@ class TravelNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = CachedNetworkImage(
-      imageUrl: imageUrl,
-      width: width,
-      height: height,
-      fit: fit,
-      fadeInDuration: const Duration(milliseconds: 220),
-      placeholder: (context, url) => const _TravelImageFallback(loading: true),
-      errorWidget: (context, url, error) =>
-          const _TravelImageFallback(loading: false),
-    );
+    final resolved = DestinyMediaUrl.resolve(imageUrl);
+
+    final Widget image;
+    if (DestinyMediaUrl.isAssetRef(resolved)) {
+      image = Image.asset(
+        resolved,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (_, __, ___) => const _TravelImageFallback(loading: false),
+      );
+    } else {
+      image = CachedNetworkImage(
+        imageUrl: resolved,
+        width: width,
+        height: height,
+        fit: fit,
+        fadeInDuration: const Duration(milliseconds: 220),
+        placeholder: (context, url) => const _TravelImageFallback(loading: true),
+        errorWidget: (context, url, error) =>
+            const _TravelImageFallback(loading: false),
+      );
+    }
 
     if (borderRadius != null) {
       return ClipRRect(borderRadius: borderRadius!, child: image);
