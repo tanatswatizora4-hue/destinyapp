@@ -8,14 +8,19 @@ name: M2 Destiny Supabase apply
 #   DESTINY_SUPABASE_ANON_KEY   — verify public reads after apply
 #
 # Never targets Wanzwei.
+# Prefer staged LFS media (default). Live re-download is opt-in only.
 
 on:
   workflow_dispatch:
     inputs:
       migrate_media:
-        description: Upload staged LFS media (and/or re-download) into destiny-media
+        description: Upload staged LFS media into destiny-media (recommended)
         type: boolean
         default: true
+      redownload_legacy_media:
+        description: Also re-download legacy images during migrate (usually leave off)
+        type: boolean
+        default: false
       apply_seed_sql:
         description: Also apply inventory_seed_owned_media.sql after migrator
         type: boolean
@@ -76,20 +81,23 @@ jobs:
           echo "staged files: $count"
           test "$count" -ge 81
 
-      - name: Migrate inventory (+ download/upload media into owned paths)
+      - name: Migrate inventory (snapshot upsert; optional live re-download)
         env:
           DESTINY_MIGRATE_FROM_SNAPSHOT: "1"
-          DESTINY_MIGRATE_MEDIA: ${{ inputs.migrate_media && '1' || '0' }}
-          DESTINY_UPLOAD_OWNED: ${{ inputs.migrate_media && '1' || '0' }}
+          # Default aligns with apply_m2_remote.sh: staged upload, not live download.
+          DESTINY_MIGRATE_MEDIA: ${{ inputs.redownload_legacy_media && '1' || '0' }}
+          DESTINY_UPLOAD_OWNED: ${{ inputs.redownload_legacy_media && '1' || '0' }}
         run: python3 scripts/migrate_inventory_to_supabase.py
 
-      - name: Upload remaining staged media + catalog.json
+      - name: Upload staged media + catalog.json
         if: ${{ inputs.migrate_media }}
         env:
           DESTINY_UPLOAD_CATALOG: "1"
         run: |
           python3 scripts/rebuild_owned_catalog.py
           python3 scripts/upload_staged_media.py
+          python3 scripts/rebuild_owned_catalog.py
+          DESTINY_CATALOG_ONLY=1 python3 scripts/upload_staged_media.py
 
       - name: Upload catalog.json only (no media)
         if: ${{ !inputs.migrate_media }}
@@ -109,3 +117,7 @@ jobs:
       - name: Verify anon reads + counts
         if: ${{ env.DESTINY_SUPABASE_ANON_KEY != '' }}
         run: python3 scripts/verify_m2_remote.py
+
+      - name: Finalize M2 docs from live evidence
+        if: ${{ env.DESTINY_SUPABASE_ANON_KEY != '' }}
+        run: python3 scripts/m2_finalize_docs.py

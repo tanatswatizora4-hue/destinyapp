@@ -20,8 +20,8 @@ Scope: Destiny backend migration scaffolding + intended remote apply to `xchddfp
 ## Residual risks until credentials applied
 
 1. Schema/RLS not yet live on remote — cannot verify policies in production until apply.
-2. Until media migration, inventory may still resolve `uploads/` via bymapara (temporary).
-3. Composite fallback means a misconfigured empty Supabase table silently serves legacy data (documented; prefer fail-closed only after cutover verification).
+2. Until media migration / `DESTINY_INVENTORY_MEDIA_LIVE=true`, inventory images may still resolve `uploads/` via bymapara (temporary).
+3. `CompositeInventoryRepository` / `LegacyInventoryRepository` exist for tooling/tests only — **not** wired in `lib/main.dart`. Production chain is PostgREST → Storage catalog → asset (first non-empty wins; no bymapara inventory API).
 
 ## Required follow-up after apply
 

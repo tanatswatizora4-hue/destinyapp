@@ -18,6 +18,8 @@ SUPABASE_URL = os.environ.get(
     "SUPABASE_URL", "https://xchddfpfzrzhlbbmyhyn.supabase.co"
 ).rstrip("/")
 EXPECTED = {"tours": 25, "stays": 36, "vehicles": 3, "awards": 6}
+# Residual missing_legacy leaves a few non-owned primary paths acceptable.
+MIN_OWNED_RATIO = 0.90
 CATALOG_URL = (
     f"{SUPABASE_URL}/storage/v1/object/public/destiny-media/inventory/catalog.json"
 )
@@ -96,6 +98,10 @@ def sample_owned_paths(table: str, key: str) -> tuple[int, int]:
     return owned, total
 
 
+def catalog_counts(catalog: dict) -> dict[str, int]:
+    return {key: len(catalog.get(key) or []) for key in EXPECTED}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -129,21 +135,35 @@ def main() -> None:
         print(f"  {table}: {n} (expected {expected}) [{status}]")
         owned, total = sample_owned_paths(table, key)
         print(f"    primary_image_path owned={owned}/{total}")
-        if total > 0 and owned == 0:
+        if total == 0:
             ok = False
-            print("    ERROR: no destiny-media primary paths")
+            print("    ERROR: no primary_image_path samples")
+        elif owned / total < MIN_OWNED_RATIO:
+            ok = False
+            print(
+                f"    ERROR: owned path ratio {owned}/{total} "
+                f"< {MIN_OWNED_RATIO:.0%}"
+            )
 
     code, body, _ = fetch(CATALOG_URL, {})
     if code == 200:
         try:
             catalog = json.loads(body)
+            counts = catalog_counts(catalog)
             print(
                 "  catalog.json: OK "
-                f"tours={len(catalog.get('tours') or [])} "
-                f"stays={len(catalog.get('stays') or [])} "
-                f"vehicles={len(catalog.get('vehicles') or [])} "
-                f"awards={len(catalog.get('awards') or [])}"
+                f"tours={counts['tours']} "
+                f"stays={counts['stays']} "
+                f"vehicles={counts['vehicles']} "
+                f"awards={counts['awards']}"
             )
+            for key, expected in EXPECTED.items():
+                if counts[key] != expected:
+                    ok = False
+                    print(
+                        f"    ERROR: catalog {key}={counts[key]} "
+                        f"(expected {expected})"
+                    )
         except json.JSONDecodeError:
             ok = False
             print("  catalog.json: invalid JSON")

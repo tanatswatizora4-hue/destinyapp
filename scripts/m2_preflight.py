@@ -53,6 +53,30 @@ def main() -> None:
     check(owned >= 80, f"seed catalog owned paths >=80 (got {owned})")
     check(uploads <= 5, f"seed catalog residual uploads <=5 (got {uploads})")
 
+    asset_cat = json.loads(asset.read_text(encoding="utf-8"))
+    for key, n in EXPECTED.items():
+        check(len(asset_cat.get(key) or []) == n, f"asset catalog {key}=={n}")
+    check(
+        json.dumps(cat, sort_keys=True) == json.dumps(asset_cat, sort_keys=True),
+        "asset catalog == seed catalog",
+    )
+
+    residual = set()
+    for key in EXPECTED:
+        for row in cat[key]:
+            for u in row.get("image_urls") or []:
+                if str(u).startswith("uploads/"):
+                    residual.add((key, int(row.get("id") or 0), str(u)))
+    # Known missing_legacy residuals (ids with uploads/ left in catalog)
+    check(len(residual) == 4, f"residual uploads entries==4 (got {len(residual)})")
+
+    owned_seed = ROOT / "supabase/seed/inventory_seed_owned_media.sql"
+    legacy_seed = ROOT / "supabase/seed/inventory_seed.sql"
+    check(owned_seed.is_file(), "exists owned-media seed SQL")
+    check(legacy_seed.is_file(), "exists historical legacy seed SQL")
+    owned_sql = owned_seed.read_bytes()
+    check(b"\r" not in owned_sql, "owned-media seed SQL is LF-only")
+
     items = json.loads(manifest.read_text(encoding="utf-8"))
     check(len(items) == 84, f"manifest entries==84 (got {len(items)})")
     ready = sum(1 for m in items if int(m.get("bytes") or 0) > 0)

@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATE = ROOT / "scripts" / "migrate_inventory_to_supabase.py"
@@ -110,6 +110,57 @@ class ProjectGuardTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
         self.assertIn("xchddfpfzrzhlbbmyhyn", text)
         self.assertIn("ALLOWED", text)
+
+
+class VerifyCatalogCountsTests(unittest.TestCase):
+    def test_catalog_counts_match_expected_keys(self):
+        from verify_m2_remote import EXPECTED, catalog_counts
+
+        catalog = {k: [{"id": i} for i in range(n)] for k, n in EXPECTED.items()}
+        self.assertEqual(catalog_counts(catalog), EXPECTED)
+
+    def test_catalog_counts_missing_keys_zero(self):
+        from verify_m2_remote import catalog_counts
+
+        self.assertEqual(
+            catalog_counts({}),
+            {"tours": 0, "stays": 0, "vehicles": 0, "awards": 0},
+        )
+
+
+class FinalizeDocsHelperTests(unittest.TestCase):
+    def test_strip_destiny_prefix(self):
+        from m2_finalize_docs import _strip_destiny_prefix
+
+        self.assertEqual(
+            _strip_destiny_prefix("destiny-media/tours/1/primary.jpg"),
+            "tours/1/primary.jpg",
+        )
+
+    def test_rebuild_inventory_sections_marks_ready(self):
+        from m2_finalize_docs import _rebuild_inventory_sections
+
+        items = [
+            {
+                "kind": "tours",
+                "legacy_id": 1,
+                "legacy": "uploads/a.jpg",
+                "object_path": "destiny-media/tours/1/primary.jpg",
+                "bytes": 10,
+            },
+            {
+                "kind": "tours",
+                "legacy_id": 2,
+                "legacy": "uploads/b.jpg",
+                "object_path": "destiny-media/tours/2/primary.webp",
+                "bytes": 0,
+            },
+        ]
+        text = _rebuild_inventory_sections(items, ready=1)
+        self.assertIn("| `tours/1/primary.jpg` | `uploads/a.jpg` | migrated |", text)
+        self.assertIn(
+            "| `tours/2/primary.webp` | `uploads/b.jpg` | missing_legacy |", text
+        )
 
 
 if __name__ == "__main__":

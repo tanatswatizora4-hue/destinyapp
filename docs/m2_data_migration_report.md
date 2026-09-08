@@ -19,7 +19,7 @@
 | Artifact | Purpose |
 |----------|---------|
 | `supabase/migrations/20260908143000_destiny_inventory_schema.sql` | Schema + RLS |
-| `supabase/seed/inventory_seed.sql` | Idempotent INSERT/UPSERT of all inventory + children (legacy image paths) |
+| `supabase/seed/inventory_seed_owned_media.sql` | Cutover seed (owned paths); historical `inventory_seed.sql` must not be used for apply |
 | `supabase/seed/legacy_inventory_snapshot.json` | Raw API snapshot |
 | `supabase/seed/media_manifest.json` | 84 image refs → destiny-media object paths |
 | `scripts/migrate_inventory_to_supabase.py` | PostgREST upsert migrator |

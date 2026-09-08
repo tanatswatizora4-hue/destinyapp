@@ -57,7 +57,8 @@ class DestinySupabaseConfig {
   /// True when publishable anon key is present (required for live reads).
   static bool get isConfigured => anonKey.isNotEmpty;
 
-  /// Prefer Supabase inventory when configured; else legacy API.
+  /// Prefer Supabase PostgREST inventory when anon key is configured.
+  /// App inventory chain does not fall back to bymapara API (see `main.dart`).
   static bool get preferSupabaseInventory {
     if (_preferSupabaseOverride != null) return _preferSupabaseOverride!;
     return isConfigured;

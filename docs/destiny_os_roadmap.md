@@ -20,10 +20,10 @@
 ## M2 — Destiny backend migration — IN PROGRESS (credential-blocked)
 - Legacy audit complete (`docs/m2_legacy_backend_audit.md`)
 - Versioned schema + RLS migration in repo (`supabase/migrations/...`)
-- Flutter inventory repository layer (Supabase-primary + legacy fallback)
+- Flutter inventory repository layer (PostgREST → Storage catalog → asset; no bymapara inventory API)
 - Idempotent migration script ready (`scripts/migrate_inventory_to_supabase.py`)
 - Seeds + staged media (81/84) + apply runbook (`docs/m2_apply_runbook.md`)
-- Optional GitHub Actions applicator (`.github/workflows/m2-destiny-supabase-apply.yml`)
+- Optional GitHub Actions applicator (`.github/workflows/m2-destiny-supabase-apply.yml`; enable on main via PR #13)
 - **Blocked:** remote apply still needs secrets; one-shot ready via `bash scripts/apply_m2_remote.sh` (`SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_ACCESS_TOKEN` + `DESTINY_SUPABASE_ANON_KEY`)
 - Customer bookings/profiles remain on bymapara until auth bridge (intentional)
 - See `docs/m2_*` reports for status
