@@ -48,9 +48,21 @@
       overflow-x: auto;
       white-space: pre-wrap;
     }
-    a.btn {
+    label { display: block; font-size: 0.9rem; color: var(--muted); margin: 0.5rem 0 0.25rem; }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 0.55rem 0.7rem;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      background: #0a1511;
+      color: var(--ink);
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+    }
+    button, a.btn {
       display: inline-block;
-      margin-top: 0.5rem;
+      margin-top: 0.65rem;
+      margin-right: 0.4rem;
       padding: 0.55rem 0.9rem;
       border-radius: 8px;
       background: var(--accent);
@@ -58,15 +70,33 @@
       text-decoration: none;
       font-weight: 700;
       font-family: ui-sans-serif, system-ui, sans-serif;
+      border: 0;
+      cursor: pointer;
     }
+    button.secondary { background: color-mix(in srgb, var(--muted) 35%, var(--panel)); color: var(--ink); }
     .warn { color: var(--warn); }
     .tiny { font-size: 0.85rem; color: var(--muted); }
+    .ok { color: var(--accent); }
+    #drop-status { min-height: 1.2em; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
   <main>
     <h1>Destiny M2 unblock</h1>
-    <p class="sub">Project <code>xchddfpfzrzhlbbmyhyn</code> only. Do not paste secrets into chat.</p>
+    <p class="sub">Project <code>xchddfpfzrzhlbbmyhyn</code> only. Secrets stay on this VM — never paste into chat.</p>
+
+    <div class="card">
+      <h2>Drop credentials here (localhost only)</h2>
+      <p class="tiny">Writes <code>/tmp/supabase-access-token</code> or <code>/tmp/supabase-cli-code</code> (chmod 600). Watchers auto-apply.</p>
+      <label for="pat">Supabase personal access token (preferred)</label>
+      <input id="pat" type="password" autocomplete="off" spellcheck="false" placeholder="sbp_…" />
+      <button type="button" id="btn-pat">Save PAT &amp; apply</button>
+      <label for="code">CLI verification code</label>
+      <input id="code" type="text" autocomplete="off" spellcheck="false" placeholder="code from Dashboard CLI authorize" />
+      <button type="button" id="btn-code" class="secondary">Submit CLI code</button>
+      <p id="drop-status" class="tiny"></p>
+      <p id="live-status" class="tiny">Checking watcher status…</p>
+    </div>
 
     <div class="card">
       <h2>1) Preferred — Cloud Agent secret</h2>
@@ -75,33 +105,56 @@
     </div>
 
     <div class="card">
-      <h2>2) VNC — drop PAT (watcher auto-applies)</h2>
-      <pre>printf '%s\n' 'SUPABASE_ACCESS_TOKEN=YOUR_PAT' &gt; /tmp/destiny-m2.env
-chmod 600 /tmp/destiny-m2.env
-
-# or raw token only:
-printf '%s\n' 'YOUR_PAT' &gt; /tmp/supabase-access-token
-chmod 600 /tmp/supabase-access-token</pre>
-    </div>
-
-    <div class="card">
-      <h2>3) VNC — CLI login code</h2>
-      <p class="tiny">Sign into Dashboard, open the CLI authorize URL, then drop the code:</p>
-      <pre>printf '%s\n' 'YOUR_CODE' &gt; /tmp/supabase-cli-code
-chmod 600 /tmp/supabase-cli-code</pre>
-      <p class="tiny">Current CLI login URL is in <code>/tmp/supabase-cli-login.url</code> (also open in Chrome if present).</p>
+      <h2>2) VNC — CLI authorize link</h2>
+      <p class="tiny">Sign into Dashboard (ChatGPT SSO), open the link, then paste the code above.</p>
       <a class="btn" id="cli-link" href="#" target="_blank" rel="noopener">Open CLI login URL</a>
       <p class="tiny" id="cli-status">Loading URL…</p>
     </div>
 
     <div class="card">
-      <h2>4) GitHub Actions</h2>
+      <h2>3) GitHub Actions</h2>
       <p>Merge PR #13, add Actions secret <code>SUPABASE_ACCESS_TOKEN</code>, run workflow on the M2 branch.</p>
     </div>
 
     <p class="warn tiny">Live gate: <code>inventory/catalog.json</code> must become HTTP 200 with counts 25/36/3/6.</p>
   </main>
   <script>
+    const statusEl = document.getElementById('drop-status');
+    async function drop(kind, value) {
+      statusEl.className = 'tiny';
+      statusEl.textContent = 'Writing…';
+      try {
+        const res = await fetch('/drop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind, value }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          statusEl.className = 'tiny warn';
+          statusEl.textContent = 'Rejected: ' + (data.error || res.status);
+          return;
+        }
+        statusEl.className = 'tiny ok';
+        statusEl.textContent = data.wrote === 'raw_token'
+          ? 'PAT saved — apply watcher should start within ~15s.'
+          : 'CLI code saved — code watcher will submit to sb-login.';
+      } catch (e) {
+        statusEl.className = 'tiny warn';
+        statusEl.textContent = 'Write failed (is the helper server running?)';
+      }
+    }
+    document.getElementById('btn-pat').addEventListener('click', () => {
+      const v = document.getElementById('pat').value.trim();
+      if (!v) { statusEl.className = 'tiny warn'; statusEl.textContent = 'Paste a PAT first.'; return; }
+      drop('pat', v).then(() => { document.getElementById('pat').value = ''; });
+    });
+    document.getElementById('btn-code').addEventListener('click', () => {
+      const v = document.getElementById('code').value.trim();
+      if (!v) { statusEl.className = 'tiny warn'; statusEl.textContent = 'Paste a code first.'; return; }
+      drop('code', v).then(() => { document.getElementById('code').value = ''; });
+    });
+
     async function loadUrl() {
       const status = document.getElementById('cli-status');
       const link = document.getElementById('cli-link');
@@ -113,11 +166,27 @@ chmod 600 /tmp/supabase-cli-code</pre>
         link.href = url;
         status.textContent = 'Session ready — click to open.';
       } catch (e) {
-        status.textContent = 'URL file not readable from this page; open /tmp/supabase-cli-login.url in a terminal.';
+        status.textContent = 'URL file not readable; open /tmp/supabase-cli-login.url in a terminal.';
+      }
+    }
+    async function loadStatus() {
+      const el = document.getElementById('live-status');
+      try {
+        const res = await fetch('/status', { cache: 'no-store' });
+        const s = await res.json();
+        el.textContent = 'Flags: raw_token=' + s.has_raw_token
+          + ' env=' + s.has_env_file
+          + ' cli_code=' + s.has_cli_code
+          + ' cli_url=' + s.has_cli_url
+          + ' access_token=' + s.has_cli_access_token;
+      } catch (e) {
+        el.textContent = 'Status endpoint unavailable.';
       }
     }
     loadUrl();
+    loadStatus();
     setInterval(loadUrl, 15000);
+    setInterval(loadStatus, 5000);
   </script>
 </body>
 </html>

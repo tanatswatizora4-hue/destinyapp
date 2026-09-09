@@ -32,7 +32,7 @@ Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` / `m2_new_agen
 
 If the PAT is added in the Cloud Agent environment UI, **start a new agent run** on this branch so it injects into `printenv`, then run `bash scripts/m2_new_agent_bootstrap.sh`.
 
-Last credential recheck (agent): 2026-09-09T03:42Z — still missing credentials; Dashboard ChatGPT SSO logged out (SSO_BLOCKED); CLI login awaiting verification code (`sb-login`); watchers `m2-watch-apply` + `m2-watch-cli-code` + VNC helper `:8765` alive; catalog HTTP 400; media staging 81 files ready.
+Last credential recheck (agent): 2026-09-09T03:49Z — still missing credentials; Dashboard ChatGPT SSO logged out (SSO_BLOCKED); CLI login awaiting verification code (`sb-login`); watchers alive; VNC helper `:8765` now accepts localhost form POST for PAT/CLI code; catalog HTTP 400; media staging 81 files ready.
 
 ## Resume (closes milestone when verify passes)
 
