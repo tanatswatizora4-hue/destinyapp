@@ -58,6 +58,8 @@ Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard, autho
 
 `apply_m2_remote.sh` auto-loads `SUPABASE_ACCESS_TOKEN` from `~/.supabase/access-token` when the env var is unset (after a successful `supabase login`). Do not paste tokens into chat.
 
+On long-running agent VMs, `bash scripts/m2_watch_and_apply.sh` (tmux `m2-watch-apply`) polls for the CLI token / env keys and runs `apply_m2_remote.sh` once credentials appear — no need to wait for the next human message.
+
 ## Expected counts
 
 | Entity | Count |
