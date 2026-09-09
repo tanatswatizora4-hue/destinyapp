@@ -38,9 +38,11 @@ void main() async {
   await DestinyMediaLegacyMap.load();
 
   // Inventory precedence (first non-empty wins; never merges sources):
-  // 1) Supabase PostgREST when anon key is configured
+  // 1) Supabase PostgREST when publishable/anon key is configured (primary)
   // 2) Public destiny-media catalog.json when uploaded
-  // 3) Bundled Destiny catalog asset (owned paths; legacy image fallback)
+  // 3) Bundled Destiny catalog asset (controlled fallback until live rows exist)
+  // Image URLs: inventory destiny-media refs use legacy upload map until
+  // DESTINY_INVENTORY_MEDIA_LIVE=true (see DestinyMediaConfig).
   // Legacy bymapara PHP inventory reads are retired from this chain.
   // Bookings/profile/docs still use ApiService → bymapara intentionally.
   ApiService.inventoryRepository = ChainedInventoryRepository([

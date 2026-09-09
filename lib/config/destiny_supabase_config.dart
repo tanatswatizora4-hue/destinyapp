@@ -2,11 +2,16 @@ import 'package:flutter/foundation.dart';
 
 /// Public Supabase client configuration for Destiny OS (no service_role).
 ///
+/// Uses the **publishable** / anon key only (safe for client apps). Never embed
+/// `service_role`. Prefer:
+///
 /// ```
 /// flutter run \
 ///   --dart-define=DESTINY_SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co \
-///   --dart-define=DESTINY_SUPABASE_ANON_KEY=eyJ...
+///   --dart-define=DESTINY_SUPABASE_ANON_KEY=<publishable-or-anon-key>
 /// ```
+///
+/// Alias: `--dart-define=SUPABASE_ANON_KEY=...` (same publishable key).
 class DestinySupabaseConfig {
   static const String productionUrl =
       'https://xchddfpfzrzhlbbmyhyn.supabase.co';
@@ -15,6 +20,8 @@ class DestinySupabaseConfig {
       String.fromEnvironment('DESTINY_SUPABASE_URL');
   static const String _anonFromEnv =
       String.fromEnvironment('DESTINY_SUPABASE_ANON_KEY');
+  static const String _anonAliasFromEnv =
+      String.fromEnvironment('SUPABASE_ANON_KEY');
 
   static String? _urlOverride;
   static String? _anonOverride;
@@ -48,13 +55,16 @@ class DestinySupabaseConfig {
     return env.replaceAll(RegExp(r'/+$'), '');
   }
 
+  /// Publishable / anon key for PostgREST reads (never service_role).
   static String get anonKey {
     final override = _anonOverride?.trim();
     if (override != null) return override;
-    return _anonFromEnv.trim();
+    final primary = _anonFromEnv.trim();
+    if (primary.isNotEmpty) return primary;
+    return _anonAliasFromEnv.trim();
   }
 
-  /// True when publishable anon key is present (required for live reads).
+  /// True when publishable anon key is present (required for live PostgREST).
   static bool get isConfigured => anonKey.isNotEmpty;
 
   /// Prefer Supabase PostgREST inventory when anon key is configured.

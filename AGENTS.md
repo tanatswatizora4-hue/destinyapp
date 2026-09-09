@@ -3,32 +3,27 @@
 Branch: `cursor/m2-destiny-backend-migration-194a`  
 Target: Supabase project **`xchddfpfzrzhlbbmyhyn` only** (never Wanzwei).
 
-## If `SUPABASE_ACCESS_TOKEN` (or service_role+anon) is present
+## Current mode — EXTERNAL_ACTION_REQUIRED
 
-Run immediately — do not wait for further human input:
+Do **not** run `supabase login`, SSO/OTP, VNC credential polling, or request `service_role`.
+
+Schema is applied by the external operator. Agent prepares artifacts only:
 
 ```bash
-bash scripts/m2_new_agent_bootstrap.sh
+python3 scripts/generate_m2_operator_artifacts.py
+# → scripts/generated/m2_inventory_seed.sql
+# → scripts/generated/m2_media_manifest.json
 ```
 
-Then update PR #11 with live evidence. Mark the M2 milestone complete **only** when live verify proves: tours/stays/vehicles/awards = 25/36/3/6, ≥90% owned media paths, `inventory/catalog.json` HTTP 200, sensitive tables deny anon.
+External Supabase operator must execute the seed SQL and perform media transfer.
 
-## If credentials are missing
+Flutter public reads use publishable/anon via:
 
+```bash
+--dart-define=DESTINY_SUPABASE_ANON_KEY=<publishable-or-anon-key>
 ```
-STOP_REASON=CREDENTIAL_REQUIRED
-```
 
-Do **not** mark M2 complete. Keep waiting via:
+Inventory chain: Supabase PostgREST → Storage catalog → asset catalog.  
+Legacy image fallback until `DESTINY_INVENTORY_MEDIA_LIVE=true`.
 
-- Env secret `SUPABASE_ACCESS_TOKEN` + new agent (preferred)
-- VNC drop file `/tmp/destiny-m2.env` (`chmod 600`) — watcher `m2-watch-apply` auto-runs
-- VNC raw PAT file `/tmp/supabase-access-token` (`chmod 600`) — single-line token
-- CLI login in tmux `sb-login` (or drop code to `/tmp/supabase-cli-code` for `m2-watch-cli-code`)
-- VNC helper page: `bash scripts/m2_serve_unblock.sh` → http://127.0.0.1:8765/ (localhost form can drop PAT or CLI code; shows live catalog HTTP)
-- CLI login refresher: `bash scripts/m2_cli_login_refresh.sh` (tmux `m2-cli-refresh`)
-- Dashboard media pack (Option C): `bash scripts/m2_build_dashboard_media_pack.sh` → VNC `/m2-dashboard-media-pack.tar`
-- Dashboard paste `supabase/seed/m2_dashboard_schema_plus_seed.sql` (schema+rows; media still needs credentials)
-- Merge PR #13 then Actions workflow with repo secret PAT
-
-Never paste secrets into chat. Never target Wanzwei. Preserve `devBypassAuth` and Firebase Auth.
+Never paste secrets into chat. Never target Wanzwei. Preserve `devBypassAuth` and Firebase Auth. Do not weaken RLS.
