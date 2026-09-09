@@ -32,7 +32,7 @@ Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` / `m2_new_agen
 
 If the PAT is added in the Cloud Agent environment UI, **start a new agent run** on this branch so it injects into `printenv`, then run `bash scripts/m2_new_agent_bootstrap.sh`.
 
-Last credential recheck (agent): 2026-09-09T06:11Z — still CREDENTIAL_REQUIRED; no PAT/service_role/anon in env or drop files; CLI login prompt waiting in tmux `sb-login` (URL on :8765); Dashboard **CHATGPT_SSO_BLOCKED**; env setup action re-requested for `SUPABASE_ACCESS_TOKEN`; human unblock artifacts published (`m2-dashboard-media-pack.tar`, `m2_dashboard_schema_plus_seed.sql`, README); offline preflight PASS; catalog HTTP 400 (`NoSuchKey`); home hero media still HTTP 200.
+Last credential recheck (agent): 2026-09-09T06:25Z — still CREDENTIAL_REQUIRED; no PAT/service_role/anon; CLI prompt waiting; agent VM Cursor dashboard **LOGIN_REQUIRED**; Supabase Dashboard **CHATGPT_SSO_BLOCKED**; env setup action + PR #13 alternate requested; offline preflight PASS; 81 staged media files + real tar blob ready; catalog HTTP 400; human artifacts: media pack + SQL + VNC screenshot.
 
 ## Resume (closes milestone when verify passes)
 
