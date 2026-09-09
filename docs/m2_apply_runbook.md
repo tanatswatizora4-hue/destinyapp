@@ -49,12 +49,13 @@ Use this when you can sign into the Dashboard yourself but cannot (yet) give the
 1. **SQL Editor** (project `xchddfpfzrzhlbbmyhyn`): paste  
    `supabase/seed/m2_dashboard_schema_plus_seed.sql`  
    (schema + owned-media inventory rows). Schema-only alternative: `m2_dashboard_one_paste.sql`.
-2. **Build / download the media pack** (81 images + `inventory/catalog.json`):
+2. **Get the media pack** (81 images + `inventory/catalog.json`) from any of:
 
 ```bash
 bash scripts/m2_build_dashboard_media_pack.sh
 # → /tmp/m2-dashboard-media-pack.tar
-# On the agent VNC helper: http://127.0.0.1:8765/m2-dashboard-media-pack.tar
+# Agent VNC helper: http://127.0.0.1:8765/m2-dashboard-media-pack.tar
+# Agent run artifacts (when published): m2-dashboard-media-pack.tar + m2_dashboard_schema_plus_seed.sql
 ```
 
 3. **Storage → bucket `destiny-media`**: upload every member of the tar **preserving relative paths**  
@@ -62,6 +63,8 @@ bash scripts/m2_build_dashboard_media_pack.sh
 4. Confirm publicly:  
    `https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/inventory/catalog.json` → HTTP **200**
 5. Still needed for full milestone verify (counts + sensitive deny): anon key or PAT so the agent can run `verify_m2_remote.py` / finalize. Drop PAT into the VNC form or add Cloud Agent secret + new agent.
+
+When catalog reaches HTTP 200, tmux `m2-watch-public-live` signals `/tmp/m2-media-live` and will finalize only if credentials are also present.
 
 Do **not** apply historical `inventory_seed.sql` for cutover (legacy `uploads/` paths).
 
