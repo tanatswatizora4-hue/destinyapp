@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Watch for Supabase credentials, then run apply_m2_remote.sh once.
-# Intended for agent VMs waiting on CLI login (~/.supabase/access-token)
-# or mid-session env injection (best-effort; often requires a new agent).
+# Intended for agent VMs waiting on:
+#   - CLI login (~/.supabase/access-token)
+#   - drop file /tmp/destiny-m2.env (VNC; KEY=value; chmod 600)
+#   - mid-session env injection (best-effort; often requires a new agent)
 #
 # Usage:
 #   bash scripts/m2_watch_and_apply.sh
