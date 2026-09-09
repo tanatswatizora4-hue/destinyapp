@@ -20,6 +20,7 @@ RAW_TOKEN = Path("/tmp/supabase-access-token")
 ENV_FILE = Path("/tmp/destiny-m2.env")
 CLI_CODE = Path("/tmp/supabase-cli-code")
 WAKE_FILE = Path("/tmp/m2-cred-wake")
+MEDIA_PACK = Path(os.environ.get("M2_DASHBOARD_MEDIA_PACK", "/tmp/m2-dashboard-media-pack.tar"))
 
 PAT_RE = re.compile(r"^sbp_[A-Za-z0-9_-]{20,}$|^[A-Za-z0-9._-]{20,}$")
 CODE_RE = re.compile(r"^[A-Za-z0-9]{4,32}$")
@@ -86,8 +87,26 @@ class H(SimpleHTTPRequestHandler):
                     "apply_ready": apply_ready,
                     "apply_done": apply_done,
                     "milestone_live": catalog_code == 200,
+                    "media_pack_ready": MEDIA_PACK.is_file(),
+                    "media_live_signal": Path("/tmp/m2-media-live").exists(),
                 },
             )
+            return
+        if self.path.startswith("/m2-dashboard-media-pack.tar"):
+            if not MEDIA_PACK.is_file():
+                self.send_error(404, "media pack not built — run scripts/m2_build_dashboard_media_pack.sh")
+                return
+            data = MEDIA_PACK.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-tar")
+            self.send_header(
+                "Content-Disposition",
+                'attachment; filename="m2-dashboard-media-pack.tar"',
+            )
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
             return
         if self.path.startswith("/supabase-cli-login.url"):
             if not URL_FILE.exists():

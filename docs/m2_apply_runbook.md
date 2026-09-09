@@ -42,21 +42,28 @@ Then: Actions → **M2 Destiny Supabase apply** → Run workflow.
 
 The workflow checks out with `lfs: true`, fails if the media tarball is still an LFS pointer, extracts ≥81 staged files, upserts inventory, uploads owned paths + `inventory/catalog.json`, then verifies when anon key is set.
 
-## Option C — Dashboard SQL (+ optional media)
+## Option C — Dashboard SQL + Storage upload (no agent PAT)
 
-1. SQL Editor (pick one):
-   - **Schema only:** `supabase/seed/m2_dashboard_one_paste.sql`
-   - **Schema + inventory rows (owned paths):** `supabase/seed/m2_dashboard_schema_plus_seed.sql`  
-     Prefer this when you can paste SQL but do not yet have a PAT — still need Storage uploads afterward.
-2. Prefer PostgREST migrator (`migrate_inventory_to_supabase.py`) over SQL seed when a PAT/service_role is available. If pasting seed SQL alone, use **only** `inventory_seed_owned_media.sql` (LF). Do **not** apply historical `inventory_seed.sql` for cutover — it writes legacy `uploads/` primary paths and fails owned-path verify.
-3. Storage → `destiny-media`:
-   - Upload `supabase/seed/destiny_inventory_catalog.json` as `inventory/catalog.json`
-   - Upload inventory images under `tours/`, `stays/`, `vehicles/`, `awards/` (object keys match `supabase/seed/media_manifest.json`)
-   - Or run `python3 scripts/upload_staged_media.py` with `SUPABASE_SERVICE_ROLE_KEY`
-4. After schema (or schema+seed) paste, an agent with `SUPABASE_ACCESS_TOKEN` can finish remaining work via:
-   `DESTINY_SKIP_SCHEMA=1 bash scripts/apply_m2_remote.sh`  
-   (skip media with `DESTINY_SKIP_MEDIA=1` if you already uploaded Storage objects)
-5. Put `DESTINY_SUPABASE_ANON_KEY` in a new agent env and run `python3 scripts/verify_m2_remote.py`
+Use this when you can sign into the Dashboard yourself but cannot (yet) give the agent a PAT.
+
+1. **SQL Editor** (project `xchddfpfzrzhlbbmyhyn`): paste  
+   `supabase/seed/m2_dashboard_schema_plus_seed.sql`  
+   (schema + owned-media inventory rows). Schema-only alternative: `m2_dashboard_one_paste.sql`.
+2. **Build / download the media pack** (81 images + `inventory/catalog.json`):
+
+```bash
+bash scripts/m2_build_dashboard_media_pack.sh
+# → /tmp/m2-dashboard-media-pack.tar
+# On the agent VNC helper: http://127.0.0.1:8765/m2-dashboard-media-pack.tar
+```
+
+3. **Storage → bucket `destiny-media`**: upload every member of the tar **preserving relative paths**  
+   (`inventory/catalog.json`, `tours/...`, `stays/...`, `vehicles/...`, `awards/...`).
+4. Confirm publicly:  
+   `https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/inventory/catalog.json` → HTTP **200**
+5. Still needed for full milestone verify (counts + sensitive deny): anon key or PAT so the agent can run `verify_m2_remote.py` / finalize. Drop PAT into the VNC form or add Cloud Agent secret + new agent.
+
+Do **not** apply historical `inventory_seed.sql` for cutover (legacy `uploads/` paths).
 
 ## Option D — Sign into Supabase on agent desktop / CLI login
 

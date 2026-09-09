@@ -116,11 +116,22 @@
     </div>
 
     <div class="card">
-      <h2>3) GitHub Actions</h2>
+      <h2>3) Dashboard-only (no agent PAT)</h2>
+      <p class="tiny">On your laptop (or VNC after ChatGPT SSO):</p>
+      <ol class="tiny" style="padding-left:1.2rem">
+        <li>SQL Editor → paste <code>supabase/seed/m2_dashboard_schema_plus_seed.sql</code></li>
+        <li>Storage → bucket <code>destiny-media</code> → upload pack members <strong>preserving paths</strong> (includes <code>inventory/catalog.json</code>)</li>
+      </ol>
+      <a class="btn" href="/m2-dashboard-media-pack.tar">Download media pack (.tar)</a>
+      <p class="tiny">Pack also rebuildable: <code>bash scripts/m2_build_dashboard_media_pack.sh</code></p>
+    </div>
+
+    <div class="card">
+      <h2>4) GitHub Actions</h2>
       <p>Merge PR #13, add Actions secret <code>SUPABASE_ACCESS_TOKEN</code>, run workflow on the M2 branch.</p>
     </div>
 
-    <p class="warn tiny">Live gate: <code>inventory/catalog.json</code> must become HTTP 200 with counts 25/36/3/6.</p>
+    <p class="warn tiny">Live gate: <code>inventory/catalog.json</code> must become HTTP 200 with counts 25/36/3/6 (DB verify needs anon/PAT after media upload).</p>
   </main>
   <script>
     const statusEl = document.getElementById('drop-status');

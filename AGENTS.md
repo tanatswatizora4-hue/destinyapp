@@ -27,6 +27,7 @@ Do **not** mark M2 complete. Keep waiting via:
 - CLI login in tmux `sb-login` (or drop code to `/tmp/supabase-cli-code` for `m2-watch-cli-code`)
 - VNC helper page: `bash scripts/m2_serve_unblock.sh` → http://127.0.0.1:8765/ (localhost form can drop PAT or CLI code; shows live catalog HTTP)
 - CLI login refresher: `bash scripts/m2_cli_login_refresh.sh` (tmux `m2-cli-refresh`)
+- Dashboard media pack (Option C): `bash scripts/m2_build_dashboard_media_pack.sh` → VNC `/m2-dashboard-media-pack.tar`
 - Dashboard paste `supabase/seed/m2_dashboard_schema_plus_seed.sql` (schema+rows; media still needs credentials)
 - Merge PR #13 then Actions workflow with repo secret PAT
 
