@@ -4,15 +4,9 @@ name: M2 Destiny Supabase apply
 # When running: select branch cursor/m2-destiny-backend-migration-194a (has scripts + LFS media).
 #
 # Manual-only. Applies schema + inventory/media migration to destiny-os ONLY.
-# Required GitHub secrets (repo Settings → Secrets → Actions):
-#   SUPABASE_ACCESS_TOKEN       — PAT (can bootstrap service_role + anon)
-# Optional (bootstrapped from ACCESS_TOKEN when omitted):
-#   SUPABASE_SERVICE_ROLE_KEY
-#   DESTINY_SUPABASE_ANON_KEY
-#
-# Never targets Wanzwei.
-# Prefer staged LFS media (default). Live re-download is opt-in only.
-# Prefer: bash scripts/apply_m2_remote.sh locally / m2_new_agent_bootstrap.sh on agents.
+# Required GitHub secret: SUPABASE_ACCESS_TOKEN (PAT; bootstraps service_role + anon).
+# Optional: SUPABASE_SERVICE_ROLE_KEY, DESTINY_SUPABASE_ANON_KEY
+# Never targets Wanzwei. Prefer staged LFS media (default).
 
 on:
   workflow_dispatch:
@@ -29,6 +23,10 @@ on:
         description: Also apply inventory_seed_owned_media.sql after migrator
         type: boolean
         default: false
+      skip_schema:
+        description: Skip schema apply (SQL already pasted in Dashboard)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -42,13 +40,18 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       DESTINY_SUPABASE_ANON_KEY: ${{ secrets.DESTINY_SUPABASE_ANON_KEY }}
+      DESTINY_MIGRATE_FROM_SNAPSHOT: "1"
+      DESTINY_MIGRATE_MEDIA: ${{ inputs.redownload_legacy_media && '1' || '0' }}
+      DESTINY_SKIP_MEDIA: ${{ inputs.migrate_media && '0' || '1' }}
+      DESTINY_SKIP_SCHEMA: ${{ inputs.skip_schema && '1' || '0' }}
+      DESTINY_APPLY_OWNED_SEED: ${{ inputs.apply_seed_sql && '1' || '0' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           lfs: true
 
-      - name: Guard project target
+      - name: Guard project target + token
         run: |
           set -euo pipefail
           case "$SUPABASE_URL" in
@@ -56,89 +59,29 @@ jobs:
             *) echo "refusing non-destiny-os URL"; exit 1 ;;
           esac
           test -n "${SUPABASE_ACCESS_TOKEN}" || { echo "missing SUPABASE_ACCESS_TOKEN"; exit 1; }
-          # SERVICE_ROLE may be bootstrapped from ACCESS_TOKEN in the next step
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Bootstrap Destiny API keys from access token (if needed)
-        run: |
-          set -euo pipefail
-          if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" || -z "${DESTINY_SUPABASE_ANON_KEY:-}" ]]; then
-            eval "$(python3 scripts/m2_bootstrap_keys.py --export)"
-            echo "SUPABASE_SERVICE_ROLE_KEY<<EOF" >> "$GITHUB_ENV"
-            echo "$SUPABASE_SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
-            echo "EOF" >> "$GITHUB_ENV"
-            if [[ -n "${DESTINY_SUPABASE_ANON_KEY:-}" ]]; then
-              echo "DESTINY_SUPABASE_ANON_KEY<<EOF" >> "$GITHUB_ENV"
-              echo "$DESTINY_SUPABASE_ANON_KEY" >> "$GITHUB_ENV"
-              echo "EOF" >> "$GITHUB_ENV"
-            fi
-          else
-            echo "API keys already provided via Actions secrets"
-          fi
-
-      - name: Apply schema + RLS + storage policies
-        run: |
-          python3 scripts/apply_sql_management_api.py \
-            supabase/migrations/20260908143000_destiny_inventory_schema.sql \
-            supabase/migrations/20260908170000_destiny_media_storage_policies.sql
-
-      - name: Extract staged inventory media (Git LFS tarball)
+      - name: Resolve LFS media tarball (if uploading media)
         if: ${{ inputs.migrate_media }}
         run: |
           set -euo pipefail
-          # Ensure real blob (not pointer) even if checkout lfs smudge was skipped
           git lfs pull --include='supabase/seed/destiny-inventory-media-staged.tar'
           if head -1 supabase/seed/destiny-inventory-media-staged.tar | grep -q 'git-lfs'; then
             echo "ERROR: LFS pointer not resolved for media tarball" >&2
             exit 1
           fi
-          mkdir -p /tmp/destiny-media-staging
-          tar -xf supabase/seed/destiny-inventory-media-staged.tar -C /tmp/destiny-media-staging
-          count=$(find /tmp/destiny-media-staging -type f | wc -l)
-          echo "staged files: $count"
-          test "$count" -ge 81
 
-      - name: Migrate inventory (snapshot upsert; optional live re-download)
-        env:
-          DESTINY_MIGRATE_FROM_SNAPSHOT: "1"
-          # Default aligns with apply_m2_remote.sh: staged upload, not live download.
-          DESTINY_MIGRATE_MEDIA: ${{ inputs.redownload_legacy_media && '1' || '0' }}
-          DESTINY_UPLOAD_OWNED: ${{ inputs.redownload_legacy_media && '1' || '0' }}
-        run: python3 scripts/migrate_inventory_to_supabase.py
+      - name: One-shot apply (schema + inventory + media + verify + finalize docs)
+        run: bash scripts/apply_m2_remote.sh
 
-      - name: Upload staged media + catalog.json
-        if: ${{ inputs.migrate_media }}
-        env:
-          DESTINY_UPLOAD_CATALOG: "1"
+      - name: Prove catalog live
         run: |
-          python3 scripts/rebuild_owned_catalog.py
-          python3 scripts/upload_staged_media.py
-          python3 scripts/rebuild_owned_catalog.py
-          DESTINY_CATALOG_ONLY=1 python3 scripts/upload_staged_media.py
-
-      - name: Upload catalog.json only (no media)
-        if: ${{ !inputs.migrate_media }}
-        env:
-          DESTINY_CATALOG_ONLY: "1"
-          DESTINY_UPLOAD_CATALOG: "1"
-        run: |
-          python3 scripts/rebuild_owned_catalog.py
-          python3 scripts/upload_staged_media.py
-
-      - name: Optional owned-media seed SQL
-        if: ${{ inputs.apply_seed_sql }}
-        run: |
-          python3 scripts/apply_sql_management_api.py \
-            supabase/seed/inventory_seed_owned_media.sql
-
-      - name: Verify anon reads + counts
-        if: ${{ env.DESTINY_SUPABASE_ANON_KEY != '' }}
-        run: python3 scripts/verify_m2_remote.py
-
-      - name: Finalize M2 docs from live evidence
-        if: ${{ env.DESTINY_SUPABASE_ANON_KEY != '' }}
-        run: python3 scripts/m2_finalize_docs.py
+          set -euo pipefail
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "$SUPABASE_URL/storage/v1/object/public/destiny-media/inventory/catalog.json")
+          echo "inventory/catalog.json HTTP $code"
+          test "$code" = "200"
