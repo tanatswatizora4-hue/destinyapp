@@ -16,10 +16,12 @@ Target: **xchddfpfzrzhlbbmyhyn** — never Wanzwei.
 4. Agent runs:
 
 ```bash
-export SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co
-export SUPABASE_ACCESS_TOKEN=...   # sufficient alone
-bash scripts/apply_m2_remote.sh
-# schema + snapshot upsert + staged media + catalog.json + verify + doc finalize
+bash scripts/m2_new_agent_bootstrap.sh
+# = load creds → apply_m2_remote.sh → post-apply doc commit (if catalog 200)
+# equivalent:
+#   export SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co
+#   export SUPABASE_ACCESS_TOKEN=...   # sufficient alone
+#   bash scripts/apply_m2_remote.sh
 ```
 
 If schema was already pasted in SQL Editor:

@@ -28,18 +28,17 @@ Objective: migrate inventory/media from bymapara PHP → Destiny Supabase (schem
 STOP_REASON=CREDENTIAL_REQUIRED
 ```
 
-Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` bootstraps `service_role` + anon via Management API when unset. Dashboard SQL remains an alternative for schema (`supabase/seed/m2_dashboard_one_paste.sql`).
+Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` / `m2_new_agent_bootstrap.sh` bootstrap `service_role` + anon via Management API when unset. Alternatives: VNC drop file `/tmp/destiny-m2.env`, CLI login, Dashboard `m2_dashboard_schema_plus_seed.sql` (schema+rows; media still needs credentials).
 
-If the PAT is added in the Cloud Agent environment UI, **start a new agent run** on this branch so it injects into `printenv`.
+If the PAT is added in the Cloud Agent environment UI, **start a new agent run** on this branch so it injects into `printenv`, then run `bash scripts/m2_new_agent_bootstrap.sh`.
 
-Last credential recheck (agent): 2026-09-09T00:40Z — still missing credentials; GitHub Actions shows 0 workflows on default branch (PR #13 still needed); catalog HTTP 400; watcher+CLI armed.
+Last credential recheck (agent): 2026-09-09T00:43Z — still missing credentials; GitHub Actions shows 0 workflows on default branch (PR #13 still needed); catalog HTTP 400; watcher+CLI armed.
 
 ## Resume (closes milestone when verify passes)
 
 ```bash
-export SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co
-export SUPABASE_ACCESS_TOKEN=...   # sufficient alone
-bash scripts/apply_m2_remote.sh
-# on success: docs auto-finalized; commit; Flutter:
+bash scripts/m2_new_agent_bootstrap.sh
+# = load creds → apply → post-apply doc commit (catalog must be HTTP 200)
+# Flutter after live:
 # --dart-define=DESTINY_SUPABASE_ANON_KEY=... --dart-define=DESTINY_INVENTORY_MEDIA_LIVE=true
 ```
