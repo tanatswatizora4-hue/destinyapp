@@ -32,7 +32,7 @@ Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` / `m2_new_agen
 
 If the PAT is added in the Cloud Agent environment UI, **start a new agent run** on this branch so it injects into `printenv`, then run `bash scripts/m2_new_agent_bootstrap.sh`.
 
-Last credential recheck (agent): 2026-09-09T00:43Z — still missing credentials; GitHub Actions shows 0 workflows on default branch (PR #13 still needed); catalog HTTP 400; watcher+CLI armed.
+Last credential recheck (agent): 2026-09-09T00:45Z — still missing credentials; AGENTS.md bootstrap entrypoint added; catalog HTTP 400.
 
 ## Resume (closes milestone when verify passes)
 

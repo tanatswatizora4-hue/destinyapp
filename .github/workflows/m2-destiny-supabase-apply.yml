@@ -1,5 +1,8 @@
 name: M2 Destiny Supabase apply
 
+# Registered on default branch via PR #13 so workflow_dispatch appears in Actions UI.
+# When running: select branch cursor/m2-destiny-backend-migration-194a (has scripts + LFS media).
+#
 # Manual-only. Applies schema + inventory/media migration to destiny-os ONLY.
 # Required GitHub secrets (repo Settings → Secrets → Actions):
 #   SUPABASE_ACCESS_TOKEN       — PAT (can bootstrap service_role + anon)
@@ -9,6 +12,7 @@ name: M2 Destiny Supabase apply
 #
 # Never targets Wanzwei.
 # Prefer staged LFS media (default). Live re-download is opt-in only.
+# Prefer: bash scripts/apply_m2_remote.sh locally / m2_new_agent_bootstrap.sh on agents.
 
 on:
   workflow_dispatch:
