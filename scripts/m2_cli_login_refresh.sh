@@ -18,9 +18,14 @@ tmux_cmd() {
 
 extract_url() {
   local pane url
-  pane="$(tmux_cmd capture-pane -t "$SESSION" -p -J -S -40 2>/dev/null || true)"
-  url="$(printf '%s' "$pane" | tr -d '\n' | grep -oE 'https://supabase.com/dashboard/cli/login[^ ]+' | tail -1 || true)"
-  if [[ -n "$url" ]]; then
+  # -J joins wrapped lines so session_id/token_name/public_key stay contiguous.
+  pane="$(tmux_cmd capture-pane -t "$SESSION" -p -J -S -80 2>/dev/null || true)"
+  url="$(printf '%s' "$pane" | tr -d '\n' | grep -oE 'https://supabase.com/dashboard/cli/login\?session_id=[A-Za-z0-9_-]+&token_name=[^[:space:]&│◆■◇]+&public_key=[0-9a-f]+' | tail -1 || true)"
+  if [[ -z "$url" ]]; then
+    # Fallback: strip box-drawing / prompt junk that sometimes trails the URL.
+    url="$(printf '%s' "$pane" | tr -d '\n' | grep -oE 'https://supabase.com/dashboard/cli/login[^ │◆■◇]+' | tail -1 || true)"
+  fi
+  if [[ -n "$url" && "$url" == *"session_id="* && "$url" == *"public_key="* ]]; then
     printf '%s\n' "$url" >"$URL_FILE"
     return 0
   fi
