@@ -58,6 +58,22 @@ class H(SimpleHTTPRequestHandler):
             self.wfile.write(data)
             return
         if self.path.startswith("/status"):
+            catalog_code = None
+            try:
+                import urllib.request
+
+                req = urllib.request.Request(
+                    "https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/inventory/catalog.json",
+                    method="HEAD",
+                )
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    catalog_code = int(resp.status)
+            except Exception as exc:  # noqa: BLE001 — status probe only
+                catalog_code = getattr(exc, "code", None)
+                if catalog_code is None:
+                    catalog_code = -1
+            apply_ready = Path("/tmp/m2-apply-ready").exists()
+            apply_done = Path("/tmp/m2-watch-apply.done").exists()
             self._json(
                 200,
                 {
@@ -66,6 +82,10 @@ class H(SimpleHTTPRequestHandler):
                     "has_cli_code": CLI_CODE.exists(),
                     "has_cli_url": URL_FILE.exists(),
                     "has_cli_access_token": Path.home().joinpath(".supabase/access-token").exists(),
+                    "catalog_http": catalog_code,
+                    "apply_ready": apply_ready,
+                    "apply_done": apply_done,
+                    "milestone_live": catalog_code == 200,
                 },
             )
             return

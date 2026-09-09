@@ -84,10 +84,15 @@
   <main>
     <h1>Destiny M2 unblock</h1>
     <p class="sub">Project <code>xchddfpfzrzhlbbmyhyn</code> only. Secrets stay on this VM — never paste into chat.</p>
+    <div class="card" id="live-gate-card">
+      <h2>Live gate</h2>
+      <p id="catalog-status" class="tiny">Checking <code>inventory/catalog.json</code>…</p>
+      <p id="live-status" class="tiny">Checking watcher status…</p>
+    </div>
 
     <div class="card">
       <h2>Drop credentials here (localhost only)</h2>
-      <p class="tiny">Writes <code>/tmp/supabase-access-token</code> or <code>/tmp/supabase-cli-code</code> (chmod 600). Watchers auto-apply.</p>
+      <p class="tiny">Writes <code>/tmp/supabase-access-token</code> or <code>/tmp/supabase-cli-code</code> (chmod 600). Watchers auto-apply within ~1s.</p>
       <label for="pat">Supabase personal access token (preferred)</label>
       <input id="pat" type="password" autocomplete="off" spellcheck="false" placeholder="sbp_…" />
       <button type="button" id="btn-pat">Save PAT &amp; apply</button>
@@ -95,7 +100,6 @@
       <input id="code" type="text" autocomplete="off" spellcheck="false" placeholder="code from Dashboard CLI authorize" />
       <button type="button" id="btn-code" class="secondary">Submit CLI code</button>
       <p id="drop-status" class="tiny"></p>
-      <p id="live-status" class="tiny">Checking watcher status…</p>
     </div>
 
     <div class="card">
@@ -137,7 +141,7 @@
         }
         statusEl.className = 'tiny ok';
         statusEl.textContent = data.wrote === 'raw_token'
-          ? 'PAT saved — apply watcher should start within ~15s.'
+          ? 'PAT saved — apply watcher should start within ~1s.'
           : 'CLI code saved — code watcher will submit to sb-login.';
       } catch (e) {
         statusEl.className = 'tiny warn';
@@ -171,14 +175,26 @@
     }
     async function loadStatus() {
       const el = document.getElementById('live-status');
+      const cat = document.getElementById('catalog-status');
+      const gate = document.getElementById('live-gate-card');
       try {
         const res = await fetch('/status', { cache: 'no-store' });
         const s = await res.json();
+        const code = s.catalog_http;
+        if (code === 200) {
+          cat.className = 'tiny ok';
+          cat.textContent = 'catalog.json HTTP 200 — live gate green. Apply done=' + !!s.apply_done;
+          gate.style.borderColor = 'var(--accent)';
+        } else {
+          cat.className = 'tiny warn';
+          cat.textContent = 'catalog.json HTTP ' + code + ' — still blocked until apply finishes.';
+        }
         el.textContent = 'Flags: raw_token=' + s.has_raw_token
           + ' env=' + s.has_env_file
           + ' cli_code=' + s.has_cli_code
           + ' cli_url=' + s.has_cli_url
-          + ' access_token=' + s.has_cli_access_token;
+          + ' access_token=' + s.has_cli_access_token
+          + ' apply_ready=' + !!s.apply_ready;
       } catch (e) {
         el.textContent = 'Status endpoint unavailable.';
       }
