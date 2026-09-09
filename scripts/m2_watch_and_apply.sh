@@ -56,6 +56,12 @@ while true; do
       echo "SUCCESS" >>"$DONE"
       # Signal file for agent poll (no secrets)
       echo "apply_ok" >/tmp/m2-apply-ready
+      echo "$(date -u +%Y-%m-%dT%H:%MZ) apply ok — committing finalize docs" | tee -a "$LOG"
+      set +e
+      bash "$ROOT/scripts/m2_post_apply_commit.sh" >>"$LOG" 2>&1
+      commit_rc=$?
+      set -e
+      echo "$(date -u +%Y-%m-%dT%H:%MZ) post-apply commit exit=$commit_rc" | tee -a "$LOG"
       exit 0
     fi
     echo "$(date -u +%Y-%m-%dT%H:%MZ) apply failed; will retry when credentials still present" | tee -a "$LOG"

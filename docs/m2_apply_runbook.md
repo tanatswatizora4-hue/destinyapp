@@ -66,7 +66,7 @@ Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard, autho
 
 Do not paste tokens into chat.
 
-On long-running agent VMs, `bash scripts/m2_watch_and_apply.sh` (tmux `m2-watch-apply`) polls for the drop file / CLI token / env keys and runs `apply_m2_remote.sh` once credentials appear — no need to wait for the next human message.
+On long-running agent VMs, `bash scripts/m2_watch_and_apply.sh` (tmux `m2-watch-apply`) polls for the drop file / CLI token / env keys and runs `apply_m2_remote.sh` once credentials appear — then commits/pushes finalize docs via `m2_post_apply_commit.sh` when `inventory/catalog.json` is HTTP 200.
 
 ## Expected counts
 
