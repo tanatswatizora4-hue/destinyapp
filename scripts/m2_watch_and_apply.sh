@@ -12,7 +12,8 @@
 # Lock/state: /tmp/m2-watch-apply.{lock,log,done}
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-INTERVAL="${M2_WATCH_INTERVAL:-15}"
+INTERVAL="${M2_WATCH_INTERVAL:-5}"
+WAKE_FILE="${M2_CRED_WAKE_FILE:-/tmp/m2-cred-wake}"
 LOCK=/tmp/m2-watch-apply.lock
 DONE=/tmp/m2-watch-apply.done
 LOG=/tmp/m2-watch-apply.log
@@ -30,7 +31,7 @@ if [[ -f "$DONE" ]]; then
 fi
 
 echo "$(date -u +%Y-%m-%dT%H:%MZ) watcher started (interval=${INTERVAL}s)" | tee -a "$LOG"
-HEARTBEAT_EVERY="${M2_WATCH_HEARTBEAT_EVERY:-8}" # ~2m at 15s interval
+HEARTBEAT_EVERY="${M2_WATCH_HEARTBEAT_EVERY:-24}" # ~2m at 5s interval
 _loops=0
 
 have_creds() {
@@ -78,5 +79,17 @@ while true; do
   if (( _loops % HEARTBEAT_EVERY == 0 )); then
     echo "$(date -u +%Y-%m-%dT%H:%MZ) waiting for credentials (drop /tmp/destiny-m2.env or /tmp/supabase-access-token, or CLI login)" | tee -a "$LOG"
   fi
-  sleep "$INTERVAL"
+  # Prefer immediate wake from VNC helper POST /drop; else poll.
+  if [[ -f "$WAKE_FILE" ]]; then
+    rm -f "$WAKE_FILE"
+    continue
+  fi
+  # Interruptible sleep: wake early if helper touches WAKE_FILE
+  for _ in $(seq 1 "$INTERVAL"); do
+    if [[ -f "$WAKE_FILE" ]]; then
+      rm -f "$WAKE_FILE"
+      break
+    fi
+    sleep 1
+  done
 done

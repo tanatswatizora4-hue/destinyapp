@@ -19,6 +19,7 @@ URL_FILE = Path("/tmp/supabase-cli-login.url")
 RAW_TOKEN = Path("/tmp/supabase-access-token")
 ENV_FILE = Path("/tmp/destiny-m2.env")
 CLI_CODE = Path("/tmp/supabase-cli-code")
+WAKE_FILE = Path("/tmp/m2-cred-wake")
 
 PAT_RE = re.compile(r"^sbp_[A-Za-z0-9_-]{20,}$|^[A-Za-z0-9._-]{20,}$")
 CODE_RE = re.compile(r"^[A-Za-z0-9]{4,32}$")
@@ -27,6 +28,13 @@ CODE_RE = re.compile(r"^[A-Za-z0-9]{4,32}$")
 def _write_secret(path: Path, text: str) -> None:
     path.write_text(text.strip() + "\n", encoding="utf-8")
     os.chmod(path, 0o600)
+
+
+def _wake_watchers() -> None:
+    try:
+        WAKE_FILE.write_text("1\n", encoding="utf-8")
+    except OSError:
+        pass
 
 
 class H(SimpleHTTPRequestHandler):
@@ -110,6 +118,7 @@ class H(SimpleHTTPRequestHandler):
                     self._json(400, {"ok": False, "error": "token shape rejected"})
                     return
                 _write_secret(RAW_TOKEN, value)
+                _wake_watchers()
                 self._json(200, {"ok": True, "wrote": "raw_token"})
                 return
             if kind in ("code", "cli_code", "verification_code"):
@@ -118,6 +127,7 @@ class H(SimpleHTTPRequestHandler):
                     self._json(400, {"ok": False, "error": "code shape rejected"})
                     return
                 _write_secret(CLI_CODE, value)
+                _wake_watchers()
                 self._json(200, {"ok": True, "wrote": "cli_code"})
                 return
             self._json(400, {"ok": False, "error": "unknown kind"})
