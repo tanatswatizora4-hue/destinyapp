@@ -25,6 +25,13 @@ if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" && ( -z "${SUPABASE_SERVICE_ROLE_KEY:-}" |
   exit 2
 fi
 
+# Ensure Git LFS media tarball is a real blob (not pointer) before apply.
+TARBALL="$ROOT/supabase/seed/destiny-inventory-media-staged.tar"
+if [[ -f "$TARBALL" ]] && head -1 "$TARBALL" 2>/dev/null | grep -q 'git-lfs'; then
+  echo "==> Resolving Git LFS media tarball"
+  (cd "$ROOT" && git lfs pull --include='supabase/seed/destiny-inventory-media-staged.tar')
+fi
+
 echo "==> Running apply_m2_remote.sh"
 bash "$ROOT/scripts/apply_m2_remote.sh"
 

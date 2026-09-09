@@ -46,6 +46,10 @@ have_creds() {
 while true; do
   if have_creds; then
     echo "$(date -u +%Y-%m-%dT%H:%MZ) credentials detected — starting apply_m2_remote.sh" | tee -a "$LOG"
+    if [[ -f "$ROOT/supabase/seed/destiny-inventory-media-staged.tar" ]] && head -1 "$ROOT/supabase/seed/destiny-inventory-media-staged.tar" 2>/dev/null | grep -q 'git-lfs'; then
+      echo "$(date -u +%Y-%m-%dT%H:%MZ) resolving Git LFS media tarball" | tee -a "$LOG"
+      (cd "$ROOT" && git lfs pull --include='supabase/seed/destiny-inventory-media-staged.tar') >>"$LOG" 2>&1 || true
+    fi
     set +e
     bash "$APPLY" >>"$LOG" 2>&1
     rc=$?
