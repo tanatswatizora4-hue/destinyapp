@@ -24,7 +24,7 @@ Do **not** mark M2 complete. Keep waiting via:
 - Env secret `SUPABASE_ACCESS_TOKEN` + new agent (preferred)
 - VNC drop file `/tmp/destiny-m2.env` (`chmod 600`) — watcher `m2-watch-apply` auto-runs
 - VNC raw PAT file `/tmp/supabase-access-token` (`chmod 600`) — single-line token
-- CLI login in tmux `sb-login`
+- CLI login in tmux `sb-login` (or drop code to `/tmp/supabase-cli-code` for `m2-watch-cli-code`)
 - Dashboard paste `supabase/seed/m2_dashboard_schema_plus_seed.sql` (schema+rows; media still needs credentials)
 - Merge PR #13 then Actions workflow with repo secret PAT
 

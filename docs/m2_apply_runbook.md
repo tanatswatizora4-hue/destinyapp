@@ -60,7 +60,12 @@ The workflow checks out with `lfs: true`, fails if the media tarball is still an
 
 ## Option D — Sign into Supabase on agent desktop / CLI login
 
-Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard, authorize the CLI login waiting in tmux `sb-login` (enter the verification code), then tell the agent “login done”.
+Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard, open the CLI login URL waiting in tmux `sb-login`, then either:
+
+- Paste the verification code into tmux `sb-login`, **or**
+- Drop it for the code watcher (no chat paste):
+  `printf '%s\n' 'YOUR_CODE' > /tmp/supabase-cli-code && chmod 600 /tmp/supabase-cli-code`  
+  (`bash scripts/m2_watch_cli_code.sh` in tmux `m2-watch-cli-code` submits it automatically)
 
 `apply_m2_remote.sh` auto-loads credentials when env vars are unset, in order:
 1. Drop file **`/tmp/destiny-m2.env`** (`KEY=value` lines; `chmod 600`) — supports `SUPABASE_ACCESS_TOKEN` and/or `SUPABASE_SERVICE_ROLE_KEY` + `DESTINY_SUPABASE_ANON_KEY`
