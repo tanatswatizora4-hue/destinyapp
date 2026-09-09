@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>M2 Unblock — Destiny Supabase</title>
+  <style>
+    :root {
+      --bg: #0f1c18;
+      --panel: #173028;
+      --ink: #e8f2ec;
+      --muted: #9bb5a8;
+      --accent: #3d9b6e;
+      --warn: #c9853a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #245540 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #1a3340 0%, transparent 50%),
+        var(--bg);
+      padding: 2rem;
+      line-height: 1.45;
+    }
+    main { max-width: 42rem; margin: 0 auto; }
+    h1 { font-size: 2rem; margin: 0 0 0.35rem; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); margin-bottom: 1.5rem; }
+    .card {
+      background: color-mix(in srgb, var(--panel) 92%, black);
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      margin: 0.85rem 0;
+    }
+    .card h2 { font-size: 1.05rem; margin: 0 0 0.5rem; color: var(--accent); }
+    code, pre {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+    pre {
+      background: #0a1511;
+      padding: 0.75rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    a.btn {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.55rem 0.9rem;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #04140c;
+      text-decoration: none;
+      font-weight: 700;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+    }
+    .warn { color: var(--warn); }
+    .tiny { font-size: 0.85rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Destiny M2 unblock</h1>
+    <p class="sub">Project <code>xchddfpfzrzhlbbmyhyn</code> only. Do not paste secrets into chat.</p>
+
+    <div class="card">
+      <h2>1) Preferred — Cloud Agent secret</h2>
+      <p>Add <code>SUPABASE_ACCESS_TOKEN</code>, start a <strong>new</strong> agent on <code>cursor/m2-destiny-backend-migration-194a</code>, run:</p>
+      <pre>bash scripts/m2_new_agent_bootstrap.sh</pre>
+    </div>
+
+    <div class="card">
+      <h2>2) VNC — drop PAT (watcher auto-applies)</h2>
+      <pre>printf '%s\n' 'SUPABASE_ACCESS_TOKEN=YOUR_PAT' &gt; /tmp/destiny-m2.env
+chmod 600 /tmp/destiny-m2.env
+
+# or raw token only:
+printf '%s\n' 'YOUR_PAT' &gt; /tmp/supabase-access-token
+chmod 600 /tmp/supabase-access-token</pre>
+    </div>
+
+    <div class="card">
+      <h2>3) VNC — CLI login code</h2>
+      <p class="tiny">Sign into Dashboard, open the CLI authorize URL, then drop the code:</p>
+      <pre>printf '%s\n' 'YOUR_CODE' &gt; /tmp/supabase-cli-code
+chmod 600 /tmp/supabase-cli-code</pre>
+      <p class="tiny">Current CLI login URL is in <code>/tmp/supabase-cli-login.url</code> (also open in Chrome if present).</p>
+      <a class="btn" id="cli-link" href="#" target="_blank" rel="noopener">Open CLI login URL</a>
+      <p class="tiny" id="cli-status">Loading URL…</p>
+    </div>
+
+    <div class="card">
+      <h2>4) GitHub Actions</h2>
+      <p>Merge PR #13, add Actions secret <code>SUPABASE_ACCESS_TOKEN</code>, run workflow on the M2 branch.</p>
+    </div>
+
+    <p class="warn tiny">Live gate: <code>inventory/catalog.json</code> must become HTTP 200 with counts 25/36/3/6.</p>
+  </main>
+  <script>
+    async function loadUrl() {
+      const status = document.getElementById('cli-status');
+      const link = document.getElementById('cli-link');
+      try {
+        const res = await fetch('/supabase-cli-login.url', { cache: 'no-store' });
+        if (!res.ok) throw new Error('missing');
+        const url = (await res.text()).trim();
+        if (!url.startsWith('https://')) throw new Error('bad url');
+        link.href = url;
+        status.textContent = 'Session ready — click to open.';
+      } catch (e) {
+        status.textContent = 'URL file not readable from this page; open /tmp/supabase-cli-login.url in a terminal.';
+      }
+    }
+    loadUrl();
+    setInterval(loadUrl, 15000);
+  </script>
+</body>
+</html>
