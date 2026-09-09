@@ -32,7 +32,7 @@ Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` / `m2_new_agen
 
 If the PAT is added in the Cloud Agent environment UI, **start a new agent run** on this branch so it injects into `printenv`, then run `bash scripts/m2_new_agent_bootstrap.sh`.
 
-Last credential recheck (agent): 2026-09-09T01:23Z — still missing credentials; Dashboard SSO logged out; CLI login refreshed; watcher restarted (raw-token drop + heartbeat); catalog HTTP 400; env-setup requested for `SUPABASE_ACCESS_TOKEN`.
+Last credential recheck (agent): 2026-09-09T01:31Z — still missing credentials; Dashboard SSO logged out; CLI login waiting; watcher heartbeating; catalog HTTP 400 / hero HTTP 200; no usable leftover tokens in VM; PR #11 status comment posted; env-setup requested.
 
 ## Resume (closes milestone when verify passes)
 
