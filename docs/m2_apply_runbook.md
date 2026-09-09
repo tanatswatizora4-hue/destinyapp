@@ -64,11 +64,12 @@ Open the agent VM desktop / VNC, sign into https://supabase.com/dashboard, autho
 
 `apply_m2_remote.sh` auto-loads credentials when env vars are unset, in order:
 1. Drop file **`/tmp/destiny-m2.env`** (`KEY=value` lines; `chmod 600`) — supports `SUPABASE_ACCESS_TOKEN` and/or `SUPABASE_SERVICE_ROLE_KEY` + `DESTINY_SUPABASE_ANON_KEY`
-2. CLI file `~/.supabase/access-token` after a successful `supabase login`
+2. Raw PAT file **`/tmp/supabase-access-token`** (single line; `chmod 600`) — VNC-friendly paste of just the token
+3. CLI file `~/.supabase/access-token` after a successful `supabase login`
 
 Do not paste tokens into chat.
 
-On long-running agent VMs, `bash scripts/m2_watch_and_apply.sh` (tmux `m2-watch-apply`) polls for the drop file / CLI token / env keys and runs `apply_m2_remote.sh` once credentials appear — then commits/pushes finalize docs via `m2_post_apply_commit.sh` when `inventory/catalog.json` is HTTP 200.
+On long-running agent VMs, `bash scripts/m2_watch_and_apply.sh` (tmux `m2-watch-apply`) polls for the drop file / raw token / CLI token / env keys and runs `apply_m2_remote.sh` once credentials appear — then commits/pushes finalize docs via `m2_post_apply_commit.sh` when `inventory/catalog.json` is HTTP 200.
 
 ## Offline checks (no secrets)
 

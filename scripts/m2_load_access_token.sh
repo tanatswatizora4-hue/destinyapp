@@ -6,7 +6,8 @@
 #   1) Existing process env
 #   2) /tmp/destiny-m2.env  (KEY=value drop file for VNC — chmod 600 recommended)
 #      Supports: SUPABASE_ACCESS_TOKEN, SUPABASE_SERVICE_ROLE_KEY, DESTINY_SUPABASE_ANON_KEY
-#   3) ~/.supabase/access-token  (after `supabase login`) → SUPABASE_ACCESS_TOKEN
+#   3) /tmp/supabase-access-token  (raw single-line PAT for VNC — chmod 600 recommended)
+#   4) ~/.supabase/access-token  (after `supabase login`) → SUPABASE_ACCESS_TOKEN
 #
 # Usage:
 #   source scripts/m2_load_access_token.sh
@@ -14,6 +15,7 @@
 #
 
 _m2_token_file="${HOME}/.supabase/access-token"
+_m2_raw_token_file="${M2_RAW_TOKEN_FILE:-/tmp/supabase-access-token}"
 _m2_env_file="${M2_CREDENTIALS_FILE:-/tmp/destiny-m2.env}"
 
 _m2_load_env_file() {
@@ -48,6 +50,27 @@ _m2_load_env_file() {
   return 1
 }
 
+_m2_load_raw_token_file() {
+  if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+    return 0
+  fi
+  if [ ! -f "$_m2_raw_token_file" ]; then
+    return 1
+  fi
+  # Single-line PAT drop (no KEY=); ignore if file looks like KEY=VALUE.
+  _m2_tok="$(tr -d '[:space:]' <"$_m2_raw_token_file" 2>/dev/null || true)"
+  case "${_m2_tok:-}" in
+    ''|*=*)
+      unset _m2_tok
+      return 1
+      ;;
+  esac
+  export SUPABASE_ACCESS_TOKEN="$_m2_tok"
+  echo "==> Loaded SUPABASE_ACCESS_TOKEN from raw token file ($_m2_raw_token_file)" >&2
+  unset _m2_tok
+  return 0
+}
+
 _m2_load_cli_token() {
   if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
     return 0
@@ -68,6 +91,7 @@ _m2_load_cli_token() {
 
 _m2_load() {
   _m2_load_env_file || true
+  _m2_load_raw_token_file || true
   _m2_load_cli_token || true
   if [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
     return 0
@@ -94,5 +118,5 @@ fi
 
 # When sourced, just load into current shell.
 _m2_load || true
-unset -f _m2_load _m2_load_env_file _m2_load_cli_token
-unset _m2_token_file _m2_env_file
+unset -f _m2_load _m2_load_env_file _m2_load_raw_token_file _m2_load_cli_token
+unset _m2_token_file _m2_raw_token_file _m2_env_file

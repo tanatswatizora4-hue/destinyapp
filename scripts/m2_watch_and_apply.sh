@@ -30,6 +30,8 @@ if [[ -f "$DONE" ]]; then
 fi
 
 echo "$(date -u +%Y-%m-%dT%H:%MZ) watcher started (interval=${INTERVAL}s)" | tee -a "$LOG"
+HEARTBEAT_EVERY="${M2_WATCH_HEARTBEAT_EVERY:-8}" # ~2m at 15s interval
+_loops=0
 
 have_creds() {
   # shellcheck disable=SC1091
@@ -71,6 +73,10 @@ while true; do
     echo "$(date -u +%Y-%m-%dT%H:%MZ) apply failed; will retry when credentials still present" | tee -a "$LOG"
     sleep "$INTERVAL"
     continue
+  fi
+  _loops=$((_loops + 1))
+  if (( _loops % HEARTBEAT_EVERY == 0 )); then
+    echo "$(date -u +%Y-%m-%dT%H:%MZ) waiting for credentials (drop /tmp/destiny-m2.env or /tmp/supabase-access-token, or CLI login)" | tee -a "$LOG"
   fi
   sleep "$INTERVAL"
 done

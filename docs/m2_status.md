@@ -28,11 +28,11 @@ Objective: migrate inventory/media from bymapara PHP → Destiny Supabase (schem
 STOP_REASON=CREDENTIAL_REQUIRED
 ```
 
-Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` / `m2_new_agent_bootstrap.sh` bootstrap `service_role` + anon via Management API when unset. Alternatives: VNC drop file `/tmp/destiny-m2.env`, CLI login, Dashboard `m2_dashboard_schema_plus_seed.sql` (schema+rows; media still needs credentials).
+Need `SUPABASE_ACCESS_TOKEN` (Supabase PAT). `apply_m2_remote.sh` / `m2_new_agent_bootstrap.sh` bootstrap `service_role` + anon via Management API when unset. Alternatives: VNC drop file `/tmp/destiny-m2.env` or raw PAT `/tmp/supabase-access-token`, CLI login, Dashboard `m2_dashboard_schema_plus_seed.sql` (schema+rows; media still needs credentials).
 
 If the PAT is added in the Cloud Agent environment UI, **start a new agent run** on this branch so it injects into `printenv`, then run `bash scripts/m2_new_agent_bootstrap.sh`.
 
-Last credential recheck (agent): 2026-09-09T01:19Z — still missing credentials; Dashboard SSO logged out (CLI login waiting in tmux `sb-login`); watcher armed; catalog HTTP 400; env-setup requested for `SUPABASE_ACCESS_TOKEN`.
+Last credential recheck (agent): 2026-09-09T01:23Z — still missing credentials; Dashboard SSO logged out; CLI login refreshed; watcher restarted (raw-token drop + heartbeat); catalog HTTP 400; env-setup requested for `SUPABASE_ACCESS_TOKEN`.
 
 ## Resume (closes milestone when verify passes)
 

@@ -29,6 +29,22 @@ out="$(M2_CREDENTIALS_FILE="$TMP/evil.env" bash -c "source '$ROOT/scripts/m2_loa
 [[ "$out" == "token=ok_token evil=" ]] || fail "evil key leaked: $out"
 pass "drop-file ignores unknown keys"
 
+# --- raw single-line PAT drop file ---
+printf '  raw_pat_abc  \n' >"$TMP/raw.pat"
+# shellcheck disable=SC1091
+out="$(M2_RAW_TOKEN_FILE="$TMP/raw.pat" env -u SUPABASE_ACCESS_TOKEN -u SUPABASE_SERVICE_ROLE_KEY -u DESTINY_SUPABASE_ANON_KEY \
+  bash -c "source '$ROOT/scripts/m2_load_access_token.sh'; printf '%s' \"\$SUPABASE_ACCESS_TOKEN\"")"
+[[ "$out" == "raw_pat_abc" ]] || fail "raw token load got: $out"
+pass "raw /tmp/supabase-access-token loads"
+
+# --- raw file that looks like KEY=VALUE is ignored ---
+printf 'SUPABASE_ACCESS_TOKEN=should_use_env_file_instead\n' >"$TMP/raw_kv.pat"
+# shellcheck disable=SC1091
+out="$(M2_RAW_TOKEN_FILE="$TMP/raw_kv.pat" HOME="$TMP/emptyhome" env -u SUPABASE_ACCESS_TOKEN -u SUPABASE_SERVICE_ROLE_KEY -u DESTINY_SUPABASE_ANON_KEY \
+  bash -c "source '$ROOT/scripts/m2_load_access_token.sh'; printf '%s' \"\${SUPABASE_ACCESS_TOKEN-}\"")"
+[[ -z "$out" ]] || fail "raw KEY=VALUE should be ignored, got: $out"
+pass "raw KEY=VALUE file ignored"
+
 # --- CLI token file ---
 mkdir -p "$TMP/home/.supabase"
 printf '  cli_token_xyz  \n' >"$TMP/home/.supabase/access-token"
