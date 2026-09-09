@@ -8,6 +8,8 @@
 -- After this: still need inventory row upsert + 81 media objects + catalog.json
 --             (prefer: bash scripts/apply_m2_remote.sh with SUPABASE_ACCESS_TOKEN
 --              and DESTINY_SKIP_SCHEMA=1 once this paste succeeds)
+-- For schema+rows in one paste (no PAT for SQL), use instead:
+--   supabase/seed/m2_dashboard_schema_plus_seed.sql
 -- =============================================================================
 
 

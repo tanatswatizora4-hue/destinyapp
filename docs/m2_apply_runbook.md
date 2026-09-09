@@ -42,14 +42,18 @@ The workflow checks out with `lfs: true`, fails if the media tarball is still an
 
 ## Option C — Dashboard SQL (+ optional media)
 
-1. SQL Editor: paste **`supabase/seed/m2_dashboard_one_paste.sql`** (schema + storage policies in one run). Alternately paste the two files under `supabase/migrations/` separately.
-2. Prefer PostgREST migrator (`migrate_inventory_to_supabase.py`) over SQL seed. If pasting seed SQL, use **only** `inventory_seed_owned_media.sql` (LF). Do **not** apply historical `inventory_seed.sql` for cutover — it writes legacy `uploads/` primary paths and fails owned-path verify.
+1. SQL Editor (pick one):
+   - **Schema only:** `supabase/seed/m2_dashboard_one_paste.sql`
+   - **Schema + inventory rows (owned paths):** `supabase/seed/m2_dashboard_schema_plus_seed.sql`  
+     Prefer this when you can paste SQL but do not yet have a PAT — still need Storage uploads afterward.
+2. Prefer PostgREST migrator (`migrate_inventory_to_supabase.py`) over SQL seed when a PAT/service_role is available. If pasting seed SQL alone, use **only** `inventory_seed_owned_media.sql` (LF). Do **not** apply historical `inventory_seed.sql` for cutover — it writes legacy `uploads/` primary paths and fails owned-path verify.
 3. Storage → `destiny-media`:
    - Upload `supabase/seed/destiny_inventory_catalog.json` as `inventory/catalog.json`
    - Upload inventory images under `tours/`, `stays/`, `vehicles/`, `awards/` (object keys match `supabase/seed/media_manifest.json`)
    - Or run `python3 scripts/upload_staged_media.py` with `SUPABASE_SERVICE_ROLE_KEY`
-4. After schema paste only, an agent with `SUPABASE_ACCESS_TOKEN` can finish rows/media via:
-   `DESTINY_SKIP_SCHEMA=1 bash scripts/apply_m2_remote.sh`
+4. After schema (or schema+seed) paste, an agent with `SUPABASE_ACCESS_TOKEN` can finish remaining work via:
+   `DESTINY_SKIP_SCHEMA=1 bash scripts/apply_m2_remote.sh`  
+   (skip media with `DESTINY_SKIP_MEDIA=1` if you already uploaded Storage objects)
 5. Put `DESTINY_SUPABASE_ANON_KEY` in a new agent env and run `python3 scripts/verify_m2_remote.py`
 
 ## Option D — Sign into Supabase on agent desktop / CLI login
