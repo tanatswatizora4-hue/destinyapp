@@ -122,6 +122,49 @@ class H(SimpleHTTPRequestHandler):
             return
         self.send_error(404)
 
+    def do_HEAD(self):
+        # Mirror GET routes without body (curl -I / browser preflights).
+        if self.path in ("/", "/index.html", "/m2-unblock.html"):
+            data = PAGE.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            return
+        if self.path.startswith("/status"):
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            return
+        if self.path.startswith("/m2-dashboard-media-pack.tar"):
+            if not MEDIA_PACK.is_file():
+                self.send_error(404, "media pack not built")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "application/x-tar")
+            self.send_header(
+                "Content-Disposition",
+                'attachment; filename="m2-dashboard-media-pack.tar"',
+            )
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(MEDIA_PACK.stat().st_size))
+            self.end_headers()
+            return
+        if self.path.startswith("/supabase-cli-login.url"):
+            if not URL_FILE.exists():
+                self.send_error(404, "CLI login URL not ready")
+                return
+            data = URL_FILE.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            return
+        self.send_error(404)
+
     def do_POST(self):
         if self.path not in ("/drop", "/drop/"):
             self.send_error(404)
