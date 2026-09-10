@@ -17,10 +17,16 @@
 - Home / Tours left intact; nav indices unchanged
 - Final QA repair: web HTML-element media loading for owned Home WebP; Flights public browse (account tabs still protected)
 
-## M2 — Destiny backend migration
-- Migrate inventory/booking APIs off bymapara PHP
-- Destiny-controlled data plane
-- Preserve Flutter contracts where possible
+## M2 — Destiny backend migration — IN PROGRESS (credential-blocked)
+- Legacy audit complete (`docs/m2_legacy_backend_audit.md`)
+- Versioned schema + RLS migration in repo (`supabase/migrations/...`)
+- Flutter inventory repository layer (PostgREST → Storage catalog → asset; no bymapara inventory API)
+- Idempotent migration script ready (`scripts/migrate_inventory_to_supabase.py`)
+- Seeds + staged media (81/84) + apply runbook (`docs/m2_apply_runbook.md`)
+- Optional GitHub Actions applicator (`.github/workflows/m2-destiny-supabase-apply.yml`; enable on main via PR #13)
+- **Blocked:** remote apply needs `SUPABASE_ACCESS_TOKEN` (PAT alone); `apply_m2_remote.sh` bootstraps `service_role` + anon. See `docs/m2_apply_runbook.md`
+- Customer bookings/profiles remain on bymapara until auth bridge (intentional)
+- See `docs/m2_*` reports for status
 
 ## M3 — Live flight shopping (Travelport / GDS)
 - Only when real inventory APIs exist

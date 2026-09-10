@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:destiny/config/theme/app_theme.dart';
+import 'package:destiny/utils/destiny_media_legacy_map.dart';
 import 'package:destiny/utils/destiny_media_url.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -10,12 +11,18 @@ import 'package:flutter/material.dart';
 ///
 /// On Flutter web, prefers HTML `<img>` rendering so public CDN/Storage images
 /// display without requiring CORS byte-fetch (CachedNetworkImage HTTP download).
+///
+/// When a Destiny-owned Storage object is missing, falls back once to the
+/// mapped bymapara `uploads/...` path from [DestinyMediaLegacyMap].
 class TravelNetworkImage extends StatelessWidget {
   final String imageUrl;
   final double? width;
   final double? height;
   final BoxFit fit;
   final BorderRadius? borderRadius;
+
+  /// Internal: skip legacy fallback to avoid recursive retries.
+  final bool _allowLegacyFallback;
 
   const TravelNetworkImage({
     super.key,
@@ -24,11 +31,37 @@ class TravelNetworkImage extends StatelessWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius,
-  });
+  }) : _allowLegacyFallback = true;
+
+  const TravelNetworkImage._raw({
+    required this.imageUrl,
+    this.width,
+    this.height,
+    this.fit = BoxFit.cover,
+    this.borderRadius,
+  }) : _allowLegacyFallback = false;
 
   @override
   Widget build(BuildContext context) {
     final resolved = DestinyMediaUrl.resolve(imageUrl);
+
+    Widget fallback({required bool loading}) {
+      if (!loading &&
+          _allowLegacyFallback &&
+          DestinyMediaUrl.isDestinyOwnedRef(imageUrl)) {
+        final legacy = DestinyMediaLegacyMap.legacyUploadFor(imageUrl.trim());
+        if (legacy != null && legacy.isNotEmpty) {
+          return TravelNetworkImage._raw(
+            imageUrl: legacy,
+            width: width,
+            height: height,
+            fit: fit,
+            borderRadius: borderRadius,
+          );
+        }
+      }
+      return _TravelImageFallback(loading: loading);
+    }
 
     final Widget image;
     if (DestinyMediaUrl.isAssetRef(resolved)) {
@@ -37,7 +70,7 @@ class TravelNetworkImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (_, __, ___) => const _TravelImageFallback(loading: false),
+        errorBuilder: (_, __, ___) => fallback(loading: false),
       );
     } else if (kIsWeb) {
       // Public Destiny Storage images must render via HTML elements on web.
@@ -48,10 +81,10 @@ class TravelNetworkImage extends StatelessWidget {
         height: height,
         fit: fit,
         webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-        errorBuilder: (_, __, ___) => const _TravelImageFallback(loading: false),
+        errorBuilder: (_, __, ___) => fallback(loading: false),
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
-          return const _TravelImageFallback(loading: true);
+          return fallback(loading: true);
         },
       );
     } else {
@@ -61,9 +94,8 @@ class TravelNetworkImage extends StatelessWidget {
         height: height,
         fit: fit,
         fadeInDuration: const Duration(milliseconds: 220),
-        placeholder: (context, url) => const _TravelImageFallback(loading: true),
-        errorWidget: (context, url, error) =>
-            const _TravelImageFallback(loading: false),
+        placeholder: (context, url) => fallback(loading: true),
+        errorWidget: (context, url, error) => fallback(loading: false),
       );
     }
 

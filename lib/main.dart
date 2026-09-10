@@ -1,7 +1,9 @@
 import 'package:destiny/config/theme/app_theme.dart';
+import 'package:destiny/repositories/supabase_inventory_repository.dart';
 import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/navigation_screen.dart';
 import 'package:destiny/screens/splash_screen.dart';
+import 'package:destiny/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -28,6 +30,13 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // M2 cutover: tours/stays/vehicles/awards read Destiny Supabase PostgREST only.
+  // Failures surface as loading/error/retry in inventory screens — no silent
+  // bymapara inventory fallback. Bookings/profile/docs still use ApiService →
+  // bymapara until those authenticated flows are migrated (M3+).
+  ApiService.inventoryRepository = SupabaseInventoryRepository();
+
   runApp(const MyApp());
 }
 

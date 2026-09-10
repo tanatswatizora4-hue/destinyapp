@@ -8,7 +8,8 @@ import 'package:flutter/foundation.dart';
 /// ```
 /// flutter run \
 ///   --dart-define=DESTINY_SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co \
-///   --dart-define=DESTINY_MEDIA_BUCKET=destiny-media
+///   --dart-define=DESTINY_MEDIA_BUCKET=destiny-media \
+///   --dart-define=DESTINY_INVENTORY_MEDIA_LIVE=false
 /// ```
 ///
 /// Empty dart-defines fall back to production defaults (an explicit empty
@@ -32,20 +33,41 @@ class DestinyMediaConfig {
     'DESTINY_MEDIA_BUCKET',
   );
 
+  /// When true (M2 default), inventory `destiny-media/...` refs resolve to
+  /// public Storage. Set false only for local debugging against legacy uploads.
+  static const bool inventoryMediaLive = bool.fromEnvironment(
+    'DESTINY_INVENTORY_MEDIA_LIVE',
+    defaultValue: true,
+  );
+
   static String? _supabaseUrlOverride;
   static String? _mediaBucketOverride;
+  static bool? _inventoryMediaLiveOverride;
 
   /// Test-only overrides (compile-time defines are fixed in unit tests).
   @visibleForTesting
-  static void debugOverride({String? supabaseUrl, String? mediaBucket}) {
+  static void debugOverride({
+    String? supabaseUrl,
+    String? mediaBucket,
+    bool? inventoryMediaLive,
+  }) {
     _supabaseUrlOverride = supabaseUrl;
     _mediaBucketOverride = mediaBucket;
+    _inventoryMediaLiveOverride = inventoryMediaLive;
   }
 
   @visibleForTesting
   static void debugClearOverrides() {
     _supabaseUrlOverride = null;
     _mediaBucketOverride = null;
+    _inventoryMediaLiveOverride = null;
+  }
+
+  static bool get preferLegacyInventoryMedia {
+    if (_inventoryMediaLiveOverride != null) {
+      return !_inventoryMediaLiveOverride!;
+    }
+    return !inventoryMediaLive;
   }
 
   static String get supabaseUrl {

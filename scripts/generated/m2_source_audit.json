@@ -1,0 +1,30 @@
+{
+  "source": "live:bymapara",
+  "counts": {
+    "tours": 25,
+    "stays": 36,
+    "vehicles": 3,
+    "awards": 6
+  },
+  "skipped_missing_legacy_id": [],
+  "seed_record_counts": {
+    "tours": 25,
+    "stays": 36,
+    "vehicles": 3,
+    "awards": 6,
+    "tour_images": 34,
+    "tour_amenities": 69,
+    "tour_itinerary_items": 13,
+    "stay_images": 41,
+    "stay_rooms": 12,
+    "stay_amenities": 18,
+    "vehicle_images": 5,
+    "vehicle_features": 8,
+    "award_images": 6
+  },
+  "media_totals": {
+    "entries": 86,
+    "owned_destiny_media": 82,
+    "legacy_path_retained": 4
+  }
+}

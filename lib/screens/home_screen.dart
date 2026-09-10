@@ -626,7 +626,11 @@ class _HomeScreenState extends State<HomeScreen> {
           return const _SectionLoading(height: 400);
         }
         if (snapshot.hasError) {
-          return const _SectionMessage(text: 'Unable to load tours right now.');
+          return _SectionMessage(
+            text: 'Unable to load tours right now.',
+            actionLabel: 'Retry',
+            onAction: _refreshData,
+          );
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const _SectionMessage(
@@ -851,7 +855,11 @@ class _HomeScreenState extends State<HomeScreen> {
           return const _SectionLoading(height: 280);
         }
         if (snapshot.hasError) {
-          return const _SectionMessage(text: 'Unable to load stays right now.');
+          return _SectionMessage(
+            text: 'Unable to load stays right now.',
+            actionLabel: 'Retry',
+            onAction: _refreshData,
+          );
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const _SectionMessage(text: 'No accommodations available.');
@@ -933,8 +941,10 @@ class _HomeScreenState extends State<HomeScreen> {
           return const _SectionLoading(height: 160);
         }
         if (snapshot.hasError) {
-          return const _SectionMessage(
+          return _SectionMessage(
             text: 'Unable to load rentals right now.',
+            actionLabel: 'Retry',
+            onAction: _refreshData,
           );
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -1578,18 +1588,36 @@ class _SectionLoading extends StatelessWidget {
 
 class _SectionMessage extends StatelessWidget {
   final String text;
+  final String? actionLabel;
+  final Future<void> Function()? onAction;
 
-  const _SectionMessage({required this.text});
+  const _SectionMessage({
+    required this.text,
+    this.actionLabel,
+    this.onAction,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 18),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => onAction!(),
+              child: Text(actionLabel!),
             ),
+          ],
+        ],
       ),
     );
   }

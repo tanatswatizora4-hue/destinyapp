@@ -6,11 +6,15 @@ import 'package:destiny/models/booking.dart';
 import 'package:destiny/models/tour.dart';
 import 'package:destiny/models/user.dart';
 import 'package:destiny/models/vehicle.dart';
+import 'package:destiny/repositories/inventory_repository.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 class ApiService {
   static const String _baseUrl = 'https://bymapara.com';
+
+  /// Optional inventory backend (Supabase composite). When null, uses legacy PHP.
+  static InventoryRepository? inventoryRepository;
 
   // --- BOOKING METHODS ---
   /// Creates a general booking (e.g., for a tour, accommodation, or vehicle).
@@ -259,8 +263,18 @@ class ApiService {
     return Exception('An unknown error occurred.');
   }
 
-  /// Fetches a list of tours.
+  /// Fetches tours from the wired inventory repository (Supabase after M2).
+  /// Does not silently fall back to bymapara inventory.
   Future<List<Tour>> getTours() async {
+    final repo = inventoryRepository;
+    if (repo == null) {
+      throw StateError('Inventory repository is not configured');
+    }
+    return repo.getTours();
+  }
+
+  /// Legacy bymapara tours endpoint.
+  Future<List<Tour>> fetchToursLegacy() async {
     final response = await http.get(Uri.parse('$_baseUrl/destiny_api.php?action=get_tours'));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -272,8 +286,16 @@ class ApiService {
     throw _handleError(response);
   }
 
-  /// Fetches a list of accommodations.
+  /// Fetches accommodations from the wired inventory repository (Supabase after M2).
   Future<List<Accommodation>> getAccommodations() async {
+    final repo = inventoryRepository;
+    if (repo == null) {
+      throw StateError('Inventory repository is not configured');
+    }
+    return repo.getAccommodations();
+  }
+
+  Future<List<Accommodation>> fetchAccommodationsLegacy() async {
     final response = await http.get(Uri.parse('$_baseUrl/destiny_api.php?action=get_accommodations'));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -285,8 +307,16 @@ class ApiService {
     throw _handleError(response);
   }
 
-  /// Fetches a list of rental vehicles.
+  /// Fetches vehicles from the wired inventory repository (Supabase after M2).
   Future<List<Vehicle>> getVehicles() async {
+    final repo = inventoryRepository;
+    if (repo == null) {
+      throw StateError('Inventory repository is not configured');
+    }
+    return repo.getVehicles();
+  }
+
+  Future<List<Vehicle>> fetchVehiclesLegacy() async {
     final response = await http.get(Uri.parse('$_baseUrl/destiny_api.php?action=get_vehicles'));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -298,8 +328,16 @@ class ApiService {
     throw _handleError(response);
   }
 
-  /// Fetches a list of awards.
+  /// Fetches awards from the wired inventory repository (Supabase after M2).
   Future<List<Award>> getAwards() async {
+    final repo = inventoryRepository;
+    if (repo == null) {
+      throw StateError('Inventory repository is not configured');
+    }
+    return repo.getAwards();
+  }
+
+  Future<List<Award>> fetchAwardsLegacy() async {
     final response = await http.get(Uri.parse('$_baseUrl/destiny_api.php?action=get_awards'));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

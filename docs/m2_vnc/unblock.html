@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>M2 Unblock — Destiny Supabase</title>
+  <style>
+    :root {
+      --bg: #0f1c18;
+      --panel: #173028;
+      --ink: #e8f2ec;
+      --muted: #9bb5a8;
+      --accent: #3d9b6e;
+      --warn: #c9853a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #245540 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #1a3340 0%, transparent 50%),
+        var(--bg);
+      padding: 2rem;
+      line-height: 1.45;
+    }
+    main { max-width: 42rem; margin: 0 auto; }
+    h1 { font-size: 2rem; margin: 0 0 0.35rem; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); margin-bottom: 1.5rem; }
+    .card {
+      background: color-mix(in srgb, var(--panel) 92%, black);
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      margin: 0.85rem 0;
+    }
+    .card h2 { font-size: 1.05rem; margin: 0 0 0.5rem; color: var(--accent); }
+    code, pre {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+    pre {
+      background: #0a1511;
+      padding: 0.75rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    label { display: block; font-size: 0.9rem; color: var(--muted); margin: 0.5rem 0 0.25rem; }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 0.55rem 0.7rem;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      background: #0a1511;
+      color: var(--ink);
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+    }
+    button, a.btn {
+      display: inline-block;
+      margin-top: 0.65rem;
+      margin-right: 0.4rem;
+      padding: 0.55rem 0.9rem;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #04140c;
+      text-decoration: none;
+      font-weight: 700;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      border: 0;
+      cursor: pointer;
+    }
+    button.secondary { background: color-mix(in srgb, var(--muted) 35%, var(--panel)); color: var(--ink); }
+    .warn { color: var(--warn); }
+    .tiny { font-size: 0.85rem; color: var(--muted); }
+    .ok { color: var(--accent); }
+    #drop-status { min-height: 1.2em; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Destiny M2 unblock</h1>
+    <p class="sub">Project <code>xchddfpfzrzhlbbmyhyn</code> only. Secrets stay on this VM — never paste into chat.</p>
+    <div class="card" id="live-gate-card">
+      <h2>Live gate</h2>
+      <p id="catalog-status" class="tiny">Checking <code>inventory/catalog.json</code>…</p>
+      <p id="live-status" class="tiny">Checking watcher status…</p>
+    </div>
+
+    <div class="card">
+      <h2>Drop credentials here (localhost only)</h2>
+      <p class="tiny">Writes <code>/tmp/supabase-access-token</code> or <code>/tmp/supabase-cli-code</code> (chmod 600). Watchers auto-apply within ~1s.</p>
+      <label for="pat">Supabase personal access token (preferred)</label>
+      <input id="pat" type="password" autocomplete="off" spellcheck="false" placeholder="sbp_…" />
+      <button type="button" id="btn-pat">Save PAT &amp; apply</button>
+      <label for="code">CLI verification code</label>
+      <input id="code" type="text" autocomplete="off" spellcheck="false" placeholder="code from Dashboard CLI authorize" />
+      <button type="button" id="btn-code" class="secondary">Submit CLI code</button>
+      <p id="drop-status" class="tiny"></p>
+    </div>
+
+    <div class="card">
+      <h2>1) Preferred — Cloud Agent secret</h2>
+      <p>Add <code>SUPABASE_ACCESS_TOKEN</code>, start a <strong>new</strong> agent on <code>cursor/m2-destiny-backend-migration-194a</code>, run:</p>
+      <pre>bash scripts/m2_new_agent_bootstrap.sh</pre>
+    </div>
+
+    <div class="card">
+      <h2>2) VNC — CLI authorize link</h2>
+      <p class="tiny">Sign into Dashboard (ChatGPT SSO), open the link, then paste the code above.</p>
+      <a class="btn" id="cli-link" href="#" target="_blank" rel="noopener">Open CLI login URL</a>
+      <p class="tiny" id="cli-status">Loading URL…</p>
+    </div>
+
+    <div class="card">
+      <h2>3) Dashboard-only (no agent PAT)</h2>
+      <p class="tiny">On your laptop (or VNC after ChatGPT SSO):</p>
+      <ol class="tiny" style="padding-left:1.2rem">
+        <li>SQL Editor → paste <code>supabase/seed/m2_dashboard_schema_plus_seed.sql</code></li>
+        <li>Storage → bucket <code>destiny-media</code> → upload pack members <strong>preserving paths</strong> (includes <code>inventory/catalog.json</code>)</li>
+      </ol>
+      <a class="btn" href="/m2-dashboard-media-pack.tar">Download media pack (.tar)</a>
+      <p class="tiny">Pack also rebuildable: <code>bash scripts/m2_build_dashboard_media_pack.sh</code></p>
+    </div>
+
+    <div class="card">
+      <h2>4) GitHub Actions</h2>
+      <p>Merge PR #13, add Actions secret <code>SUPABASE_ACCESS_TOKEN</code>, run workflow on the M2 branch.</p>
+    </div>
+
+    <p class="warn tiny">Live gate: <code>inventory/catalog.json</code> must become HTTP 200 with counts 25/36/3/6 (DB verify needs anon/PAT after media upload).</p>
+  </main>
+  <script>
+    const statusEl = document.getElementById('drop-status');
+    async function drop(kind, value) {
+      statusEl.className = 'tiny';
+      statusEl.textContent = 'Writing…';
+      try {
+        const res = await fetch('/drop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind, value }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          statusEl.className = 'tiny warn';
+          statusEl.textContent = 'Rejected: ' + (data.error || res.status);
+          return;
+        }
+        statusEl.className = 'tiny ok';
+        statusEl.textContent = data.wrote === 'raw_token'
+          ? 'PAT saved — apply watcher should start within ~1s.'
+          : 'CLI code saved — code watcher will submit to sb-login.';
+      } catch (e) {
+        statusEl.className = 'tiny warn';
+        statusEl.textContent = 'Write failed (is the helper server running?)';
+      }
+    }
+    document.getElementById('btn-pat').addEventListener('click', () => {
+      const v = document.getElementById('pat').value.trim();
+      if (!v) { statusEl.className = 'tiny warn'; statusEl.textContent = 'Paste a PAT first.'; return; }
+      drop('pat', v).then(() => { document.getElementById('pat').value = ''; });
+    });
+    document.getElementById('btn-code').addEventListener('click', () => {
+      const v = document.getElementById('code').value.trim();
+      if (!v) { statusEl.className = 'tiny warn'; statusEl.textContent = 'Paste a code first.'; return; }
+      drop('code', v).then(() => { document.getElementById('code').value = ''; });
+    });
+
+    async function loadUrl() {
+      const status = document.getElementById('cli-status');
+      const link = document.getElementById('cli-link');
+      try {
+        const res = await fetch('/supabase-cli-login.url', { cache: 'no-store' });
+        if (!res.ok) throw new Error('missing');
+        const url = (await res.text()).trim();
+        if (!url.startsWith('https://')) throw new Error('bad url');
+        link.href = url;
+        status.textContent = 'Session ready — click to open.';
+      } catch (e) {
+        status.textContent = 'URL file not readable; open /tmp/supabase-cli-login.url in a terminal.';
+      }
+    }
+    async function loadStatus() {
+      const el = document.getElementById('live-status');
+      const cat = document.getElementById('catalog-status');
+      const gate = document.getElementById('live-gate-card');
+      try {
+        const res = await fetch('/status', { cache: 'no-store' });
+        const s = await res.json();
+        const code = s.catalog_http;
+        if (code === 200) {
+          cat.className = 'tiny ok';
+          cat.textContent = 'catalog.json HTTP 200 — live gate green. Apply done=' + !!s.apply_done;
+          gate.style.borderColor = 'var(--accent)';
+        } else {
+          cat.className = 'tiny warn';
+          cat.textContent = 'catalog.json HTTP ' + code + ' — still blocked until apply finishes.';
+        }
+        el.textContent = 'Flags: raw_token=' + s.has_raw_token
+          + ' env=' + s.has_env_file
+          + ' cli_code=' + s.has_cli_code
+          + ' cli_url=' + s.has_cli_url
+          + ' access_token=' + s.has_cli_access_token
+          + ' apply_ready=' + !!s.apply_ready;
+      } catch (e) {
+        el.textContent = 'Status endpoint unavailable.';
+      }
+    }
+    loadUrl();
+    loadStatus();
+    setInterval(loadUrl, 15000);
+    setInterval(loadStatus, 5000);
+  </script>
+</body>
+</html>
