@@ -175,6 +175,18 @@ Deno.serve(async (req) => {
           .select("*")
           .single();
         if (error) throw error;
+        {
+          const { error: evErr } = await db.from("enquiry_events").insert({
+            enquiry_id: data.id,
+            event_type: "received",
+            previous_status: null,
+            new_status: "received",
+            actor_type: "customer",
+            actor_firebase_uid: uid,
+            metadata: { kind },
+          });
+          if (evErr) console.warn("enquiry_events insert", evErr.message);
+        }
         return json(200, { status: "success", data });
       }
 
@@ -260,6 +272,19 @@ Deno.serve(async (req) => {
           .select("*")
           .single();
         if (error) throw error;
+        // Best-effort audit (M3B table); ignore if migration not yet applied.
+        {
+          const { error: evErr } = await db.from("booking_events").insert({
+            booking_id: data.id,
+            event_type: "submitted",
+            previous_status: null,
+            new_status: "submitted",
+            actor_type: "customer",
+            actor_firebase_uid: uid,
+            metadata: {},
+          });
+          if (evErr) console.warn("booking_events insert", evErr.message);
+        }
         return json(200, {
           status: "success",
           message:
@@ -317,6 +342,18 @@ Deno.serve(async (req) => {
           .select("*")
           .single();
         if (error) throw error;
+        {
+          const { error: evErr } = await db.from("booking_events").insert({
+            booking_id: bookingId,
+            event_type: "cancelled",
+            previous_status: String(existing.status),
+            new_status: "cancelled",
+            actor_type: "customer",
+            actor_firebase_uid: uid,
+            metadata: reason ? { reason } : {},
+          });
+          if (evErr) console.warn("booking_events insert", evErr.message);
+        }
         return json(200, { status: "success", data });
       }
 
@@ -347,6 +384,18 @@ Deno.serve(async (req) => {
           .select("*")
           .single();
         if (error) throw error;
+        {
+          const { error: evErr } = await db.from("enquiry_events").insert({
+            enquiry_id: data.id,
+            event_type: "received",
+            previous_status: null,
+            new_status: "received",
+            actor_type: "customer",
+            actor_firebase_uid: uid,
+            metadata: { kind: "flight" },
+          });
+          if (evErr) console.warn("enquiry_events insert", evErr.message);
+        }
         return json(200, {
           status: "success",
           message:

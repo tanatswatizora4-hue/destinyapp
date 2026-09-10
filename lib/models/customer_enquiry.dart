@@ -6,6 +6,7 @@ class CustomerEnquiry {
 
   /// received | in_review | quoted | converted | closed
   final String status;
+  final String customerResponseNote;
   final DateTime? createdAt;
 
   CustomerEnquiry({
@@ -14,6 +15,7 @@ class CustomerEnquiry {
     required this.firebaseUid,
     required this.payload,
     required this.status,
+    this.customerResponseNote = '',
     this.createdAt,
   });
 
@@ -29,6 +31,8 @@ class CustomerEnquiry {
       firebaseUid: json['firebase_uid']?.toString() ?? '',
       payload: payload,
       status: json['status']?.toString() ?? 'received',
+      customerResponseNote:
+          json['customer_response_note']?.toString() ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,

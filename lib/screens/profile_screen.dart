@@ -207,6 +207,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pushNamed('/staff-ops');
+                        },
+                        icon: const Icon(Icons.admin_panel_settings_outlined),
+                        label: const Text('Destiny Operations'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.navy,
+                          minimumSize: const Size(double.infinity, 48),
+                          side: const BorderSide(color: AppTheme.navy),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Staff only — access is verified server-side.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
                         onPressed: () async {
                           await _authService.signOut();
                         },

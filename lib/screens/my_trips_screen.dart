@@ -171,6 +171,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
             if (ret.isNotEmpty) Text('Return: $ret'),
             const SizedBox(height: 8),
             Chip(label: Text(enquiry.statusLabel)),
+            if (enquiry.customerResponseNote.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(enquiry.customerResponseNote),
+            ],
             const SizedBox(height: 4),
             const Text(
               'Enquiry only — not a confirmed ticket purchase.',

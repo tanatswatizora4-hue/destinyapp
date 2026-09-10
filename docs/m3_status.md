@@ -1,68 +1,61 @@
 # M3 status — Booking + Travel Commerce
 
-## M3A — Secure customer backend (THIS MILESTONE)
+## M3A — Secure customer backend — COMPLETE (live)
 
-**Code status:** implemented on branch `cursor/m3-secure-customer-backend-194a`  
-**Deploy status:** requires operator apply of migration + Edge Function (see below)
+Flutter Firebase Auth → `customer-api` → verified UID → protected tables.
+
+## M3B — Booking lifecycle + staff operations — THIS MILESTONE
+
+**Code status:** implemented on `cursor/m3b-booking-operations-194a`  
+**Deploy status:** migration + `staff-commerce-api` + first `staff_users` row required
 
 ### Architecture
 ```
-Flutter (Firebase Auth)
-  → short-lived Firebase ID token (Authorization: Bearer)
-  → Supabase Edge Function `customer-api` (verify_jwt=false)
-  → verify token via Google JWKS (project destinytravel-1a16e)
-  → derive firebase_uid from token.sub only
-  → service_role DB ops on customer_profiles / enquiries / bookings
+Staff Flutter (Firebase Auth)
+  → Firebase ID token
+  → staff-commerce-api (verify_jwt=false)
+  → verify token + staff_users allowlist (is_active)
+  → service_role ops + booking_events / enquiry_events
 ```
 
-Client never receives `service_role`. Client cannot set `firebase_uid`, `quoted_total`, `status`, or `payment_status`.
+Customers continue through `customer-api` only. Staff privileges are never mixed into customer actions.
 
 ### Delivered
-- Forward migration `20260910120000_m3a_secure_customer_commerce.sql`
-- Edge Function `supabase/functions/customer-api`
-- Flutter `CustomerApiClient` + `CustomerRepository` / `BookingRepository` / `EnquiryRepository`
-- UI wired: tour/stay/vehicle requests, flights enquiry, My Bookings, My Trips
-- Tests: `test/m3a_customer_commerce_test.dart` + Deno `commerce_rules_test.ts`
-- Docs: `docs/m3a_customer_backend_audit.md`, this file, deploy runbook
+- Migration `20260910140000_m3b_staff_ops_and_audit.sql`
+- Edge Function `staff-commerce-api`
+- Lifecycle rules + Deno tests
+- Minimal Staff Ops UI (`/staff-ops`, gated server-side)
+- Customer My Bookings quote/status panels
+- Flutter tests `test/m3b_staff_commerce_test.dart`
+- Docs: `m3b_agent_operations_audit.md`, `m3b_deploy_runbook.md`
 
-### External action required (destiny-os only)
-1. Apply migration `supabase/migrations/20260910120000_m3a_secure_customer_commerce.sql`
-2. Deploy function:
-   ```bash
-   supabase functions deploy customer-api --project-ref xchddfpfzrzhlbbmyhyn
-   ```
-3. Optional secret (defaults to public project id):
-   ```bash
-   supabase secrets set FIREBASE_PROJECT_ID=destinytravel-1a16e --project-ref xchddfpfzrzhlbbmyhyn
-   ```
-4. Confirm function config has **verify JWT disabled** (see `supabase/functions/customer-api/config.toml`)
-5. Smoke: signed-in Flutter app submits a tour request → row in `bookings` with `status=submitted`, `quoted_total=null`, `firebase_uid` matching token
+### Booking transition matrix
+| From | To |
+|------|-----|
+| draft | submitted, cancelled |
+| submitted | quoted, cancelled |
+| quoted | awaiting_payment, cancelled |
+| awaiting_payment | confirmed, cancelled |
+| confirmed | completed, cancelled |
+| cancelled / completed | terminal |
 
-Do **not** add anon write policies. Do **not** touch Wanzwei.
+Quote sets `quoted_total` and moves `submitted → quoted` without marking paid.
+
+### External action required
+1. Apply M3B migration
+2. Deploy `staff-commerce-api` (+ redeploy `customer-api` for audit events)
+3. Insert first `staff_users` row with a real Firebase UID
+
+See `docs/m3b_deploy_runbook.md`.
 
 ---
 
-## M3B — Booking lifecycle / agent operations
-- Agent tooling to move bookings: submitted → quoted → awaiting_payment → confirmed
-- Set authoritative `quoted_total`
-- Enquiry triage (in_review / quoted / converted)
-
-## M3C — Travelport
-- Live fare shopping / ticketing — **not started**
-- Flights remain enquiry-only until then
-
-## M3D — Payments
-- Capture against quoted totals only
-- Never trust client `total_price`
-
-## M3E — Legacy retirement / hardening
-- Retire bymapara booking/enquiry/profile endpoints
-- Secure travel documents storage
-- Remove delete-via-GET debt
-- Tighten `devBypassAuth` for production
+## M3C — Travelport — not started
+## M3D — Payments — not started
+## M3E — Legacy retirement — not started
 
 ## Stop
 ```
 STOP_REASON=EXTERNAL_ACTION_REQUIRED
 ```
-M3A application code is complete; live destiny-os migration + function deploy is the remaining gate. Do not start M3B/M3C/M3D automatically.
+Do not start M3C/M3D automatically.
