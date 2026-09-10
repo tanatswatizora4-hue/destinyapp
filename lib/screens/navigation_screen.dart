@@ -14,6 +14,7 @@ import 'package:destiny/screens/travel_documents_screen.dart';
 import 'package:destiny/screens/tour_list_screen.dart';
 import 'package:destiny/screens/vehicle_list_screen.dart';
 import 'package:destiny/services/api_service.dart';
+import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -32,9 +33,10 @@ class NavigationScreen extends StatefulWidget {
 class _NavigationScreenState extends State<NavigationScreen> {
   int _selectedIndex = 0;
   int? _sqlUserId;
+  User? _firebaseUser;
   late StreamSubscription<User?> _authSubscription;
   final ApiService _apiService = ApiService();
-  bool _isLoadingSqlId = true;
+  bool _isLoadingAuth = true;
   /// Home desktop hero overlay becomes solid after the user scrolls.
   bool _homeHeroScrolled = false;
 
@@ -71,27 +73,43 @@ class _NavigationScreenState extends State<NavigationScreen> {
     super.initState();
     _authSubscription =
         FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+      setState(() {
+        _firebaseUser = user;
+        _isLoadingAuth = true;
+      });
       if (user != null) {
-        // User is signed in, fetch the corresponding SQL ID
+        // Best-effort legacy SQL sync for Travel Docs / profile until those migrate.
         try {
           final userData = await _apiService.syncUserWithSql(
               user.uid, user.displayName ?? '', user.email ?? '');
+          // Also upsert Destiny customer_profiles via Edge Function (non-blocking).
+          try {
+            await CustomerRepository().upsertProfile(
+              fullName: user.displayName ?? '',
+              email: user.email ?? '',
+            );
+          } catch (e) {
+            debugPrint('M3A profile upsert deferred: $e');
+          }
+          if (!mounted) return;
           setState(() {
             _sqlUserId = userData['id'];
-            _isLoadingSqlId = false;
+            _isLoadingAuth = false;
           });
         } catch (e) {
           debugPrint('Failed to sync user with SQL: $e');
+          if (!mounted) return;
           setState(() {
+            // Firebase session still valid for M3A commerce even if legacy sync fails.
             _sqlUserId = null;
-            _isLoadingSqlId = false;
+            _isLoadingAuth = false;
           });
         }
       } else {
-        // User is signed out, reset the SQL ID
+        if (!mounted) return;
         setState(() {
           _sqlUserId = null;
-          _isLoadingSqlId = false;
+          _isLoadingAuth = false;
         });
       }
     });
@@ -105,7 +123,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   // A list of widgets that are conditionally built based on selected index
   List<Widget> _getWidgetOptions(BuildContext context) {
-    if (_isLoadingSqlId) {
+    if (_isLoadingAuth) {
       return List.filled(
         10,
         const Center(
@@ -114,49 +132,39 @@ class _NavigationScreenState extends State<NavigationScreen> {
       );
     }
 
-    if (_sqlUserId != null) {
-      return <Widget>[
-        HomeScreen(
-          onScrollOffsetChanged: (offset) {
-            final scrolled = offset > 72;
-            if (scrolled != _homeHeroScrolled) {
-              setState(() => _homeHeroScrolled = scrolled);
-            }
-          },
-        ),
-        const TourListScreen(),
-        const AccommodationListScreen(),
-        const VehicleListScreen(),
-        FlightsScreen(userId: _sqlUserId),
-        MyTripsScreen(userId: _sqlUserId!),
-        const MyBookingsScreen(),
-        TravelDocumentsScreen(userId: _sqlUserId!),
-        const ProfileScreen(),
-        const ContactScreen(),
-      ];
-    } else {
-      // Public browse tabs remain available when signed out.
-      // Account-area tabs (5–8) show placeholders until sign-in.
-      return <Widget>[
-        HomeScreen(
-          onScrollOffsetChanged: (offset) {
-            final scrolled = offset > 72;
-            if (scrolled != _homeHeroScrolled) {
-              setState(() => _homeHeroScrolled = scrolled);
-            }
-          },
-        ),
-        const TourListScreen(),
-        const AccommodationListScreen(),
-        const VehicleListScreen(),
-        const FlightsScreen(),
-        _buildPlaceholder('Please sign in to view your trips.'),
-        _buildPlaceholder('Please sign in to view your bookings.'),
-        _buildPlaceholder('Please sign in to view your travel documents.'),
-        _buildPlaceholder('Please sign in to view your profile.'),
-        const ContactScreen(),
-      ];
-    }
+    final signedIn = _firebaseUser != null;
+
+    return <Widget>[
+      HomeScreen(
+        onScrollOffsetChanged: (offset) {
+          final scrolled = offset > 72;
+          if (scrolled != _homeHeroScrolled) {
+            setState(() => _homeHeroScrolled = scrolled);
+          }
+        },
+      ),
+      const TourListScreen(),
+      const AccommodationListScreen(),
+      const VehicleListScreen(),
+      const FlightsScreen(),
+      signedIn
+          ? const MyTripsScreen()
+          : _buildPlaceholder('Please sign in to view your trips.'),
+      signedIn
+          ? const MyBookingsScreen()
+          : _buildPlaceholder('Please sign in to view your bookings.'),
+      (_sqlUserId != null)
+          ? TravelDocumentsScreen(userId: _sqlUserId!)
+          : _buildPlaceholder(
+              signedIn
+                  ? 'Travel documents still use the legacy account link. Try again shortly, or contact Destiny support.'
+                  : 'Please sign in to view your travel documents.',
+            ),
+      signedIn
+          ? const ProfileScreen()
+          : _buildPlaceholder('Please sign in to view your profile.'),
+      const ContactScreen(),
+    ];
   }
 
   Widget _buildPlaceholder(String message) {
@@ -177,7 +185,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     // Protected account area: 5 My Trips, 6 Bookings, 7 Docs, 8 Profile.
     const protectedIndices = NavigationScreen.protectedNavIndices;
 
-    if (protectedIndices.contains(index) && _sqlUserId == null) {
+    if (protectedIndices.contains(index) && _firebaseUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(

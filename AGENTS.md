@@ -1,24 +1,19 @@
-# Agent instructions — Destiny M2 branch
+# Agent instructions — Destiny
 
-Branch: `cursor/m2-destiny-backend-migration-194a`  
-Target: Supabase project **`xchddfpfzrzhlbbmyhyn` only** (never Wanzwei).
+## Active milestone: M3A secure customer backend
 
-## Status — M2 COMPLETE
+Branch pattern: `cursor/m3-secure-customer-backend-194a`  
+Supabase target: **`xchddfpfzrzhlbbmyhyn` only** (never Wanzwei).
 
-Live inventory + owned-media migration is verified. Flutter cutover uses Destiny
-Supabase as the **only** inventory source:
+M2 inventory cutover is complete. Do not re-seed inventory or poll credentials for M2.
 
-- Default URL: `https://xchddfpfzrzhlbbmyhyn.supabase.co`
-- Default publishable key in `DestinySupabaseConfig` (not `service_role`)
-- `ApiService.inventoryRepository = SupabaseInventoryRepository()` in `main.dart`
-- Failures → loading/error/retry (no silent bymapara inventory fallback)
-- Media: `destiny-media/...` via `DestinyMediaUrl` (inventory live by default)
+M3A uses:
+- Firebase Auth (keep) + Firebase ID tokens
+- Edge Function `customer-api` (server verifies token → service_role DB)
+- No anon write policies on sensitive tables
+- No Travelport / payments yet
 
-Do **not** poll Supabase auth, SSO, credentials, or `catalog.json`.  
-Do **not** reseed DB, upload media, or touch Wanzwei.
+Deploy steps: `docs/m3a_deploy_runbook.md`  
+Status: `docs/m3_status.md`
 
-Legacy bymapara remains **only** for bookings / profile / documents / flight
-enquiry APIs until M3+.
-
-Never paste `service_role` into the app or chat. Preserve `devBypassAuth` and
-Firebase Auth. Do not weaken RLS. Do not start M3 from this branch checkpoint.
+Never embed `service_role` in Flutter. Preserve `devBypassAuth` unless asked. Do not start M3B+ automatically.

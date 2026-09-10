@@ -1,71 +1,73 @@
-import 'package:flutter/material.dart';
-import 'package:destiny/services/api_service.dart';
 import 'package:destiny/config/theme/app_theme.dart';
-import 'dart:convert';
+import 'package:destiny/models/customer_enquiry.dart';
+import 'package:destiny/repositories/customer_commerce_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
+/// Flight / trip enquiries owned by the signed-in Firebase user (M3A).
 class MyTripsScreen extends StatefulWidget {
-  final int userId;
-  const MyTripsScreen({super.key, required this.userId});
+  const MyTripsScreen({super.key});
 
   @override
   State<MyTripsScreen> createState() => _MyTripsScreenState();
 }
 
 class _MyTripsScreenState extends State<MyTripsScreen> {
-  late Future<List<Map<String, dynamic>>> _flightBookingsFuture;
-  final ApiService _apiService = ApiService();
+  final EnquiryRepository _enquiries = EnquiryRepository();
+  late Future<List<CustomerEnquiry>> _future;
 
   @override
   void initState() {
     super.initState();
-    _fetchFlightBookings();
+    _future = _load();
   }
 
-  void _fetchFlightBookings() {
-    _flightBookingsFuture = _apiService.getMyFlightBookings(widget.userId);
+  Future<List<CustomerEnquiry>> _load() async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      throw StateError('Sign in required');
+    }
+    final all = await _enquiries.listMine();
+    return all.where((e) => e.kind == 'flight').toList(growable: false);
   }
 
-  Future<void> _refreshBookings() async {
+  Future<void> _refresh() async {
     setState(() {
-      _fetchFlightBookings();
+      _future = _load();
     });
   }
 
-  void _showCancelDialog(int bookingId) {
-    showDialog(
+  Future<void> _closeEnquiry(String id) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Cancel Trip'),
-          content: const Text('Are you sure you want to cancel this trip? This action cannot be undone.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('No'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _cancelBooking(bookingId);
-              },
-              child: const Text('Yes', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
+      builder: (ctx) => AlertDialog(
+        title: const Text('Close enquiry'),
+        content: const Text(
+          'Close this flight enquiry? Destiny will stop following up on it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Close', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
-  }
-
-  Future<void> _cancelBooking(int bookingId) async {
+    if (confirmed != true) return;
     try {
-      await _apiService.deleteFlightBooking(bookingId);
+      await _enquiries.close(enquiryId: id);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Trip cancelled successfully!')),
+        const SnackBar(content: Text('Enquiry closed.')),
       );
-      _refreshBookings();
+      await _refresh();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to cancel trip: $e')),
+        SnackBar(content: Text('Unable to close enquiry: $e')),
       );
     }
   }
@@ -74,10 +76,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh: _refreshBookings,
+        onRefresh: _refresh,
         color: AppTheme.primary,
-        child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _flightBookingsFuture,
+        child: FutureBuilder<List<CustomerEnquiry>>(
+          future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -85,22 +87,48 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               );
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
+              return ListView(
+                children: [
+                  const SizedBox(height: 120),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Unable to load trip enquiries: ${snapshot.error}',
+                            textAlign: TextAlign.center,
+                          ),
+                          TextButton(
+                            onPressed: _refresh,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
             }
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text('Your past and upcoming journeys will appear here.'),
+              return ListView(
+                children: const [
+                  SizedBox(height: 120),
+                  Center(
+                    child: Text(
+                      'Your flight enquiries will appear here after you submit them.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
               );
             }
 
-            final bookings = snapshot.data!;
+            final items = snapshot.data!;
             return ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: bookings.length,
-              itemBuilder: (context, index) {
-                final booking = bookings[index];
-                return _buildBookingCard(booking);
-              },
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              itemBuilder: (context, index) => _buildCard(items[index]),
             );
           },
         ),
@@ -108,133 +136,58 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
   }
 
-  Widget _buildBookingCard(Map<String, dynamic> booking) {
-    final midPlaces = (booking['mid_places'] as String?)
-        ?.split(', ')
-        .where((s) => s.isNotEmpty)
-        .toList() ?? [];
-
-    final departureDate = booking['departure_date'];
-    final returnDate = booking['return_date'];
+  Widget _buildCard(CustomerEnquiry enquiry) {
+    final p = enquiry.payload;
+    final origin = p['origin']?.toString() ?? '';
+    final destination = p['destination']?.toString() ?? '';
+    final mid = (p['mid_places'] is List)
+        ? (p['mid_places'] as List).map((e) => e.toString()).join(', ')
+        : '';
+    final travelers = p['num_travelers']?.toString() ?? '1';
+    final departure = p['departure_date']?.toString() ?? '';
+    final ret = p['return_date']?.toString() ?? '';
 
     return Card(
-      elevation: 4,
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Trip ID: #${booking['id']}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppTheme.textSecondary),
+              '$origin → $destination',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
+            if (mid.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text('Via: $mid',
+                  style: const TextStyle(color: AppTheme.textSecondary)),
+            ],
             const SizedBox(height: 8),
-            Text(
-              '${booking['origin']} to ${booking['destination']}',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const Divider(height: 24),
-            if (midPlaces.isNotEmpty)
-              _buildMidPlacesRow(midPlaces),
+            Text('Travellers: $travelers'),
+            if (departure.isNotEmpty) Text('Departure: $departure'),
+            if (ret.isNotEmpty) Text('Return: $ret'),
             const SizedBox(height: 8),
-            if (departureDate != null && departureDate.isNotEmpty)
-              _buildInfoRow(
-                icon: Icons.flight_takeoff_outlined,
-                label: 'Departure:',
-                value: departureDate,
-              ),
-            if (returnDate != null && returnDate.isNotEmpty)
-              _buildInfoRow(
-                icon: Icons.flight_land_outlined,
-                label: 'Return:',
-                value: returnDate,
-              ),
-            _buildInfoRow(
-              icon: Icons.group_outlined,
-              label: 'Travelers:',
-              value: '${booking['num_travelers']}',
+            Chip(label: Text(enquiry.statusLabel)),
+            const SizedBox(height: 4),
+            const Text(
+              'Enquiry only — not a confirmed ticket purchase.',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
             ),
-            _buildInfoRow(
-              icon: Icons.calendar_today_outlined,
-              label: 'Submitted On:',
-              value: booking['created_at'],
-            ),
-            _buildInfoRow(
-              icon: Icons.pending_actions_outlined,
-              label: 'Status:',
-              value: booking['status'],
-            ),
-            const SizedBox(height: 16),
-            if (booking['status'] != 'Cancelled')
+            if (enquiry.status == 'received' ||
+                enquiry.status == 'in_review') ...[
               Align(
                 alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () => _showCancelDialog(booking['id']),
-                  icon: const Icon(Icons.cancel, color: Colors.red),
-                  label: const Text('Cancel Trip', style: TextStyle(color: Colors.red)),
+                child: TextButton(
+                  onPressed: () => _closeEnquiry(enquiry.id),
+                  child: const Text('Close enquiry'),
                 ),
               ),
+            ],
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(
-      {required IconData icon, required String label, required String value}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppTheme.primary),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const Spacer(),
-          Text(value),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMidPlacesRow(List<String> midPlaces) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.location_on_outlined, size: 20, color: AppTheme.primary),
-          const SizedBox(width: 8),
-          const Text(
-            'Stops:',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Wrap(
-              spacing: 6.0,
-              runSpacing: 4.0,
-              children: midPlaces.map((place) {
-                return Chip(
-                  label: Text(place),
-                  backgroundColor: AppTheme.cardBackground,
-                  labelStyle: const TextStyle(color: AppTheme.textPrimary),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
       ),
     );
   }

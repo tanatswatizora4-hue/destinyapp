@@ -1,8 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:destiny/config/theme/app_theme.dart';
-import 'package:destiny/models/booking.dart';
-import 'package:destiny/services/api_service.dart';
-import 'package:destiny/services/auth_service.dart';
+import 'package:destiny/models/customer_booking.dart';
+import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -16,10 +15,9 @@ class MyBookingsScreen extends StatefulWidget {
 }
 
 class _MyBookingsScreenState extends State<MyBookingsScreen> {
-  final ApiService _apiService = ApiService();
-  late Future<List<Booking>> _bookingsFuture;
-  final AuthService _authService = AuthService();
-  int? _sqlId;
+  final BookingRepository _bookings = BookingRepository();
+  late Future<List<CustomerBooking>> _bookingsFuture;
+  bool _signedIn = false;
 
   @override
   void initState() {
@@ -29,16 +27,20 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
 
   Future<void> _loadBookings() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final appUser = await _authService.getAppUser(user.uid);
-      if (appUser != null && appUser.sqlId != null) {
-        if(mounted) {
-          setState(() {
-            _sqlId = appUser.sqlId;
-            _bookingsFuture = _apiService.getUserBookings(_sqlId!);
-          });
-        }
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _signedIn = false;
+          _bookingsFuture = Future.value(const []);
+        });
       }
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _signedIn = true;
+        _bookingsFuture = _bookings.listMine();
+      });
     }
   }
 
@@ -53,92 +55,103 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
         title: const Text('My Bookings'),
         backgroundColor: AppTheme.background,
       ),
-      body: _sqlId == null
+      body: !_signedIn
           ? _buildLoginPrompt()
-          : FutureBuilder<List<Booking>>(
-        future: _bookingsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text('An error occurred: ${snapshot.error}',
-                    textAlign: TextAlign.center),
-              ),
-            );
-          }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return _buildEmptyState();
-          }
+          : FutureBuilder<List<CustomerBooking>>(
+              future: _bookingsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Unable to load bookings: ${snapshot.error}',
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: _refreshBookings,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return _buildEmptyState();
+                }
 
-          final bookings = snapshot.data!;
-          return RefreshIndicator(
-            onRefresh: _refreshBookings,
-            color: AppTheme.primary,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12.0),
-              itemCount: bookings.length,
-              itemBuilder: (context, index) {
-                return _BookingCard(
-                  booking: bookings[index],
-                  onDelete: (id) async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Confirm Deletion'),
-                          content: const Text('Are you sure you want to delete this booking?'),
-                          actions: <Widget>[
-                            TextButton(
-                              child: const Text('Cancel'),
-                              onPressed: () => Navigator.of(context).pop(false),
+                final bookings = snapshot.data!;
+                return RefreshIndicator(
+                  onRefresh: _refreshBookings,
+                  color: AppTheme.primary,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: bookings.length,
+                    itemBuilder: (context, index) {
+                      return _CustomerBookingCard(
+                        booking: bookings[index],
+                        onCancel: (id) async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Cancel request'),
+                              content: const Text(
+                                'Cancel this booking request? Destiny will stop processing it.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Keep'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('Cancel request'),
+                                ),
+                              ],
                             ),
-                            TextButton(
-                              child: const Text('Delete'),
-                              onPressed: () => Navigator.of(context).pop(true),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                    if (confirmed == true) {
-                      try {
-                        await _apiService.deleteBooking(int.parse(id));
-                        await _refreshBookings();
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Booking deleted successfully.'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      } catch (e) {
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to delete booking: $e'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
+                          );
+                          if (confirmed != true) return;
+                          try {
+                            await _bookings.cancel(bookingId: id);
+                            await _refreshBookings();
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Request cancelled.'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Unable to cancel: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  ),
                 );
               },
             ),
-          );
-        },
-      ),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -149,13 +162,13 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'No Adventures Yet',
+              'No requests yet',
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             const Text(
-              'You haven\'t booked any trips. Your next journey awaits!',
+              'Tour, stay, and vehicle requests you submit will appear here for Destiny to review.',
               style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -168,20 +181,20 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   Widget _buildLoginPrompt() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.login, size: 80, color: AppTheme.textSecondary),
             const SizedBox(height: 24),
             Text(
-              'Please Log In',
+              'Please sign in',
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             const Text(
-              'Log in to see your bookings and start planning your adventures.',
+              'Sign in to view booking requests Destiny is reviewing for you.',
               style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -192,32 +205,38 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 }
 
-class _BookingCard extends StatelessWidget {
-  final Booking booking;
-  final Function(String) onDelete;
+class _CustomerBookingCard extends StatelessWidget {
+  final CustomerBooking booking;
+  final Future<void> Function(String id) onCancel;
 
-  const _BookingCard({required this.booking, required this.onDelete});
+  const _CustomerBookingCard({
+    required this.booking,
+    required this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat.currency(locale: 'en_US', symbol: '\$');
+    final currency = NumberFormat.currency(locale: 'en_US', symbol: '\$');
+    final amount = booking.displayAmount;
+    final amountLabel = amount == null
+        ? 'Estimate pending'
+        : booking.hasAuthoritativeQuote
+            ? 'Quoted ${currency.format(amount)}'
+            : 'Estimated ${currency.format(amount)}';
 
-    String formattedDateRange;
-    if (booking.itemType == 'tour' || booking.endDate == null) {
-      final travelersText = booking.numberOfTravelers > 1 ? '(${booking.numberOfTravelers} travelers)' : '';
-      formattedDateRange = '${DateFormat('MMMM d, yyyy').format(booking.startDate)} $travelersText';
-    } else if (booking.itemType == 'accommodation') {
-      final nights = booking.endDate!.difference(booking.startDate).inDays;
-      formattedDateRange = '${DateFormat.yMMMd().format(booking.startDate)} - ${DateFormat.yMMMd().format(booking.endDate!)} ($nights nights)';
-    } else { // vehicle
-      final days = booking.endDate!.difference(booking.startDate).inDays;
-      formattedDateRange = '${DateFormat.yMMMd().format(booking.startDate)} - ${DateFormat.yMMMd().format(booking.endDate!)} ($days days)';
+    String dates = '';
+    if (booking.startDate != null) {
+      dates = DateFormat.yMMMd().format(booking.startDate!);
+      if (booking.endDate != null) {
+        dates =
+            '$dates – ${DateFormat.yMMMd().format(booking.endDate!)}';
+      }
     }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16.0),
+      margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -225,17 +244,17 @@ class _BookingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
+                  borderRadius: BorderRadius.circular(8),
                   child: CachedNetworkImage(
-                    imageUrl: booking.itemImageUrl,
+                    imageUrl: booking.mainImageUrl,
                     height: 80,
                     width: 80,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) =>
-                        Container(color: Colors.grey[200]),
-                    errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.image_not_supported)),
+                    placeholder: (c, u) => Container(color: Colors.grey[200]),
+                    errorWidget: (c, u, e) => Container(
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.image_not_supported),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -245,7 +264,10 @@ class _BookingCard extends StatelessWidget {
                     children: [
                       Text(
                         booking.itemName,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -254,11 +276,14 @@ class _BookingCard extends StatelessWidget {
                         'Type: ${booking.itemType}',
                         style: const TextStyle(color: AppTheme.textSecondary),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Dates: $formattedDateRange',
-                        style: const TextStyle(color: AppTheme.textSecondary),
-                      ),
+                      if (dates.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Dates: $dates',
+                          style:
+                              const TextStyle(color: AppTheme.textSecondary),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -269,28 +294,32 @@ class _BookingCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Chip(
-                  label: Text(booking.paymentStatus),
-                  backgroundColor: booking.paymentStatus == 'Confirmed'
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.orange.withOpacity(0.1),
+                  label: Text(booking.statusLabel),
+                  backgroundColor: booking.status == 'confirmed'
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.orange.withValues(alpha: 0.1),
                   labelStyle: TextStyle(
-                      color: booking.paymentStatus == 'Confirmed'
-                          ? Colors.green[800]
-                          : Colors.orange[800]),
+                    color: booking.status == 'confirmed'
+                        ? Colors.green[800]
+                        : Colors.orange[800],
+                  ),
                 ),
                 Text(
-                  currencyFormat.format(booking.totalPrice),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: AppTheme.primary),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () => onDelete(booking.id),
+                  amountLabel,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
-            )
+            ),
+            if (booking.isCancelableByCustomer) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => onCancel(booking.id),
+                  child: const Text('Cancel request'),
+                ),
+              ),
+            ],
           ],
         ),
       ),

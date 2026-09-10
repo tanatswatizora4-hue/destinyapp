@@ -1,7 +1,6 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/accommodation.dart';
-import 'package:destiny/services/api_service.dart';
-import 'package:destiny/services/auth_service.dart';
+import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/widgets/destiny_discovery.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -301,13 +300,12 @@ class _StayBookingSheet extends StatefulWidget {
 }
 
 class _StayBookingSheetState extends State<_StayBookingSheet> {
-  final ApiService _apiService = ApiService();
-  final AuthService _authService = AuthService();
+  final BookingRepository _bookings = BookingRepository();
   bool _isBooking = false;
   DateTimeRange? _selectedDateRange;
   RoomType? _selectedRoom;
   int _numberOfNights = 1;
-  int? _sqlId;
+  bool _signedIn = false;
 
   @override
   void initState() {
@@ -315,17 +313,7 @@ class _StayBookingSheetState extends State<_StayBookingSheet> {
     _selectedRoom = widget.accommodation.roomTypes.isNotEmpty
         ? widget.accommodation.roomTypes.first
         : null;
-    _getSqlId();
-  }
-
-  Future<void> _getSqlId() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final appUser = await _authService.getAppUser(user.uid);
-      if (appUser != null && appUser.sqlId != null && mounted) {
-        setState(() => _sqlId = appUser.sqlId);
-      }
-    }
+    _signedIn = FirebaseAuth.instance.currentUser != null;
   }
 
   Future<void> _selectDateRange() async {
@@ -354,10 +342,10 @@ class _StayBookingSheetState extends State<_StayBookingSheet> {
       );
       return;
     }
-    if (_sqlId == null) {
+    if (!_signedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please log in to request this stay.'),
+          content: Text('Please sign in to request this stay.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -366,21 +354,23 @@ class _StayBookingSheetState extends State<_StayBookingSheet> {
 
     setState(() => _isBooking = true);
     try {
-      await _apiService.createBooking(
-        sqlId: _sqlId!,
-        itemId: widget.accommodation.id,
+      await _bookings.createRequest(
         itemType: 'accommodation',
+        itemLegacyId: widget.accommodation.id,
+        itemName: widget.accommodation.name,
         numTravelers: _selectedRoom!.capacity,
-        totalPrice: _selectedRoom!.price * _numberOfNights,
+        requestedEstimate: _selectedRoom!.price * _numberOfNights,
         startDate: _selectedDateRange!.start,
         endDate: _selectedDateRange!.end,
+        imageRefs: widget.accommodation.imageUrls,
+        customerNotes: 'Room: ${_selectedRoom!.name}',
       );
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Request received. A Destiny agent will contact you. Complete your profile details if needed.',
+            'Request submitted. Destiny will review and confirm availability.',
           ),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 5),
@@ -388,7 +378,6 @@ class _StayBookingSheetState extends State<_StayBookingSheet> {
       );
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Request failed: $e'),
