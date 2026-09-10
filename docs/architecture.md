@@ -1,6 +1,6 @@
 # Destiny OS architecture
 
-## Current plane (M2 inventory cutover complete)
+## Inventory plane (M2 complete)
 
 ```
 Flutter UI
@@ -11,34 +11,36 @@ Flutter UI
       → Destiny Supabase Storage bucket `destiny-media` (owned)
 ```
 
-On inventory failure the UI shows loading/error/retry. There is **no** silent
-fallback to bymapara inventory APIs or `catalog.json` after M2 cutover.
+## Customer commerce plane (M3A)
 
-Optional tooling repos (`ChainedInventoryRepository`, asset/Storage catalogs,
-`LegacyInventoryRepository`, `CompositeInventoryRepository`) may remain in-tree
-for tests/offline tooling — they are **not** wired in `main.dart`.
+```
+Flutter UI (Firebase Auth)
+  → Firebase ID token (short-lived)
+  → Edge Function customer-api (verify_jwt=false)
+      → verify Firebase JWT via Google JWKS
+      → firebase_uid = token.sub only
+      → service_role writes to customer_profiles / enquiries / bookings
+```
 
-Legacy bymapara PHP remains for bookings / profiles / travel documents / flight
-enquiry persistence only (not inventory lists).
+Sensitive tables keep RLS enabled with **no** anon/authenticated policies.
+Client never sets ownership, quoted totals, payment status, or lifecycle status.
+
+Legacy bymapara remains for travel documents and some profile photo flows until M3E.
 
 ## Ownership
 
 | Concern | Owner |
 |---------|-------|
-| Canonical public inventory (tours/stays/vehicles/awards) | Destiny Supabase (`xchddfpfzrzhlbbmyhyn`) |
+| Canonical public inventory | Destiny Supabase (`xchddfpfzrzhlbbmyhyn`) |
 | Public marketing + inventory media | `destiny-media` Storage bucket |
-| Customer auth | Firebase Auth (unchanged in M2) |
-| Customer bookings / profiles / documents | Legacy bymapara until secure auth bridge (M3/M5) |
-| Live flights commerce | Out of scope (M3 / Travelport) |
+| Customer auth | Firebase Auth |
+| Booking requests / flight enquiries / customer profiles | Destiny Edge Function + protected tables (M3A) |
+| Travel documents | Legacy bymapara until secure docs (M3E) |
+| Live flights commerce | Out of scope (M3C / Travelport) |
 | Destina AI | Out of scope (M4) |
 
 ## Secrets
 
-- Flutter defaults to the **publishable** client key in `DestinySupabaseConfig`
-- Overrides: `--dart-define=DESTINY_SUPABASE_ANON_KEY` / `SUPABASE_ANON_KEY`
-- **Never** embed `service_role`, DB passwords, or private storage keys in the app
-
-## Auth bridge (deferred)
-
-Sensitive Supabase tables have RLS enabled with **no anon policies**.  
-Do not invent `auth.uid()` ownership while Firebase remains the identity provider.
+- Flutter: publishable anon key + Firebase ID tokens only
+- Edge Function runtime: `SUPABASE_SERVICE_ROLE_KEY` (platform-injected)
+- **Never** embed `service_role` in the app
