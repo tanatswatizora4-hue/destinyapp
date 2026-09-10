@@ -1,8 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/tour.dart';
-import 'package:destiny/services/api_service.dart';
-import 'package:destiny/services/auth_service.dart';
+import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/utils/tour_display.dart';
 import 'package:destiny/widgets/travel_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -807,30 +806,15 @@ class _BookingSheetContent extends StatefulWidget {
 }
 
 class _BookingSheetContentState extends State<_BookingSheetContent> {
-  final ApiService _apiService = ApiService();
-  final AuthService _authService = AuthService();
+  final BookingRepository _bookings = BookingRepository();
   bool _isBooking = false;
   int _travelerCount = 1;
-  int? _sqlId;
+  bool _signedIn = false;
 
   @override
   void initState() {
     super.initState();
-    _getSqlId();
-  }
-
-  Future<void> _getSqlId() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final appUser = await _authService.getAppUser(user.uid);
-      if (appUser != null && appUser.sqlId != null) {
-        if (mounted) {
-          setState(() {
-            _sqlId = appUser.sqlId;
-          });
-        }
-      }
-    }
+    _signedIn = FirebaseAuth.instance.currentUser != null;
   }
 
   void _incrementTravelers() => setState(() => _travelerCount++);
@@ -839,10 +823,10 @@ class _BookingSheetContentState extends State<_BookingSheetContent> {
       });
 
   Future<void> _confirmBooking() async {
-    if (_sqlId == null) {
+    if (!_signedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please log in to book this tour.'),
+          content: Text('Please sign in to request this tour.'),
           backgroundColor: AppTheme.accent,
         ),
       );
@@ -851,15 +835,13 @@ class _BookingSheetContentState extends State<_BookingSheetContent> {
 
     setState(() => _isBooking = true);
     try {
-      // Existing API contract — dates remain placeholders until booking IA is redesigned.
-      await _apiService.createBooking(
-        sqlId: _sqlId!,
-        itemId: widget.tour.id,
+      await _bookings.createRequest(
         itemType: 'tour',
+        itemLegacyId: widget.tour.id,
+        itemName: widget.tour.title,
         numTravelers: _travelerCount,
-        totalPrice: widget.tour.price * _travelerCount,
-        startDate: DateTime.now(),
-        endDate: DateTime.now(),
+        requestedEstimate: widget.tour.price * _travelerCount,
+        imageRefs: widget.tour.imageUrls,
       );
 
       if (!mounted) return;
@@ -867,7 +849,7 @@ class _BookingSheetContentState extends State<_BookingSheetContent> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Booking Confirmed! One of our agents will contact you. Please complete your contact details in My Profile.',
+            'Request submitted. Destiny will review and confirm availability. Complete your profile details if needed.',
           ),
           backgroundColor: AppTheme.primary,
           duration: Duration(seconds: 5),
@@ -875,10 +857,9 @@ class _BookingSheetContentState extends State<_BookingSheetContent> {
       );
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Booking Failed: ${e.toString()}'),
+          content: Text('Request failed: $e'),
           backgroundColor: AppTheme.accent,
         ),
       );

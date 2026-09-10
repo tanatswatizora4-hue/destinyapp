@@ -1,14 +1,13 @@
 import 'package:destiny/config/theme/app_theme.dart';
-import 'package:destiny/services/api_service.dart';
+import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/widgets/destiny_discovery.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// Agent-assisted flight / trip enquiry — not live fare shopping.
 class FlightsScreen extends StatefulWidget {
-  /// SQL user id when signed in. Null for public enquiry browsing.
-  final int? userId;
-  const FlightsScreen({super.key, this.userId});
+  const FlightsScreen({super.key});
 
   @override
   State<FlightsScreen> createState() => _FlightsScreenState();
@@ -31,7 +30,9 @@ class _FlightsScreenState extends State<FlightsScreen> {
   bool _needsInterchangeAssistance = false;
   bool _needsTaxi = false;
 
-  final ApiService _apiService = ApiService();
+  final EnquiryRepository _enquiries = EnquiryRepository();
+
+  bool get _signedIn => FirebaseAuth.instance.currentUser != null;
 
   @override
   void dispose() {
@@ -110,7 +111,7 @@ class _FlightsScreenState extends State<FlightsScreen> {
       return;
     }
 
-    if (widget.userId == null) {
+    if (!_signedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -124,18 +125,15 @@ class _FlightsScreenState extends State<FlightsScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final signedInUserId = widget.userId!;
       final midPlaces = _midPlaceControllers
           .map((c) => c.text.trim())
           .where((t) => t.isNotEmpty)
           .toList();
-      await _apiService.createFlightBooking(
-        userId: signedInUserId,
+      await _enquiries.createFlightEnquiry(
         origin: _fromController.text.trim(),
         destination: _toController.text.trim(),
         midPlaces: midPlaces,
         numTravelers: int.tryParse(_peopleController.text.trim()) ?? 1,
-        isEnquiry: true,
         needsAccommodation: _needsAccommodation,
         needsInterchangeAssistance: _needsInterchangeAssistance,
         needsTaxi: _needsTaxi,
@@ -146,7 +144,7 @@ class _FlightsScreenState extends State<FlightsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Flight enquiry sent. A Destiny agent will contact you to design options — this is not a ticket purchase.',
+            'Flight enquiry submitted. Destiny will review and respond — this is not a ticket purchase.',
           ),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 5),
