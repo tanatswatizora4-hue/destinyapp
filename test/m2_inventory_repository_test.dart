@@ -229,15 +229,15 @@ void main() {
     });
   });
 
-  test('owned inventory media paths resolve via DestinyMediaUrl', () {
-    DestinyMediaConfig.debugOverride(inventoryMediaLive: true);
+  test('owned inventory media paths resolve via DestinyMediaUrl by default', () {
+    // M2 default: inventoryMediaLive=true → destiny-media public Storage.
     expect(
       DestinyMediaUrl.resolve('destiny-media/tours/1/primary.webp'),
       contains('/storage/v1/object/public/destiny-media/tours/1/primary.webp'),
     );
   });
 
-  test('inventory refs prefer legacy upload until media is live', () {
+  test('debug override can remap inventory refs to legacy uploads', () {
     DestinyMediaConfig.debugOverride(inventoryMediaLive: false);
     DestinyMediaLegacyMap.debugReplace({
       'destiny-media/tours/39/primary.jpg':

@@ -1,24 +1,25 @@
 # M2 legacy retirement status
 
-Classification after M2 scaffolding (credentials not yet applied to remote).
+Classification after **live** Destiny inventory + media cutover (2026-09).
 
 | Dependency | Classification | Notes |
 |------------|----------------|-------|
-| Inventory reads (`get_tours`, `get_accommodations`, `get_vehicles`, `get_awards`) | RETIRED (from live product path) | Flutter chain no longer calls bymapara for inventory. PostgREST → Storage catalog → bundled Destiny asset. `LegacyInventoryRepository` / `CompositeInventoryRepository` retained for tooling/tests only — **not** wired in `lib/main.dart`. |
-| Bundled `assets/data/destiny_inventory_catalog.json` | OWNED PATHS (interim with legacy image fallback) | Synced to `destiny-media/…` refs; missing Storage objects fall back via legacy map |
-| Seed `supabase/seed/destiny_inventory_catalog.json` | READY (owned paths) | 82 `destiny-media/…` + 4 residual `uploads/` (3 missing legacy files + award 2 sharing missing path) |
-| Storage catalog `destiny-media/inventory/catalog.json` | BLOCKED (awaiting upload) | Uploaded by `scripts/upload_staged_media.py` / oneshot apply |
-| Inventory image `uploads/...` paths | TEMPORARILY_RETAINED (fallback only) | Bundled catalog now prefers `destiny-media/…`; [TravelNetworkImage] falls back via `destiny_media_legacy_map.json` until Storage objects exist |
-| Home owned WebP (`destiny-media/home/...`) | RETIRED (from bymapara) | Already Destiny Storage (M0/M1) |
+| Inventory reads (`get_tours`, `get_accommodations`, `get_vehicles`, `get_awards`) | **RETIRED** | `main.dart` wires `SupabaseInventoryRepository` only. No bymapara inventory fallback. |
+| Bundled `assets/data/destiny_inventory_catalog.json` | OFFLINE SNAPSHOT | Not used by production inventory path after cutover; kept for tooling/tests. |
+| Storage `inventory/catalog.json` | **NOT a completion gate** | Optional; M2 complete without requiring this object. |
+| Inventory image `uploads/...` | **RETIRED for live inventory** | Live DB storage_path values are `destiny-media/...`; 0 bymapara inventory media refs verified. Debug-only remap if `DESTINY_INVENTORY_MEDIA_LIVE=false`. |
+| Home owned WebP (`destiny-media/home/...`) | RETIRED (from bymapara) | Destiny Storage (M0/M1), unchanged |
 | Bookings create/list/delete | TEMPORARILY_RETAINED | Sensitive; no secure Firebase→Supabase RLS bridge in M2 |
 | Flight enquiry create/list/delete | TEMPORARILY_RETAINED | Same — deferred to M3 auth/server bridge |
 | User sync / profile / document photo uploads | TEMPORARILY_RETAINED / MOVED_TO_LATER_MILESTONE | Firebase Auth preserved; private docs = M5 |
 | Travel documents list | TEMPORARILY_RETAINED | Customer data |
-| `delete_booking` / `delete_flight_booking` via GET | BLOCKED (security debt) | Do not port this pattern to Supabase; fix in later milestone |
+| `delete_booking` / `delete_flight_booking` via GET | BLOCKED (security debt) | Do not port this pattern to Supabase |
 | Travelport | MOVED_TO_LATER_MILESTONE | M3 |
 | Destina AI | MOVED_TO_LATER_MILESTONE | M4 |
 | Firebase Auth migration | MOVED_TO_LATER_MILESTONE | Explicitly out of M2 |
 
 ## Claim
 
-**bymapara is NOT fully retired.** Public inventory *API* no longer depends on live PHP; image `uploads/` hosts and account/booking/profile flows remain on legacy until media apply + a secure server-side auth bridge.
+**Public inventory + owned media are Destiny-owned.** bymapara is **not** fully
+retired: account/booking/profile/document flows remain on legacy until a secure
+server-side auth bridge (M3+).

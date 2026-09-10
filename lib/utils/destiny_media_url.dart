@@ -118,8 +118,7 @@ class DestinyMediaUrl {
 
     final destinyObject = _extractDestinyObjectPath(raw);
     if (destinyObject != null) {
-      // Until inventory objects are uploaded to Storage, prefer the mapped
-      // bymapara upload so web clients do not stick on Storage 400 bodies.
+      // Optional debug-only legacy upload remap when inventoryMediaLive=false.
       if (DestinyMediaConfig.preferLegacyInventoryMedia &&
           _inventoryPrefix.hasMatch(destinyObject)) {
         final ownedRef = raw.startsWith(destinyMediaPrefix)
@@ -131,6 +130,7 @@ class DestinyMediaUrl {
           return _normalizeAbsolute('$mediaOrigin/$relative');
         }
       }
+      // M2 default: destiny-media/storage_path → public destiny-media URL.
       return _resolveDestinyObject(destinyObject);
     }
 

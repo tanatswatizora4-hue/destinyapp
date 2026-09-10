@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart';
 /// Public Supabase client configuration for Destiny OS (no service_role).
 ///
 /// Uses the **publishable** / anon key only (safe for client apps). Never embed
-/// `service_role`. Prefer:
+/// `service_role`.
+///
+/// Defaults target live destiny-os so a normal `flutter run` uses Supabase
+/// inventory without dart-defines. Overrides remain available:
 ///
 /// ```
 /// flutter run \
@@ -15,6 +18,10 @@ import 'package:flutter/foundation.dart';
 class DestinySupabaseConfig {
   static const String productionUrl =
       'https://xchddfpfzrzhlbbmyhyn.supabase.co';
+
+  /// Public publishable client key for destiny-os (not a secret; not service_role).
+  static const String productionPublishableKey =
+      'sb_publishable_tubJvxHM-KyuRGPKFhXjmw_fd7hGXtG';
 
   static const String _urlFromEnv =
       String.fromEnvironment('DESTINY_SUPABASE_URL');
@@ -61,14 +68,16 @@ class DestinySupabaseConfig {
     if (override != null) return override;
     final primary = _anonFromEnv.trim();
     if (primary.isNotEmpty) return primary;
-    return _anonAliasFromEnv.trim();
+    final alias = _anonAliasFromEnv.trim();
+    if (alias.isNotEmpty) return alias;
+    return productionPublishableKey;
   }
 
   /// True when publishable anon key is present (required for live PostgREST).
   static bool get isConfigured => anonKey.isNotEmpty;
 
   /// Prefer Supabase PostgREST inventory when anon key is configured.
-  /// App inventory chain does not fall back to bymapara API (see `main.dart`).
+  /// App inventory does not fall back to bymapara API (see `main.dart`).
   static bool get preferSupabaseInventory {
     if (_preferSupabaseOverride != null) return _preferSupabaseOverride!;
     return isConfigured;

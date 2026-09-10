@@ -3,27 +3,22 @@
 Branch: `cursor/m2-destiny-backend-migration-194a`  
 Target: Supabase project **`xchddfpfzrzhlbbmyhyn` only** (never Wanzwei).
 
-## Current mode — EXTERNAL_ACTION_REQUIRED
+## Status — M2 COMPLETE
 
-Do **not** run `supabase login`, SSO/OTP, VNC credential polling, or request `service_role`.
+Live inventory + owned-media migration is verified. Flutter cutover uses Destiny
+Supabase as the **only** inventory source:
 
-Schema is applied by the external operator. Agent prepares artifacts only:
+- Default URL: `https://xchddfpfzrzhlbbmyhyn.supabase.co`
+- Default publishable key in `DestinySupabaseConfig` (not `service_role`)
+- `ApiService.inventoryRepository = SupabaseInventoryRepository()` in `main.dart`
+- Failures → loading/error/retry (no silent bymapara inventory fallback)
+- Media: `destiny-media/...` via `DestinyMediaUrl` (inventory live by default)
 
-```bash
-python3 scripts/generate_m2_operator_artifacts.py
-# → scripts/generated/m2_inventory_seed.sql
-# → scripts/generated/m2_media_manifest.json
-```
+Do **not** poll Supabase auth, SSO, credentials, or `catalog.json`.  
+Do **not** reseed DB, upload media, or touch Wanzwei.
 
-External Supabase operator must execute the seed SQL and perform media transfer.
+Legacy bymapara remains **only** for bookings / profile / documents / flight
+enquiry APIs until M3+.
 
-Flutter public reads use publishable/anon via:
-
-```bash
---dart-define=DESTINY_SUPABASE_ANON_KEY=<publishable-or-anon-key>
-```
-
-Inventory chain: Supabase PostgREST → Storage catalog → asset catalog.  
-Legacy image fallback until `DESTINY_INVENTORY_MEDIA_LIVE=true`.
-
-Never paste secrets into chat. Never target Wanzwei. Preserve `devBypassAuth` and Firebase Auth. Do not weaken RLS.
+Never paste `service_role` into the app or chat. Preserve `devBypassAuth` and
+Firebase Auth. Do not weaken RLS. Do not start M3 from this branch checkpoint.

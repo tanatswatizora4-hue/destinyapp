@@ -515,7 +515,7 @@
       "is_featured": true,
       "image_urls": [
         "destiny-media/tours/14/primary.jpg",
-        "destiny-media/tours/14/gallery-01.gif",
+        "destiny-media/tours/14/gallery-01.webp",
         "destiny-media/tours/14/gallery-02.jpg",
         "destiny-media/tours/14/gallery-03.jpg"
       ],
@@ -1445,7 +1445,7 @@
       "country": "Zimbabwe",
       "is_featured": true,
       "image_urls": [
-        "destiny-media/vehicles/2/primary.jpg"
+        "destiny-media/vehicles/2/primary.webp"
       ],
       "amenities": [
         {
@@ -1470,7 +1470,7 @@
       "country": "Zimbabwe",
       "is_featured": true,
       "image_urls": [
-        "destiny-media/vehicles/3/primary.jpg",
+        "destiny-media/vehicles/3/primary.webp",
         "destiny-media/vehicles/3/gallery-01.jpeg"
       ],
       "amenities": [

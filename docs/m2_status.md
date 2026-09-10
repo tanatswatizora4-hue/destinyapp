@@ -1,28 +1,33 @@
-# M2 status — operator handoff (2026-09-09)
+# M2 status — COMPLETE (Flutter cutover checkpoint)
 
-Target: Destiny Supabase `xchddfpfzrzhlbbmyhyn` only.  
-Mode: **EXTERNAL_ACTION_REQUIRED** (no agent auth / SSO / credential polling).
+Target: Destiny Supabase `xchddfpfzrzhlbbmyhyn` (`destiny-os`)  
+Bucket: `destiny-media`  
+Mode: **MILESTONE_COMPLETE** (external DB/media work verified; Flutter cutover done)
 
 | Criterion | Evidence | Status |
 |-----------|----------|--------|
-| Schema on destiny-os | External operator reports applied; PostgREST asks for API key (not missing relation) | **OPERATOR** |
-| Seed SQL for inventory | `scripts/generated/m2_inventory_seed.sql` (idempotent upsert on `legacy_id`) | **READY** |
-| Media transfer map | `scripts/generated/m2_media_manifest.json` | **READY** |
-| Source audit | Live bymapara == 25/36/3/6; `scripts/generated/m2_source_audit.json` | **DONE** |
-| Flutter public client | `DestinySupabaseConfig` + PostgREST repo; dart-define publishable/anon key | **WIRED** |
-| Supabase primary read | Chain: PostgREST → Storage catalog → asset catalog | **DONE** |
-| Legacy fallback | Inventory images via legacy map until `DESTINY_INVENTORY_MEDIA_LIVE=true`; no bymapara inventory API | **DONE** |
+| Live inventory migration | tours 25 / stays 36 / vehicles 3 / awards 6 | **DONE** |
+| Live image rows | tour_images 34 / stay_images 41 / vehicle_images 5 / award_images 6 | **DONE** |
+| Owned media in `destiny-media` | 81 canonical inventory files; 0 bymapara parent/child inventory media refs | **DONE** |
+| Converted WebP corrections | `tours/14/gallery-01.webp`, `vehicles/2/primary.webp`, `vehicles/3/primary.webp` | **DONE** |
+| RLS | Public inventory SELECT-only; profiles/enquiries/bookings not public | **DONE** |
+| `updated_at` triggers | `set_{tours,stays,vehicles,awards}_updated_at` → `set_updated_at` (repo + live) | **DONE** |
+| Flutter default client | Production URL + publishable key baked in; dart-define overrides kept | **DONE** |
+| Inventory reads | `SupabaseInventoryRepository` only — **no** bymapara / catalog silent fallback | **DONE** |
+| Media resolution | `DestinyMediaUrl` → public `destiny-media` Storage | **DONE** |
+
+## Explicit non-goals / not falsely claimed
+
+- **Bookings / profile / travel documents / flight enquiry persistence** still use bymapara PHP via `ApiService` (intentional until M3+ auth bridge).
+- **`inventory/catalog.json` is NOT a completion requirement** (optional Storage snapshot only).
+- **No credential / SSO / auth polling** required for M2.
+- Firebase Auth unchanged; `devBypassAuth` preserved for UI preview.
+- Destina remains preview-only (M4). Travelport/flights commerce (M3).
 
 ## Stop
 
 ```
-STOP_REASON=EXTERNAL_ACTION_REQUIRED
+STOP_REASON=MILESTONE_COMPLETE
 ```
 
-External Supabase operator must execute `scripts/generated/m2_inventory_seed.sql` and upload media per `scripts/generated/m2_media_manifest.json`.
-
-Regenerate artifacts:
-
-```bash
-python3 scripts/generate_m2_operator_artifacts.py
-```
+Do not start M3 from this checkpoint.

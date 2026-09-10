@@ -28,8 +28,8 @@ class SupabaseInventoryRepository implements InventoryRepository {
       };
 
   Future<List<dynamic>> _get(String path, String query) async {
-    // Not configured → throw so ChainedInventoryRepository advances to
-    // Storage/asset Destiny catalogs (not silent empty success).
+    // Not configured → throw so inventory screens show error/retry
+    // (no silent bymapara / catalog fallback after M2 cutover).
     if (!DestinySupabaseConfig.isConfigured) {
       throw StateError('DESTINY_SUPABASE_ANON_KEY is not configured');
     }

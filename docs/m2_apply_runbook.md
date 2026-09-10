@@ -1,9 +1,13 @@
-# M2 apply runbook (destiny-os only)
+# M2 apply runbook (destiny-os only) — HISTORICAL
 
 Target: **xchddfpfzrzhlbbmyhyn** — never Wanzwei.
 
-**Flutter inventory API** already avoids live bymapara (PostgREST → Storage catalog → bundled asset).  
-**Remaining M2 work** is remote schema/rows/media on destiny-os.
+**Status:** Live inventory + media migration is **complete**. This runbook is retained
+for disaster recovery / fresh environments only. Do **not** treat
+`inventory/catalog.json` as a completion gate. Do **not** poll credentials.
+
+**Flutter inventory** reads Supabase PostgREST only (`SupabaseInventoryRepository`).
+Bookings/profile/docs remain on bymapara until M3+.
 
 ## Option A — New Cloud Agent run with secrets (preferred)
 

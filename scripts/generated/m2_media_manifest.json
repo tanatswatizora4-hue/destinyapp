@@ -456,7 +456,7 @@
       "role": "gallery-01",
       "source_legacy_path": "uploads/68e49c71927a8-kadoma2.gif",
       "source_legacy_url": "https://bymapara.com/uploads/68e49c71927a8-kadoma2.gif",
-      "target_storage_path": "destiny-media/tours/14/gallery-01.gif",
+      "target_storage_path": "destiny-media/tours/14/gallery-01.webp",
       "db_destination": {
         "parent_table": "tours",
         "parent_legacy_id": 14,
@@ -1556,7 +1556,7 @@
       "role": "primary",
       "source_legacy_path": "uploads/68c2237c7a4da-co1.avif",
       "source_legacy_url": "https://bymapara.com/uploads/68c2237c7a4da-co1.avif",
-      "target_storage_path": "destiny-media/vehicles/2/primary.jpg",
+      "target_storage_path": "destiny-media/vehicles/2/primary.webp",
       "db_destination": {
         "parent_table": "vehicles",
         "parent_legacy_id": 2,
@@ -1576,7 +1576,7 @@
       "role": "primary",
       "source_legacy_path": "uploads/68c223a6319a8-sprint1.avif",
       "source_legacy_url": "https://bymapara.com/uploads/68c223a6319a8-sprint1.avif",
-      "target_storage_path": "destiny-media/vehicles/3/primary.jpg",
+      "target_storage_path": "destiny-media/vehicles/3/primary.webp",
       "db_destination": {
         "parent_table": "vehicles",
         "parent_legacy_id": 3,

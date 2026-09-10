@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 /// flutter run \
 ///   --dart-define=DESTINY_SUPABASE_URL=https://xchddfpfzrzhlbbmyhyn.supabase.co \
 ///   --dart-define=DESTINY_MEDIA_BUCKET=destiny-media \
-///   --dart-define=DESTINY_INVENTORY_MEDIA_LIVE=true
+///   --dart-define=DESTINY_INVENTORY_MEDIA_LIVE=false
 /// ```
 ///
 /// Empty dart-defines fall back to production defaults (an explicit empty
@@ -33,12 +33,11 @@ class DestinyMediaConfig {
     'DESTINY_MEDIA_BUCKET',
   );
 
-  /// When false (default), inventory `destiny-media/tours|stays|vehicles|awards`
-  /// refs resolve via the legacy upload map until Storage objects are uploaded.
-  /// Home owned media always uses Supabase. Set true after M2 media apply.
+  /// When true (M2 default), inventory `destiny-media/...` refs resolve to
+  /// public Storage. Set false only for local debugging against legacy uploads.
   static const bool inventoryMediaLive = bool.fromEnvironment(
     'DESTINY_INVENTORY_MEDIA_LIVE',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   static String? _supabaseUrlOverride;

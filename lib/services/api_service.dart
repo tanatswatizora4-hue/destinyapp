@@ -263,11 +263,14 @@ class ApiService {
     return Exception('An unknown error occurred.');
   }
 
-  /// Fetches tours (Supabase inventory when wired; else legacy PHP).
+  /// Fetches tours from the wired inventory repository (Supabase after M2).
+  /// Does not silently fall back to bymapara inventory.
   Future<List<Tour>> getTours() async {
     final repo = inventoryRepository;
-    if (repo != null) return repo.getTours();
-    return fetchToursLegacy();
+    if (repo == null) {
+      throw StateError('Inventory repository is not configured');
+    }
+    return repo.getTours();
   }
 
   /// Legacy bymapara tours endpoint.
@@ -283,11 +286,13 @@ class ApiService {
     throw _handleError(response);
   }
 
-  /// Fetches accommodations (Supabase inventory when wired; else legacy PHP).
+  /// Fetches accommodations from the wired inventory repository (Supabase after M2).
   Future<List<Accommodation>> getAccommodations() async {
     final repo = inventoryRepository;
-    if (repo != null) return repo.getAccommodations();
-    return fetchAccommodationsLegacy();
+    if (repo == null) {
+      throw StateError('Inventory repository is not configured');
+    }
+    return repo.getAccommodations();
   }
 
   Future<List<Accommodation>> fetchAccommodationsLegacy() async {
@@ -302,11 +307,13 @@ class ApiService {
     throw _handleError(response);
   }
 
-  /// Fetches vehicles (Supabase inventory when wired; else legacy PHP).
+  /// Fetches vehicles from the wired inventory repository (Supabase after M2).
   Future<List<Vehicle>> getVehicles() async {
     final repo = inventoryRepository;
-    if (repo != null) return repo.getVehicles();
-    return fetchVehiclesLegacy();
+    if (repo == null) {
+      throw StateError('Inventory repository is not configured');
+    }
+    return repo.getVehicles();
   }
 
   Future<List<Vehicle>> fetchVehiclesLegacy() async {
@@ -321,11 +328,13 @@ class ApiService {
     throw _handleError(response);
   }
 
-  /// Fetches awards (Supabase inventory when wired; else legacy PHP).
+  /// Fetches awards from the wired inventory repository (Supabase after M2).
   Future<List<Award>> getAwards() async {
     final repo = inventoryRepository;
-    if (repo != null) return repo.getAwards();
-    return fetchAwardsLegacy();
+    if (repo == null) {
+      throw StateError('Inventory repository is not configured');
+    }
+    return repo.getAwards();
   }
 
   Future<List<Award>> fetchAwardsLegacy() async {

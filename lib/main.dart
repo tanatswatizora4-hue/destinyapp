@@ -1,12 +1,9 @@
 import 'package:destiny/config/theme/app_theme.dart';
-import 'package:destiny/repositories/catalog_inventory_repository.dart';
-import 'package:destiny/repositories/chained_inventory_repository.dart';
 import 'package:destiny/repositories/supabase_inventory_repository.dart';
 import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/navigation_screen.dart';
 import 'package:destiny/screens/splash_screen.dart';
 import 'package:destiny/services/api_service.dart';
-import 'package:destiny/utils/destiny_media_legacy_map.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,22 +31,11 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Owned-media → bymapara uploads fallback while Storage objects catch up.
-  await DestinyMediaLegacyMap.load();
-
-  // Inventory precedence (first non-empty wins; never merges sources):
-  // 1) Supabase PostgREST when publishable/anon key is configured (primary)
-  // 2) Public destiny-media catalog.json when uploaded
-  // 3) Bundled Destiny catalog asset (controlled fallback until live rows exist)
-  // Image URLs: inventory destiny-media refs use legacy upload map until
-  // DESTINY_INVENTORY_MEDIA_LIVE=true (see DestinyMediaConfig).
-  // Legacy bymapara PHP inventory reads are retired from this chain.
-  // Bookings/profile/docs still use ApiService → bymapara intentionally.
-  ApiService.inventoryRepository = ChainedInventoryRepository([
-    SupabaseInventoryRepository(),
-    StorageCatalogInventoryRepository(),
-    AssetCatalogInventoryRepository(),
-  ]);
+  // M2 cutover: tours/stays/vehicles/awards read Destiny Supabase PostgREST only.
+  // Failures surface as loading/error/retry in inventory screens — no silent
+  // bymapara inventory fallback. Bookings/profile/docs still use ApiService →
+  // bymapara until those authenticated flows are migrated (M3+).
+  ApiService.inventoryRepository = SupabaseInventoryRepository();
 
   runApp(const MyApp());
 }

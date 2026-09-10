@@ -14,9 +14,9 @@ Public URL form:
 https://xchddfpfzrzhlbbmyhyn.supabase.co/storage/v1/object/public/destiny-media/<object-path>
 ```
 
-Status legend: `planned` = slot reserved, file not uploaded yet; `migrated` = Destiny object live and wired in app; `legacy` = still using bymapara `uploads/`.
+Status legend: `planned` = slot reserved; `migrated` = Destiny object live; `legacy` = bymapara `uploads/` (debug only).
 
-**M2 note (2026-09-08):** Home objects remain `migrated`. Inventory media is **staged locally** (81/84; mostly JPEG/PNG under staged filenames) awaiting `SUPABASE_SERVICE_ROLE_KEY` upload to `destiny-media`. Three legacy sources 404. Status: `staged (awaiting Storage upload)` vs `missing_legacy`. Paths below come from `supabase/seed/media_manifest.json`.
+**M2 complete:** Live owned-media migration verified (81 inventory files in `destiny-media`; 0 bymapara inventory media refs). Converted corrections: `tours/14/gallery-01.webp`, `vehicles/2/primary.webp`, `vehicles/3/primary.webp`. App resolves inventory via `DestinyMediaUrl` with `DESTINY_INVENTORY_MEDIA_LIVE` default **true**. Rows below remain as migration audit history; prefer live Storage + DB as source of truth.
 
 Do not invent inventory. Rows below were pulled from the live PHP API (`get_tours` / `get_accommodations` / `get_vehicles`) for migration tracking only.
 
@@ -57,7 +57,7 @@ Home refs are Destiny storage references only (`destiny-media/...`), resolved vi
 | `tours/17/primary.jpg` | `uploads/IMG-20251016-WA0000.jpg` | staged (awaiting Storage upload) |
 | `tours/16/primary.jpg` | `uploads/IMG-20250902-WA0003.jpg` | staged (awaiting Storage upload) |
 | `tours/15/primary.jpg` | `uploads/IMG-20250908-WA0000.jpg` | staged (awaiting Storage upload) |
-| `tours/14/gallery-01.gif` | `uploads/68e49c71927a8-kadoma2.gif` | staged (awaiting Storage upload) |
+| `tours/14/gallery-01.webp` | `uploads/68e49c71927a8-kadoma2.gif` | staged (awaiting Storage upload) |
 | `tours/14/gallery-02.jpg` | `uploads/68e49c7192afd-freekadoma.jpg` | staged (awaiting Storage upload) |
 | `tours/14/gallery-03.jpg` | `uploads/68e49c7192bc2-busykadom.jpg` | staged (awaiting Storage upload) |
 | `tours/14/primary.jpg` | `uploads/68e49bd28aec3-kadomamusicfestival.jpg` | staged (awaiting Storage upload) |
@@ -122,8 +122,8 @@ Home refs are Destiny storage references only (`destiny-media/...`), resolved vi
 | Object path | Legacy source | Status |
 |---|---|---|
 | `vehicles/3/gallery-01.jpeg` | `uploads/68c223a631ac7-sprint2.jpeg` | staged (awaiting Storage upload) |
-| `vehicles/3/primary.jpg` | `uploads/68c223a6319a8-sprint1.avif` | staged (awaiting Storage upload) |
-| `vehicles/2/primary.jpg` | `uploads/68c2237c7a4da-co1.avif` | staged (awaiting Storage upload) |
+| `vehicles/3/primary.webp` | `uploads/68c223a6319a8-sprint1.avif` | staged (awaiting Storage upload) |
+| `vehicles/2/primary.webp` | `uploads/68c2237c7a4da-co1.avif` | staged (awaiting Storage upload) |
 | `vehicles/1/gallery-01.webp` | `uploads/68c222df5c3ab-d42.webp` | staged (awaiting Storage upload) |
 | `vehicles/1/primary.webp` | `uploads/68c222df5c074-d41.webp` | staged (awaiting Storage upload) |
 
