@@ -3,6 +3,7 @@ import 'package:destiny/repositories/supabase_inventory_repository.dart';
 import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/navigation_screen.dart';
 import 'package:destiny/screens/splash_screen.dart';
+import 'package:destiny/screens/staff/staff_ops_screen.dart';
 import 'package:destiny/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -49,6 +50,9 @@ class MyApp extends StatelessWidget {
       title: 'Destiny Travel & Tours',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeData,
+      routes: {
+        StaffOpsScreen.routeName: (_) => const StaffOpsScreen(),
+      },
       // Easy to remove: delete the `devBypassAuth` ternary and keep only
       // the StreamBuilder below when restoring production auth gating.
       home: devBypassAuth

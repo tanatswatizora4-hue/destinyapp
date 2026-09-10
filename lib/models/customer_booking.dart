@@ -1,6 +1,6 @@
 import 'package:destiny/utils/destiny_media_url.dart';
 
-/// Destiny-owned booking request (M3A). Distinct from legacy bymapara [Booking].
+/// Destiny-owned booking request (M3A/M3B). Distinct from legacy bymapara [Booking].
 class CustomerBooking {
   final String id;
   final String firebaseUid;
@@ -16,9 +16,13 @@ class CustomerBooking {
   /// Customer-facing estimate only (never payment authority).
   final double? requestedTotal;
 
-  /// Authoritative quote when set by Destiny (M3B+).
+  /// Authoritative quote when set by Destiny staff (M3B).
   final double? quotedTotal;
   final String currency;
+  final DateTime? quoteExpiresAt;
+  final String customerQuoteNote;
+  final String internalNotes;
+  final String? enquiryId;
 
   /// Lifecycle: draft|submitted|quoted|awaiting_payment|confirmed|cancelled|completed
   final String status;
@@ -40,6 +44,10 @@ class CustomerBooking {
     this.requestedTotal,
     this.quotedTotal,
     required this.currency,
+    this.quoteExpiresAt,
+    this.customerQuoteNote = '',
+    this.internalNotes = '',
+    this.enquiryId,
     required this.status,
     required this.paymentStatus,
     required this.customerNotes,
@@ -66,7 +74,7 @@ class CustomerBooking {
       case 'submitted':
         return 'Request submitted';
       case 'quoted':
-        return 'Quoted';
+        return 'Destiny quote';
       case 'awaiting_payment':
         return 'Awaiting payment';
       case 'confirmed':
@@ -80,16 +88,30 @@ class CustomerBooking {
     }
   }
 
+  /// Next staff transitions (UI helper; server enforces).
+  /// Quoting from submitted is done via quote_booking, not a bare transition.
+  List<String> get staffNextStatuses {
+    switch (status) {
+      case 'draft':
+        return const ['submitted', 'cancelled'];
+      case 'submitted':
+        return const ['cancelled'];
+      case 'quoted':
+        return const ['awaiting_payment', 'cancelled'];
+      case 'awaiting_payment':
+        return const ['confirmed', 'cancelled'];
+      case 'confirmed':
+        return const ['completed', 'cancelled'];
+      default:
+        return const [];
+    }
+  }
+
   factory CustomerBooking.fromJson(Map<String, dynamic> json) {
     List<String> images = const [];
     final rawImages = json['item_image_json'];
     if (rawImages is List) {
       images = rawImages.map((e) => e.toString()).toList(growable: false);
-    } else if (rawImages is String && rawImages.isNotEmpty) {
-      try {
-        final decoded = rawImages; // already string path list unlikely
-        images = [decoded];
-      } catch (_) {}
     }
 
     double? asDouble(dynamic v) {
@@ -119,6 +141,10 @@ class CustomerBooking {
       requestedTotal: asDouble(json['requested_total']),
       quotedTotal: asDouble(json['quoted_total']),
       currency: json['currency']?.toString() ?? 'USD',
+      quoteExpiresAt: asDate(json['quote_expires_at']),
+      customerQuoteNote: json['customer_quote_note']?.toString() ?? '',
+      internalNotes: json['internal_notes']?.toString() ?? '',
+      enquiryId: json['enquiry_id']?.toString(),
       status: json['status']?.toString() ?? 'submitted',
       paymentStatus: json['payment_status']?.toString() ?? 'none',
       customerNotes: json['customer_notes']?.toString() ?? '',

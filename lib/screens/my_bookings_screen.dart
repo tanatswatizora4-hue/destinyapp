@@ -217,19 +217,12 @@ class _CustomerBookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currency = NumberFormat.currency(locale: 'en_US', symbol: '\$');
-    final amount = booking.displayAmount;
-    final amountLabel = amount == null
-        ? 'Estimate pending'
-        : booking.hasAuthoritativeQuote
-            ? 'Quoted ${currency.format(amount)}'
-            : 'Estimated ${currency.format(amount)}';
 
     String dates = '';
     if (booking.startDate != null) {
       dates = DateFormat.yMMMd().format(booking.startDate!);
       if (booking.endDate != null) {
-        dates =
-            '$dates – ${DateFormat.yMMMd().format(booking.endDate!)}';
+        dates = '$dates – ${DateFormat.yMMMd().format(booking.endDate!)}';
       }
     }
 
@@ -290,26 +283,79 @@ class _CustomerBookingCard extends StatelessWidget {
               ],
             ),
             const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Chip(
-                  label: Text(booking.statusLabel),
-                  backgroundColor: booking.status == 'confirmed'
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.orange.withValues(alpha: 0.1),
-                  labelStyle: TextStyle(
-                    color: booking.status == 'confirmed'
-                        ? Colors.green[800]
-                        : Colors.orange[800],
+            Chip(
+              label: Text(booking.statusLabel),
+              backgroundColor: booking.status == 'confirmed'
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : Colors.orange.withValues(alpha: 0.1),
+              labelStyle: TextStyle(
+                color: booking.status == 'confirmed'
+                    ? Colors.green[800]
+                    : Colors.orange[800],
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (booking.requestedTotal != null)
+              Text(
+                'Requested estimate: ${currency.format(booking.requestedTotal)}',
+                style: const TextStyle(color: AppTheme.textSecondary),
+              ),
+            if (!booking.hasAuthoritativeQuote &&
+                (booking.status == 'submitted' || booking.status == 'draft'))
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  'Destiny is reviewing your request.',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            if (booking.hasAuthoritativeQuote) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppTheme.primary.withValues(alpha: 0.2),
                   ),
                 ),
-                Text(
-                  amountLabel,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Destiny quote: ${currency.format(booking.quotedTotal)} ${booking.currency}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.navy,
+                      ),
+                    ),
+                    if (booking.quoteExpiresAt != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Quote expires: ${DateFormat.yMMMd().format(booking.quoteExpiresAt!)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                    if (booking.customerQuoteNote.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(booking.customerQuoteNote),
+                    ],
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+            if (booking.status == 'awaiting_payment') ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Payment instructions will be provided by Destiny.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
             if (booking.isCancelableByCustomer) ...[
               const SizedBox(height: 8),
               Align(
