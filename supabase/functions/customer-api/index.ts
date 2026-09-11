@@ -1,15 +1,16 @@
 /**
- * M3A customer-api Edge Function
+ * M3B.5 customer-api Edge Function
  *
- * Flutter → Firebase ID token (Authorization: Bearer) → verify → service_role DB ops.
- * Never trusts client firebase_uid / quoted price / status / payment_status.
+ * Flutter → Supabase Auth access token (Authorization: Bearer)
+ *   → auth.getUser(token) → user_id
+ *   → service_role DB ops scoped by user_id
+ *
+ * Never trusts client user_id / firebase_uid / quoted price / status / role.
  *
  * Deploy:
  *   supabase functions deploy customer-api --project-ref xchddfpfzrzhlbbmyhyn
- * Optional secret:
- *   supabase secrets set FIREBASE_PROJECT_ID=destinytravel-1a16e
  *
- * verify_jwt=false (config.toml) — gateway must not expect a Supabase user JWT.
+ * Gateway: verify_jwt=true (config.toml). Function still verifies via getUser.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -21,8 +22,8 @@ import {
 } from "./commerce_rules.ts";
 import {
   extractBearerToken,
-  verifyFirebaseIdToken,
-} from "./firebase_verify.ts";
+  verifySupabaseAccessToken,
+} from "./supabase_auth.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -73,17 +74,17 @@ Deno.serve(async (req) => {
     if (!token) {
       return json(401, {
         status: "error",
-        message: "Missing Firebase ID token (Authorization: Bearer)",
+        message: "Missing Supabase access token (Authorization: Bearer)",
       });
     }
 
     let user;
     try {
-      user = await verifyFirebaseIdToken(token);
+      user = await verifySupabaseAccessToken(token);
     } catch (e) {
       return json(401, {
         status: "error",
-        message: `Invalid Firebase token: ${(e as Error).message}`,
+        message: `Invalid Supabase token: ${(e as Error).message}`,
       });
     }
 
@@ -96,7 +97,6 @@ Deno.serve(async (req) => {
       return json(400, { status: "error", message: "action is required" });
     }
 
-    // Reject identity / authority spoofing on every action.
     try {
       assertNoAuthoritativeClientFields(body);
     } catch (e) {
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     }
 
     const db = adminClient();
-    const uid = user.uid;
+    const uid = user.id;
 
     switch (action) {
       case "upsert_profile": {
@@ -120,13 +120,13 @@ Deno.serve(async (req) => {
           .from("customer_profiles")
           .upsert(
             {
-              firebase_uid: uid,
+              user_id: uid,
               full_name: fullName,
               email,
               phone,
               updated_at: new Date().toISOString(),
             },
-            { onConflict: "firebase_uid" },
+            { onConflict: "user_id" },
           )
           .select("*")
           .single();
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         const { data, error } = await db
           .from("customer_profiles")
           .select("*")
-          .eq("firebase_uid", uid)
+          .eq("user_id", uid)
           .maybeSingle();
         if (error) throw error;
         return json(200, { status: "success", data });
@@ -152,22 +152,22 @@ Deno.serve(async (req) => {
         const payload = (body.payload && typeof body.payload === "object")
           ? body.payload as Record<string, unknown>
           : {};
-        // Strip spoof fields from nested payload too.
         delete payload.firebase_uid;
+        delete payload.user_id;
         delete payload.quoted_total;
         delete payload.payment_status;
 
         const { data: profile } = await db
           .from("customer_profiles")
           .select("id")
-          .eq("firebase_uid", uid)
+          .eq("user_id", uid)
           .maybeSingle();
 
         const { data, error } = await db
           .from("enquiries")
           .insert({
             kind,
-            firebase_uid: uid,
+            user_id: uid,
             customer_profile_id: profile?.id ?? null,
             payload,
             status: "received",
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
             previous_status: null,
             new_status: "received",
             actor_type: "customer",
-            actor_firebase_uid: uid,
+            actor_user_id: uid,
             metadata: { kind },
           });
           if (evErr) console.warn("enquiry_events insert", evErr.message);
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
         const { data, error } = await db
           .from("enquiries")
           .select("*")
-          .eq("firebase_uid", uid)
+          .eq("user_id", uid)
           .order("created_at", { ascending: false });
         if (error) throw error;
         return json(200, { status: "success", data: data ?? [] });
@@ -203,7 +203,6 @@ Deno.serve(async (req) => {
       case "create_booking_request": {
         const input = sanitizeBookingCreateInput(body);
 
-        // Resolve inventory UUID from published tables when possible.
         let itemId = input.item_id;
         let itemName = input.item_name;
         if (!itemId && input.item_legacy_id != null) {
@@ -246,14 +245,13 @@ Deno.serve(async (req) => {
         }
 
         const row = {
-          firebase_uid: uid,
+          user_id: uid,
           item_type: input.item_type,
           item_legacy_id: input.item_legacy_id,
           item_id: itemId,
           item_name: itemName || "Booking request",
           num_travelers: input.num_travelers,
           requested_total: input.requested_total,
-          // Mirror estimate into legacy column for older readers; NOT a quote.
           total_price: input.requested_total ?? 0,
           quoted_total: null,
           currency: input.currency,
@@ -272,7 +270,6 @@ Deno.serve(async (req) => {
           .select("*")
           .single();
         if (error) throw error;
-        // Best-effort audit (M3B table); ignore if migration not yet applied.
         {
           const { error: evErr } = await db.from("booking_events").insert({
             booking_id: data.id,
@@ -280,7 +277,7 @@ Deno.serve(async (req) => {
             previous_status: null,
             new_status: "submitted",
             actor_type: "customer",
-            actor_firebase_uid: uid,
+            actor_user_id: uid,
             metadata: {},
           });
           if (evErr) console.warn("booking_events insert", evErr.message);
@@ -297,7 +294,7 @@ Deno.serve(async (req) => {
         const { data, error } = await db
           .from("bookings")
           .select("*")
-          .eq("firebase_uid", uid)
+          .eq("user_id", uid)
           .order("created_at", { ascending: false });
         if (error) throw error;
         return json(200, { status: "success", data: data ?? [] });
@@ -312,11 +309,11 @@ Deno.serve(async (req) => {
 
         const { data: existing, error: findErr } = await db
           .from("bookings")
-          .select("id, firebase_uid, status")
+          .select("id, user_id, status")
           .eq("id", bookingId)
           .maybeSingle();
         if (findErr) throw findErr;
-        if (!existing || existing.firebase_uid !== uid) {
+        if (!existing || existing.user_id !== uid) {
           return json(404, {
             status: "error",
             message: "Booking not found",
@@ -338,7 +335,7 @@ Deno.serve(async (req) => {
             cancelled_at: new Date().toISOString(),
           })
           .eq("id", bookingId)
-          .eq("firebase_uid", uid)
+          .eq("user_id", uid)
           .select("*")
           .single();
         if (error) throw error;
@@ -349,7 +346,7 @@ Deno.serve(async (req) => {
             previous_status: String(existing.status),
             new_status: "cancelled",
             actor_type: "customer",
-            actor_firebase_uid: uid,
+            actor_user_id: uid,
             metadata: reason ? { reason } : {},
           });
           if (evErr) console.warn("booking_events insert", evErr.message);
@@ -369,14 +366,14 @@ Deno.serve(async (req) => {
         const { data: profile } = await db
           .from("customer_profiles")
           .select("id")
-          .eq("firebase_uid", uid)
+          .eq("user_id", uid)
           .maybeSingle();
 
         const { data, error } = await db
           .from("enquiries")
           .insert({
             kind: "flight",
-            firebase_uid: uid,
+            user_id: uid,
             customer_profile_id: profile?.id ?? null,
             payload,
             status: "received",
@@ -391,7 +388,7 @@ Deno.serve(async (req) => {
             previous_status: null,
             new_status: "received",
             actor_type: "customer",
-            actor_firebase_uid: uid,
+            actor_user_id: uid,
             metadata: { kind: "flight" },
           });
           if (evErr) console.warn("enquiry_events insert", evErr.message);
@@ -411,11 +408,11 @@ Deno.serve(async (req) => {
         }
         const { data: existing, error: findErr } = await db
           .from("enquiries")
-          .select("id, firebase_uid, status")
+          .select("id, user_id, status")
           .eq("id", enquiryId)
           .maybeSingle();
         if (findErr) throw findErr;
-        if (!existing || existing.firebase_uid !== uid) {
+        if (!existing || existing.user_id !== uid) {
           return json(404, { status: "error", message: "Enquiry not found" });
         }
         if (!["received", "in_review"].includes(String(existing.status))) {
@@ -428,7 +425,7 @@ Deno.serve(async (req) => {
           .from("enquiries")
           .update({ status: "closed" })
           .eq("id", enquiryId)
-          .eq("firebase_uid", uid)
+          .eq("user_id", uid)
           .select("*")
           .single();
         if (error) throw error;

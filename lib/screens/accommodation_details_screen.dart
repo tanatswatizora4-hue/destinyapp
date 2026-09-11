@@ -2,7 +2,7 @@ import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/accommodation.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/widgets/destiny_discovery.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -313,7 +313,7 @@ class _StayBookingSheetState extends State<_StayBookingSheet> {
     _selectedRoom = widget.accommodation.roomTypes.isNotEmpty
         ? widget.accommodation.roomTypes.first
         : null;
-    _signedIn = FirebaseAuth.instance.currentUser != null;
+    _signedIn = SupabaseAuthService().currentUser != null;
   }
 
   Future<void> _selectDateRange() async {

@@ -1,8 +1,11 @@
 /**
- * M3B staff-commerce-api
+ * M3B.5 staff-commerce-api
  *
- * Flutter staff → Firebase ID token → verify → staff_users allowlist → service_role.
- * Separate from customer-api. verify_jwt=false at gateway.
+ * Flutter staff → Supabase Auth access token → getUser → staff_users.user_id
+ *   → is_active + role → privileged service_role ops.
+ *
+ * Never authorize by email alone. Never trust body.user_id / role.
+ * Gateway: verify_jwt=true.
  */
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -14,8 +17,8 @@ import {
 } from "./lifecycle_rules.ts";
 import {
   extractBearerToken,
-  verifyFirebaseIdToken,
-} from "./firebase_verify.ts";
+  verifySupabaseAccessToken,
+} from "./supabase_auth.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -26,7 +29,7 @@ const corsHeaders: Record<string, string> = {
 
 type StaffRow = {
   id: string;
-  firebase_uid: string;
+  user_id: string;
   email: string;
   display_name: string;
   role: string;
@@ -51,12 +54,12 @@ function adminClient(): SupabaseClient {
 
 async function requireStaff(
   db: SupabaseClient,
-  uid: string,
+  userId: string,
 ): Promise<{ staff: StaffRow | null; status: number; message?: string }> {
   const { data, error } = await db
     .from("staff_users")
-    .select("id, firebase_uid, email, display_name, role, is_active")
-    .eq("firebase_uid", uid)
+    .select("id, user_id, email, display_name, role, is_active")
+    .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
   if (!data) {
@@ -75,7 +78,7 @@ async function recordBookingEvent(
     event_type: string;
     previous_status?: string | null;
     new_status?: string | null;
-    actor_uid: string;
+    actor_user_id: string;
     metadata?: Record<string, unknown>;
   },
 ) {
@@ -85,7 +88,7 @@ async function recordBookingEvent(
     previous_status: args.previous_status ?? null,
     new_status: args.new_status ?? null,
     actor_type: "staff",
-    actor_firebase_uid: args.actor_uid,
+    actor_user_id: args.actor_user_id,
     metadata: args.metadata ?? {},
   });
   if (error) throw error;
@@ -98,7 +101,7 @@ async function recordEnquiryEvent(
     event_type: string;
     previous_status?: string | null;
     new_status?: string | null;
-    actor_uid: string;
+    actor_user_id: string;
     metadata?: Record<string, unknown>;
   },
 ) {
@@ -108,7 +111,7 @@ async function recordEnquiryEvent(
     previous_status: args.previous_status ?? null,
     new_status: args.new_status ?? null,
     actor_type: "staff",
-    actor_firebase_uid: args.actor_uid,
+    actor_user_id: args.actor_user_id,
     metadata: args.metadata ?? {},
   });
   if (error) throw error;
@@ -139,17 +142,17 @@ Deno.serve(async (req) => {
     if (!token) {
       return json(401, {
         status: "error",
-        message: "Missing Firebase ID token (Authorization: Bearer)",
+        message: "Missing Supabase access token (Authorization: Bearer)",
       });
     }
 
     let user;
     try {
-      user = await verifyFirebaseIdToken(token);
+      user = await verifySupabaseAccessToken(token);
     } catch (e) {
       return json(401, {
         status: "error",
-        message: `Invalid Firebase token: ${(e as Error).message}`,
+        message: `Invalid Supabase token: ${(e as Error).message}`,
       });
     }
 
@@ -169,7 +172,7 @@ Deno.serve(async (req) => {
     }
 
     const db = adminClient();
-    const authz = await requireStaff(db, user.uid);
+    const authz = await requireStaff(db, user.id);
     if (!authz.staff) {
       return json(authz.status, {
         status: "error",
@@ -245,7 +248,6 @@ Deno.serve(async (req) => {
         }
 
         const prev = String(existing.status);
-        // Quote allowed from submitted (→ quoted) or re-quote while quoted.
         let nextStatus = prev;
         if (prev === "submitted") {
           if (!canStaffTransitionBooking(prev, "quoted")) {
@@ -280,9 +282,8 @@ Deno.serve(async (req) => {
             internal_notes: internalNotes,
             status: nextStatus,
             quoted_at: new Date().toISOString(),
-            quoted_by_uid: staff.firebase_uid,
-            assigned_staff_uid: staff.firebase_uid,
-            // Never mark paid on quote.
+            quoted_by_user_id: staff.user_id,
+            assigned_staff_user_id: staff.user_id,
             payment_status: existing.payment_status === "paid"
               ? existing.payment_status
               : "none",
@@ -297,12 +298,11 @@ Deno.serve(async (req) => {
           event_type: prev === nextStatus ? "quote_changed" : "quoted",
           previous_status: prev,
           new_status: nextStatus,
-          actor_uid: staff.firebase_uid,
+          actor_user_id: staff.user_id,
           metadata: {
             quoted_total: quote.quoted_total,
             currency: quote.currency,
             quote_expires_at: quote.quote_expires_at,
-            // Do not echo large internal notes into metadata.
             has_customer_note: Boolean(quote.customer_quote_note),
           },
         });
@@ -356,7 +356,7 @@ Deno.serve(async (req) => {
 
         const patch: Record<string, unknown> = {
           status: toStatus,
-          assigned_staff_uid: staff.firebase_uid,
+          assigned_staff_user_id: staff.user_id,
         };
         if (toStatus === "cancelled") {
           patch.cancellation_reason = String(body.reason ?? "Cancelled by Destiny staff")
@@ -364,7 +364,6 @@ Deno.serve(async (req) => {
           patch.cancelled_at = new Date().toISOString();
         }
         if (toStatus === "awaiting_payment") {
-          // Still not paid — payment provider is M3D.
           patch.payment_status = "awaiting_payment";
         }
 
@@ -381,7 +380,7 @@ Deno.serve(async (req) => {
           event_type: `moved_to_${toStatus}`,
           previous_status: prev,
           new_status: toStatus,
-          actor_uid: staff.firebase_uid,
+          actor_user_id: staff.user_id,
           metadata: body.reason ? { reason: String(body.reason).slice(0, 200) } : {},
         });
 
@@ -438,7 +437,7 @@ Deno.serve(async (req) => {
             : "staff_note_added",
           previous_status: existing.status,
           new_status: existing.status,
-          actor_uid: staff.firebase_uid,
+          actor_user_id: staff.user_id,
           metadata: { customer_facing: customerFacing },
         });
 
@@ -502,7 +501,7 @@ Deno.serve(async (req) => {
 
         const prev = String(existing.status);
         const patch: Record<string, unknown> = {
-          assigned_staff_uid: staff.firebase_uid,
+          assigned_staff_user_id: staff.user_id,
         };
         if (body.customer_response_note != null) {
           patch.customer_response_note = String(body.customer_response_note)
@@ -549,7 +548,7 @@ Deno.serve(async (req) => {
           event_type: toStatus ? `moved_to_${toStatus}` : "enquiry_updated",
           previous_status: prev,
           new_status: next,
-          actor_uid: staff.firebase_uid,
+          actor_user_id: staff.user_id,
         });
 
         return json(200, { status: "success", data });
@@ -576,10 +575,10 @@ Deno.serve(async (req) => {
             message: `Illegal enquiry transition ${prev} → converted`,
           });
         }
-        if (!enquiry.firebase_uid) {
+        if (!enquiry.user_id) {
           return json(409, {
             status: "error",
-            message: "Enquiry missing customer firebase_uid",
+            message: "Enquiry missing customer user_id",
           });
         }
 
@@ -595,9 +594,8 @@ Deno.serve(async (req) => {
             .trim()
           : `Converted ${kind} enquiry`;
 
-        // Creates a booking *request* — not confirmed, not paid.
         const bookingRow = {
-          firebase_uid: enquiry.firebase_uid,
+          user_id: enquiry.user_id,
           item_type: itemType,
           item_name: itemName.slice(0, 200) || "Converted enquiry",
           num_travelers: Number(payload.num_travelers ?? 1) || 1,
@@ -616,7 +614,7 @@ Deno.serve(async (req) => {
           item_image_json: [],
           customer_notes: `Converted from enquiry ${enquiryId}`,
           enquiry_id: enquiryId,
-          assigned_staff_uid: staff.firebase_uid,
+          assigned_staff_user_id: staff.user_id,
         };
 
         const { data: booking, error: bookErr } = await db
@@ -631,7 +629,7 @@ Deno.serve(async (req) => {
           .update({
             status: "converted",
             converted_booking_id: booking.id,
-            assigned_staff_uid: staff.firebase_uid,
+            assigned_staff_user_id: staff.user_id,
           })
           .eq("id", enquiryId)
           .select("*")
@@ -643,7 +641,7 @@ Deno.serve(async (req) => {
           event_type: "converted",
           previous_status: prev,
           new_status: "converted",
-          actor_uid: staff.firebase_uid,
+          actor_user_id: staff.user_id,
           metadata: { booking_id: booking.id },
         });
         await recordBookingEvent(db, {
@@ -651,7 +649,7 @@ Deno.serve(async (req) => {
           event_type: "submitted",
           previous_status: null,
           new_status: "submitted",
-          actor_uid: staff.firebase_uid,
+          actor_user_id: staff.user_id,
           metadata: { source_enquiry_id: enquiryId, via: "convert_enquiry" },
         });
 

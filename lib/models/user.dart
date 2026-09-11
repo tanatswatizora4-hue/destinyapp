@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class AppUser {
   final String uid;
   final String email;
@@ -21,22 +19,24 @@ class AppUser {
     this.passportPhotoUrl,
   });
 
-  factory AppUser.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
+  factory AppUser.fromJson(Map<String, dynamic> data) {
     return AppUser(
-      uid: doc.id,
-      email: data['email'] ?? '',
-      displayName: data['displayName'],
-      phone: data['phone'],
-      isSubscribed: data['isSubscribed'] ?? false,
-      sqlId: data['sqlId'],
-      facePhotoUrl: data['facePhotoUrl'],
-      passportPhotoUrl: data['passportPhotoUrl'],
+      uid: (data['user_id'] ?? data['uid'] ?? '').toString(),
+      email: data['email']?.toString() ?? '',
+      displayName: data['full_name']?.toString() ?? data['displayName']?.toString(),
+      phone: data['phone']?.toString(),
+      isSubscribed: data['isSubscribed'] == true,
+      sqlId: data['legacy_sql_id'] == null && data['sqlId'] == null
+          ? null
+          : int.tryParse((data['legacy_sql_id'] ?? data['sqlId']).toString()),
+      facePhotoUrl: data['facePhotoUrl']?.toString(),
+      passportPhotoUrl: data['passportPhotoUrl']?.toString(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
+      'uid': uid,
       'email': email,
       'displayName': displayName,
       'phone': phone,

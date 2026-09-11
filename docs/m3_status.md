@@ -1,61 +1,37 @@
-# M3 status — Booking + Travel Commerce
+# M3 status
 
-## M3A — Secure customer backend — COMPLETE (live)
+## Complete
 
-Flutter Firebase Auth → `customer-api` → verified UID → protected tables.
+| Milestone | Notes |
+|-----------|-------|
+| M0 | Inventory + media foundation |
+| M1 | Customer travel product composition |
+| M2 | Destiny Supabase inventory cutover |
+| M3A | Secure customer commerce backend (`customer-api`) |
+| M3B | Staff ops + booking lifecycle (`staff-commerce-api`) |
 
-## M3B — Booking lifecycle + staff operations — THIS MILESTONE
+## Current: M3B.5 Auth Ownership Migration
 
-**Code status:** implemented on `cursor/m3b-booking-operations-194a`  
-**Deploy status:** migration + `staff-commerce-api` + first `staff_users` row required
+**Code complete on branch** `cursor/m3b5-supabase-auth-migration-194a`.
 
-### Architecture
-```
-Staff Flutter (Firebase Auth)
-  → Firebase ID token
-  → staff-commerce-api (verify_jwt=false)
-  → verify token + staff_users allowlist (is_active)
-  → service_role ops + booking_events / enquiry_events
-```
+- Firebase Auth removed from Flutter runtime
+- Supabase Auth email/password + session restore + password reset UX
+- DB: `user_id` columns added; `firebase_uid` legacy retained
+- Edge: Supabase `getUser` + `verify_jwt=true`; ownership via `user_id`
+- Staff allowlist: `staff_users.user_id`
+- RLS: MODEL A (no authenticated policies on sensitive tables)
 
-Customers continue through `customer-api` only. Staff privileges are never mixed into customer actions.
+### Live follow-ups (operators)
 
-### Delivered
-- Migration `20260910140000_m3b_staff_ops_and_audit.sql`
-- Edge Function `staff-commerce-api`
-- Lifecycle rules + Deno tests
-- Minimal Staff Ops UI (`/staff-ops`, gated server-side)
-- Customer My Bookings quote/status panels
-- Flutter tests `test/m3b_staff_commerce_test.dart`
-- Docs: `m3b_agent_operations_audit.md`, `m3b_deploy_runbook.md`
+1. Apply `20260911090000_m3b5_supabase_auth_identity.sql`
+2. Deploy `customer-api` + `staff-commerce-api`
+3. Configure Auth redirect URLs / email confirmation
+4. Seed first admin with real `auth.users` UUID
 
-### Booking transition matrix
-| From | To |
-|------|-----|
-| draft | submitted, cancelled |
-| submitted | quoted, cancelled |
-| quoted | awaiting_payment, cancelled |
-| awaiting_payment | confirmed, cancelled |
-| confirmed | completed, cancelled |
-| cancelled / completed | terminal |
+See `docs/m3b5_supabase_auth_migration_runbook.md`.
 
-Quote sets `quoted_total` and moves `submitted → quoted` without marking paid.
+## Not started
 
-### External action required
-1. Apply M3B migration
-2. Deploy `staff-commerce-api` (+ redeploy `customer-api` for audit events)
-3. Insert first `staff_users` row with a real Firebase UID
-
-See `docs/m3b_deploy_runbook.md`.
-
----
-
-## M3C — Travelport — not started
-## M3D — Payments — not started
-## M3E — Legacy retirement — not started
-
-## Stop
-```
-STOP_REASON=EXTERNAL_ACTION_REQUIRED
-```
-Do not start M3C/M3D automatically.
+- M3C Travelport / live fares
+- M3D payments
+- M3E travel docs migration off bymapara

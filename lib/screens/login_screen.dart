@@ -1,6 +1,8 @@
 import 'package:destiny/resources/app_colors.dart';
 import 'package:destiny/services/auth_service.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -13,13 +15,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
 
-  // Text editing controllers
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  bool _isLogin = true; // To toggle between Login and Sign Up
+  bool _isLogin = true;
+  bool _isForgot = false;
   bool _isLoading = false;
+  String? _message;
 
   @override
   void dispose() {
@@ -29,39 +32,76 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      final email = _emailController.text.trim();
-      final password = _passwordController.text.trim();
-      final fullName = _fullNameController.text.trim();
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _isLoading = true;
+      _message = null;
+    });
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final fullName = _fullNameController.text.trim();
 
-      if (_isLogin) {
+    try {
+      if (_isForgot) {
+        await _authService.requestPasswordReset(email);
+        if (mounted) {
+          setState(() {
+            _message =
+                'If an account exists for that email, a reset link is on the way.';
+            _isForgot = false;
+            _isLogin = true;
+          });
+        }
+      } else if (_isLogin) {
         await _authService.signInWithEmailAndPassword(email, password);
       } else {
-        await _authService.createUserWithEmailAndPassword(fullName, email, password);
+        await _authService.createUserWithEmailAndPassword(
+          fullName,
+          email,
+          password,
+        );
+        if (mounted) {
+          setState(() {
+            _message =
+                'Account created. Check your email if confirmation is required, then sign in.';
+          });
+        }
       }
-
+    } on AuthException catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() => _message = destinyAuthErrorMessage(e));
       }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _message = destinyAuthErrorMessage(e));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final title = _isForgot
+        ? 'Reset password'
+        : (_isLogin ? 'Explore Your Destiny' : 'Create your Destiny account');
+    final subtitle = _isForgot
+        ? 'We will email you a reset link'
+        : (_isLogin
+            ? 'Sign in to your Destiny account'
+            : 'Create your Destiny account to continue');
+
     return Scaffold(
-      // Set Scaffold background to transparent so the Container's gradient is visible
       backgroundColor: Colors.transparent,
       body: Container(
-        // Added a LinearGradient to mimic the logo's background gradient
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFE6F5FF), // Lighter blue from the logo gradient
-              Color(0xFF8BC8FE), // Darker blue from the logo gradient
+              Color(0xFFE6F5FF),
+              Color(0xFF8BC8FE),
             ],
           ),
         ),
@@ -73,36 +113,44 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // NOTE: Placeholder for assets/images/logo.png
-                  // You should ensure this image is present in your assets folder
                   Image.asset(
                     'assets/images/logo.png',
                     height: 200,
                   ),
                   Text(
-                    _isLogin ? 'Explore Your Destiny' : 'Create Account',
+                    title,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      // Assuming AppColors.textPrimary is defined
-                      // ignore: invalid_use_of_visible_for_testing_member
                       color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _isLogin
-                        ? 'Sign in to your account'
-                        : 'Sign up to get started',
+                    subtitle,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 16,
-                      // Assuming AppColors.textSecondary is defined
-                      // ignore: invalid_use_of_visible_for_testing_member
                       color: AppColors.textSecondary,
                     ),
                   ),
+                  if (_message != null) ...[
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        _message!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _message!.toLowerCase().contains('created') ||
+                                  _message!.toLowerCase().contains('reset')
+                              ? Colors.green.shade800
+                              : Colors.red.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Card(
                     elevation: 4.0,
@@ -116,59 +164,64 @@ class _LoginScreenState extends State<LoginScreen> {
                         key: _formKey,
                         child: Column(
                           children: [
-                            if (!_isLogin)
+                            if (!_isLogin && !_isForgot)
                               TextFormField(
                                 controller: _fullNameController,
                                 decoration: InputDecoration(
                                   labelText: 'Full Name',
-                                  prefixIcon: const Icon(Icons.person_outline),
+                                  prefixIcon:
+                                      const Icon(Icons.person_outline),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                                 validator: (val) =>
-                                val!.isEmpty ? 'Please enter your name' : null,
+                                    val!.isEmpty ? 'Please enter your name' : null,
                               ),
-                            if (!_isLogin) const SizedBox(height: 16),
+                            if (!_isLogin && !_isForgot)
+                              const SizedBox(height: 16),
                             TextFormField(
                               controller: _emailController,
                               decoration: InputDecoration(
                                 labelText: 'Email Address',
-                                prefixIcon: const Icon(Icons.email_outlined),
+                                prefixIcon:
+                                    const Icon(Icons.email_outlined),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               keyboardType: TextInputType.emailAddress,
                               validator: (val) =>
-                              val!.isEmpty ? 'Please enter an email' : null,
+                                  val!.isEmpty ? 'Please enter an email' : null,
                             ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _passwordController,
-                              decoration: InputDecoration(
-                                labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                            if (!_isForgot) ...[
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _passwordController,
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  prefixIcon:
+                                      const Icon(Icons.lock_outline),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
+                                obscureText: true,
+                                validator: (val) => val!.length < 6
+                                    ? 'Password must be 6+ characters'
+                                    : null,
                               ),
-                              obscureText: true,
-                              validator: (val) => val!.length < 6
-                                  ? 'Password must be 6+ characters'
-                                  : null,
-                            ),
+                            ],
                             const SizedBox(height: 24),
                             if (_isLoading)
                               const CircularProgressIndicator()
                             else
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  // Assuming AppColors.primary is defined
-                                  // ignore: invalid_use_of_visible_for_testing_member
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
-                                  minimumSize: const Size(double.infinity, 50),
+                                  minimumSize:
+                                      const Size(double.infinity, 50),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -176,7 +229,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 onPressed: _submitForm,
                                 child: Text(
-                                  _isLogin ? 'Sign In' : 'Sign Up',
+                                  _isForgot
+                                      ? 'Send reset link'
+                                      : (_isLogin ? 'Sign In' : 'Sign Up'),
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
@@ -189,57 +244,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  if (!_isForgot)
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _isLogin = !_isLogin;
+                          _message = null;
+                        });
+                      },
+                      child: Text(
+                        _isLogin
+                            ? 'Don\'t have an account? Sign Up'
+                            : 'Already have an account? Sign In',
+                      ),
+                    ),
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        _isLogin = !_isLogin;
+                        _isForgot = !_isForgot;
+                        _message = null;
                       });
                     },
                     child: Text(
-                      _isLogin
-                          ? 'Don\'t have an account? Sign Up'
-                          : 'Already have an account? Sign In',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Row(
-                    children: [
-                      Expanded(child: Divider()),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12.0),
-                        child: Text('OR',
-                            // ignore: invalid_use_of_visible_for_testing_member
-                            style: TextStyle(color: AppColors.textSecondary)),
-                      ),
-                      Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      side: BorderSide(color: Colors.grey.shade300),
-                      elevation: 2.0,
-                    ),
-                    onPressed: () async {
-                      await _authService.signInWithGoogle();
-                    },
-                    icon: Image.asset(
-                      'assets/google.png', // Path to your image asset
-                      height: 24.0, // Adjust the height as needed
-                      width: 24.0,  // Adjust the width as needed
-                    ),
-                    label: const Text(
-                      'Continue with Google',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      _isForgot ? 'Back to sign in' : 'Forgot password?',
                     ),
                   ),
                 ],

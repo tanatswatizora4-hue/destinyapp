@@ -4,6 +4,7 @@ import 'package:destiny/services/staff_api_client.dart';
 
 class StaffUser {
   final String id;
+  final String userId;
   final String firebaseUid;
   final String email;
   final String displayName;
@@ -12,7 +13,8 @@ class StaffUser {
 
   StaffUser({
     required this.id,
-    required this.firebaseUid,
+    this.userId = '',
+    this.firebaseUid = '',
     required this.email,
     required this.displayName,
     required this.role,
@@ -22,6 +24,7 @@ class StaffUser {
   factory StaffUser.fromJson(Map<String, dynamic> json) {
     return StaffUser(
       id: json['id'].toString(),
+      userId: json['user_id']?.toString() ?? '',
       firebaseUid: json['firebase_uid']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       displayName: json['display_name']?.toString() ?? '',
