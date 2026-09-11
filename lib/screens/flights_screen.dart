@@ -1,7 +1,7 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/widgets/destiny_discovery.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -32,7 +32,7 @@ class _FlightsScreenState extends State<FlightsScreen> {
 
   final EnquiryRepository _enquiries = EnquiryRepository();
 
-  bool get _signedIn => FirebaseAuth.instance.currentUser != null;
+  bool get _signedIn => SupabaseAuthService().currentUser != null;
 
   @override
   void dispose() {

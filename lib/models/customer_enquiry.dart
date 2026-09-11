@@ -1,6 +1,7 @@
 class CustomerEnquiry {
   final String id;
   final String kind;
+  final String userId;
   final String firebaseUid;
   final Map<String, dynamic> payload;
 
@@ -12,7 +13,8 @@ class CustomerEnquiry {
   CustomerEnquiry({
     required this.id,
     required this.kind,
-    required this.firebaseUid,
+    this.userId = '',
+    this.firebaseUid = '',
     required this.payload,
     required this.status,
     this.customerResponseNote = '',
@@ -28,6 +30,7 @@ class CustomerEnquiry {
     return CustomerEnquiry(
       id: json['id'].toString(),
       kind: json['kind']?.toString() ?? 'general',
+      userId: json['user_id']?.toString() ?? '',
       firebaseUid: json['firebase_uid']?.toString() ?? '',
       payload: payload,
       status: json['status']?.toString() ?? 'received',
@@ -59,6 +62,7 @@ class CustomerEnquiry {
 
 class CustomerProfile {
   final String id;
+  final String userId;
   final String firebaseUid;
   final String fullName;
   final String email;
@@ -67,7 +71,8 @@ class CustomerProfile {
 
   CustomerProfile({
     required this.id,
-    required this.firebaseUid,
+    this.userId = '',
+    this.firebaseUid = '',
     required this.fullName,
     required this.email,
     this.phone,
@@ -77,6 +82,7 @@ class CustomerProfile {
   factory CustomerProfile.fromJson(Map<String, dynamic> json) {
     return CustomerProfile(
       id: json['id'].toString(),
+      userId: json['user_id']?.toString() ?? '',
       firebaseUid: json['firebase_uid']?.toString() ?? '',
       fullName: json['full_name']?.toString() ?? '',
       email: json['email']?.toString() ?? '',

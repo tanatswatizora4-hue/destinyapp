@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/customer_booking.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
@@ -26,7 +26,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 
   Future<void> _loadBookings() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = SupabaseAuthService().currentUser;
     if (user == null) {
       if (mounted) {
         setState(() {

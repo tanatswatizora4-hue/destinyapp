@@ -1,10 +1,10 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/customer_enquiry.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 
-/// Flight / trip enquiries owned by the signed-in Firebase user (M3A).
+/// Flight / trip enquiries owned by the signed-in Destiny user (Supabase Auth).
 class MyTripsScreen extends StatefulWidget {
   const MyTripsScreen({super.key});
 
@@ -23,7 +23,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   }
 
   Future<List<CustomerEnquiry>> _load() async {
-    if (FirebaseAuth.instance.currentUser == null) {
+    if (SupabaseAuthService().currentUser == null) {
       throw StateError('Sign in required');
     }
     final all = await _enquiries.listMine();

@@ -1,3 +1,6 @@
-# Staff commerce API — Firebase ID tokens, not Supabase JWTs.
+# Destiny staff commerce Edge Function (M3B.5).
+# verify_jwt = true: callers must present a Supabase Auth access token.
+# Staff role still resolved only via staff_users.user_id after getUser.
+
 [functions.staff-commerce-api]
-verify_jwt = false
+verify_jwt = true

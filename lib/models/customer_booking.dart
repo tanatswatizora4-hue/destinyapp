@@ -3,6 +3,9 @@ import 'package:destiny/utils/destiny_media_url.dart';
 /// Destiny-owned booking request (M3A/M3B). Distinct from legacy bymapara [Booking].
 class CustomerBooking {
   final String id;
+  /// Canonical Supabase Auth UUID (M3B.5).
+  final String userId;
+  /// Legacy Firebase UID — deprecated, non-authoritative.
   final String firebaseUid;
   final String itemName;
   final String itemType;
@@ -32,7 +35,8 @@ class CustomerBooking {
 
   CustomerBooking({
     required this.id,
-    required this.firebaseUid,
+    this.userId = '',
+    this.firebaseUid = '',
     required this.itemName,
     required this.itemType,
     this.itemId,
@@ -126,6 +130,7 @@ class CustomerBooking {
 
     return CustomerBooking(
       id: json['id'].toString(),
+      userId: (json['user_id'] ?? '').toString(),
       firebaseUid: (json['firebase_uid'] ?? '').toString(),
       itemName: json['item_name']?.toString() ?? 'Booking request',
       itemType: json['item_type']?.toString() ?? 'unknown',

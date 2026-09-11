@@ -1,152 +1,167 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:destiny/models/user.dart';
-import 'package:destiny/services/api_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:io';
 
+import 'package:destiny/models/user.dart';
+import 'package:destiny/repositories/customer_commerce_repository.dart';
+import 'package:destiny/services/api_service.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// App-facing auth facade over [SupabaseAuthService].
+///
+/// Keeps screens off raw Supabase calls. Profile bootstrap goes through
+/// customer-api (server-derived user_id). Google OAuth is not reimplemented
+/// (see docs/m3b5_auth_migration_audit.md).
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final ApiService _apiService = ApiService();
+  AuthService({
+    SupabaseAuthService? auth,
+    CustomerRepository? customerRepository,
+    ApiService? apiService,
+  })  : _auth = auth ?? SupabaseAuthService(),
+        _customers = customerRepository ?? CustomerRepository(),
+        _apiService = apiService ?? ApiService();
+
+  final SupabaseAuthService _auth;
+  final CustomerRepository _customers;
+  final ApiService _apiService;
 
   User? get currentUser => _auth.currentUser;
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  Future<User?> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
-      final User? user = userCredential.user;
+  Stream<User?> get authStateChanges => _auth.userChanges;
 
-      if (user != null) {
-        await _syncAndupdateUser(user);
-      }
-      return user;
-    } catch (e) {
-      print(e);
-      return null;
-    }
-  }
+  bool get isSignedIn => _auth.isSignedIn;
+
+  String? get currentUserId => _auth.currentUserId;
 
   Future<User?> signInWithEmailAndPassword(String email, String password) async {
     try {
-      final UserCredential userCredential =
-      await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      final User? user = userCredential.user;
+      final res = await _auth.signIn(email: email, password: password);
+      final user = res.user;
       if (user != null) {
-        await _syncAndupdateUser(user);
+        await _bootstrapAfterAuth(user);
       }
       return user;
-    } on FirebaseAuthException catch (e) {
-      print('Failed to sign in with Email & Password: ${e.message}');
+    } on AuthException {
       rethrow;
     }
   }
 
   Future<User?> createUserWithEmailAndPassword(
-      String fullName, String email, String password) async {
+    String fullName,
+    String email,
+    String password,
+  ) async {
     try {
-      final UserCredential userCredential =
-      await _auth.createUserWithEmailAndPassword(
+      final res = await _auth.signUp(
         email: email,
         password: password,
+        fullName: fullName,
       );
-      final User? user = userCredential.user;
+      final user = res.user;
       if (user != null) {
-        await user.updateDisplayName(fullName);
-        await user.reload();
-        final refreshedUser = _auth.currentUser;
-        if (refreshedUser != null) {
-          await _syncAndupdateUser(refreshedUser);
-        }
+        await _bootstrapAfterAuth(user, fullName: fullName);
       }
       return user;
-    } on FirebaseAuthException catch (e) {
-      print('Failed to create user with Email & Password: ${e.message}');
+    } on AuthException {
       rethrow;
     }
   }
 
-  Future<void> _syncAndupdateUser(User user) async {
-    int? sqlId;
-    try {
-      final sqlUserData = await _apiService.syncUserWithSql(
-          user.uid, user.displayName ?? user.email!, user.email!);
-      if (sqlUserData.containsKey('id') && sqlUserData['id'] != null) {
-        sqlId = sqlUserData['id'] as int;
-      } else {
-        print("Warning: SQL Sync succeeded but returned no ID.");
-      }
-    } catch (e) {
-      print("SQL Sync failed. Error: $e");
-    }
-    await _updateFirestoreUser(user, sqlId: sqlId);
+  Future<void> requestPasswordReset(String email) =>
+      _auth.requestPasswordReset(email);
+
+  /// Google OAuth deferred — Supabase Google provider not required for M3B.5.
+  @Deprecated('Google OAuth deferred until Supabase provider is configured')
+  Future<User?> signInWithGoogle() async {
+    throw UnsupportedError(
+      'Google sign-in is temporarily unavailable. Use email and password.',
+    );
   }
 
-  Future<void> _updateFirestoreUser(User user, {int? sqlId}) {
-    final DocumentReference userRef = _db.collection('users').doc(user.uid);
-    final appUser = AppUser(
-      uid: user.uid,
-      email: user.email!,
-      displayName: user.displayName,
-      isSubscribed: false,
-      sqlId: sqlId,
-    );
-    return userRef.set(appUser.toFirestore(), SetOptions(merge: true));
+  Future<void> _bootstrapAfterAuth(User user, {String? fullName}) async {
+    final name = fullName ??
+        _auth.displayNameOf(user) ??
+        user.email ??
+        '';
+    final email = user.email ?? '';
+
+    // Destiny customer_profiles via Edge Function (canonical).
+    try {
+      await _customers.upsertProfile(fullName: name, email: email);
+    } catch (e) {
+      // Non-fatal: commerce calls can upsert later.
+      // ignore: avoid_print
+      print('customer profile upsert deferred: $e');
+    }
+
+    // Legacy bymapara SQL bridge for Travel Docs / photos until M3E.
+    // Identity string is now the Supabase Auth UUID (not Firebase).
+    try {
+      await _apiService.syncUserWithSql(user.id, name, email);
+    } catch (e) {
+      // ignore: avoid_print
+      print('legacy SQL sync deferred: $e');
+    }
   }
 
   Future<AppUser?> getAppUser(String uid) async {
     try {
-      final doc = await _db.collection('users').doc(uid).get();
-      if (doc.exists) {
-        return AppUser.fromFirestore(doc);
+      final profile = await _customers.getProfile();
+      if (profile != null) {
+        return AppUser(
+          uid: profile.userId.isNotEmpty ? profile.userId : uid,
+          email: profile.email,
+          displayName: profile.fullName,
+          phone: profile.phone,
+          sqlId: profile.legacySqlId,
+        );
       }
-      return null;
+      final user = _auth.currentUser;
+      if (user == null) return null;
+      return AppUser(
+        uid: user.id,
+        email: user.email ?? '',
+        displayName: _auth.displayNameOf(user),
+      );
     } catch (e) {
-      print('Error fetching user from Firestore: $e');
-      return null;
+      // ignore: avoid_print
+      print('Error fetching Destiny profile: $e');
+      final user = _auth.currentUser;
+      if (user == null) return null;
+      return AppUser(
+        uid: user.id,
+        email: user.email ?? '',
+        displayName: _auth.displayNameOf(user),
+      );
     }
   }
 
   Future<void> updateUserProfile({
-    required int sqlId,
     required String fullName,
     required String email,
     required String phone,
+    int? sqlId,
     File? facePhotoFile,
     File? passportPhotoFile,
   }) async {
-    // Call the API Service to handle the update and photo uploads
-    await _apiService.updateUserInSql(
-      sqlId: sqlId,
+    await _customers.upsertProfile(
       fullName: fullName,
       email: email,
       phone: phone,
-      facePhotoFile: facePhotoFile,
-      passportPhotoFile: passportPhotoFile,
     );
-    // After successful API update, update the local Firestore copy
-    final userRef = _db.collection('users').doc(currentUser!.uid);
-    await userRef.set({
-      'displayName': fullName,
-      'email': email,
-      'phone': phone,
-    }, SetOptions(merge: true));
+
+    // Optional legacy photo upload path (bymapara) when sqlId is known.
+    if (sqlId != null &&
+        (facePhotoFile != null || passportPhotoFile != null)) {
+      await _apiService.updateUserInSql(
+        sqlId: sqlId,
+        fullName: fullName,
+        email: email,
+        phone: phone,
+        facePhotoFile: facePhotoFile,
+        passportPhotoFile: passportPhotoFile,
+      );
+    }
   }
 
-  Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
-  }
+  Future<void> signOut() => _auth.signOut();
 }

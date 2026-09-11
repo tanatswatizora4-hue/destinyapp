@@ -4,7 +4,7 @@ import 'package:destiny/models/tour.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/utils/tour_display.dart';
 import 'package:destiny/widgets/travel_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 
 class TourDetailsScreen extends StatefulWidget {
@@ -814,7 +814,7 @@ class _BookingSheetContentState extends State<_BookingSheetContent> {
   @override
   void initState() {
     super.initState();
-    _signedIn = FirebaseAuth.instance.currentUser != null;
+    _signedIn = SupabaseAuthService().currentUser != null;
   }
 
   void _incrementTravelers() => setState(() => _travelerCount++);

@@ -16,8 +16,9 @@ import 'package:destiny/screens/vehicle_list_screen.dart';
 import 'package:destiny/services/api_service.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/services/auth_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -33,9 +34,10 @@ class NavigationScreen extends StatefulWidget {
 class _NavigationScreenState extends State<NavigationScreen> {
   int _selectedIndex = 0;
   int? _sqlUserId;
-  User? _firebaseUser;
-  late StreamSubscription<User?> _authSubscription;
+  User? _authUser;
+  late StreamSubscription<AuthState> _authSubscription;
   final ApiService _apiService = ApiService();
+  final SupabaseAuthService _supabaseAuth = SupabaseAuthService();
   bool _isLoadingAuth = true;
   /// Home desktop hero overlay becomes solid after the user scrolls.
   bool _homeHeroScrolled = false;
@@ -71,25 +73,35 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   void initState() {
     super.initState();
+    // Seed from restored session; onAuthStateChange also emits thereafter.
+    _authUser = _supabaseAuth.currentUser;
+    if (_authUser == null) {
+      _isLoadingAuth = false;
+    }
     _authSubscription =
-        FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+        _supabaseAuth.authStateChanges.listen((AuthState state) async {
+      final user = state.session?.user;
       setState(() {
-        _firebaseUser = user;
+        _authUser = user;
         _isLoadingAuth = true;
       });
       if (user != null) {
-        // Best-effort legacy SQL sync for Travel Docs / profile until those migrate.
+        final displayName = _supabaseAuth.displayNameOf(user) ?? '';
+        final email = user.email ?? '';
+        // Best-effort legacy SQL sync for Travel Docs until M3E.
         try {
           final userData = await _apiService.syncUserWithSql(
-              user.uid, user.displayName ?? '', user.email ?? '');
-          // Also upsert Destiny customer_profiles via Edge Function (non-blocking).
+            user.id,
+            displayName,
+            email,
+          );
           try {
             await CustomerRepository().upsertProfile(
-              fullName: user.displayName ?? '',
-              email: user.email ?? '',
+              fullName: displayName,
+              email: email,
             );
           } catch (e) {
-            debugPrint('M3A profile upsert deferred: $e');
+            debugPrint('M3B.5 profile upsert deferred: $e');
           }
           if (!mounted) return;
           setState(() {
@@ -100,7 +112,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           debugPrint('Failed to sync user with SQL: $e');
           if (!mounted) return;
           setState(() {
-            // Firebase session still valid for M3A commerce even if legacy sync fails.
+            // Supabase session still valid for commerce even if legacy sync fails.
             _sqlUserId = null;
             _isLoadingAuth = false;
           });
@@ -132,7 +144,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       );
     }
 
-    final signedIn = _firebaseUser != null;
+    final signedIn = _authUser != null;
 
     return <Widget>[
       HomeScreen(
@@ -185,7 +197,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     // Protected account area: 5 My Trips, 6 Bookings, 7 Docs, 8 Profile.
     const protectedIndices = NavigationScreen.protectedNavIndices;
 
-    if (protectedIndices.contains(index) && _firebaseUser == null) {
+    if (protectedIndices.contains(index) && _authUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(

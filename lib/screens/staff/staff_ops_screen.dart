@@ -3,7 +3,7 @@ import 'package:destiny/models/customer_booking.dart';
 import 'package:destiny/models/customer_enquiry.dart';
 import 'package:destiny/repositories/staff_commerce_repository.dart';
 import 'package:destiny/services/staff_api_client.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -52,7 +52,7 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
       _loadingAuth = true;
       _authError = null;
     });
-    if (FirebaseAuth.instance.currentUser == null) {
+    if (SupabaseAuthService().currentUser == null) {
       setState(() {
         _loadingAuth = false;
         _authError = 'Sign in required';
@@ -458,7 +458,7 @@ class _BookingDetailPanelState extends State<_BookingDetailPanel> {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Customer UID: ${b.firebaseUid}',
+          Text('Customer: ${b.userId.isNotEmpty ? b.userId : b.firebaseUid}',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
           if (b.customerNotes.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -615,7 +615,7 @@ class _EnquiryDetailPanelState extends State<_EnquiryDetailPanel> {
                 ),
           ),
           const SizedBox(height: 12),
-          Text('Customer UID: ${e.firebaseUid}',
+          Text('Customer: ${e.userId.isNotEmpty ? e.userId : e.firebaseUid}',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
           const SizedBox(height: 12),
           Text(e.payload.toString(),

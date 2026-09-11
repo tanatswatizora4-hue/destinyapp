@@ -1,6 +1,6 @@
-# Destiny customer commerce Edge Function.
-# verify_jwt = false because callers send Firebase ID tokens, not Supabase JWTs.
-# The function verifies Firebase tokens itself, then uses service_role.
+# Destiny customer commerce Edge Function (M3B.5).
+# verify_jwt = true: gateway rejects non-Supabase JWTs.
+# Function still calls auth.getUser(token) and derives user_id server-side.
 
 [functions.customer-api]
-verify_jwt = false
+verify_jwt = true
