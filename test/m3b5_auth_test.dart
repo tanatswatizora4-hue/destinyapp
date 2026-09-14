@@ -19,9 +19,9 @@ void main() {
     DestinyCustomerApiConfig.debugClearOverrides();
   });
 
-  group('devBypassAuth documentation contract', () {
-    test('flag is a compile-time bool (UI only; APIs still require tokens)', () {
-      expect(devBypassAuth, isA<bool>());
+  group('devBypassAuth live QA contract', () {
+    test('bypass is disabled for live Supabase Auth QA (UI only; APIs still require tokens)', () {
+      expect(devBypassAuth, isFalse);
     });
   });
 

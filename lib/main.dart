@@ -10,13 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// DEV ONLY — UI redesign preview.
-///
-/// When true, skips the login gate for browsing Home/Tours/Stays/Vehicles/Flights.
-/// Does **not** bypass backend authorization: commerce and staff APIs still
-/// require a real Supabase Auth access token. Unauthenticated users cannot
-/// submit bookings/enquiries or access staff ops successfully.
-const bool devBypassAuth = true;
+export 'package:destiny/config/dev_auth_config.dart' show devBypassAuth;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,27 +42,22 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.themeData,
       routes: {
         StaffOpsScreen.routeName: (_) => const StaffOpsScreen(),
+        LoginScreen.routeName: (_) => const LoginScreen(),
       },
-      // Easy to remove: delete the `devBypassAuth` ternary and keep only
-      // the StreamBuilder below when restoring production auth gating.
-      home: devBypassAuth
-          ? const NavigationScreen()
-          : StreamBuilder<AuthState>(
-              stream: SupabaseAuthService().authStateChanges,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting &&
-                    !snapshot.hasData) {
-                  return const SplashScreen();
-                }
-
-                final session = snapshot.data?.session ??
-                    Supabase.instance.client.auth.currentSession;
-                if (session != null) {
-                  return const NavigationScreen();
-                }
-                return const LoginScreen();
-              },
-            ),
+      // Session restore: wait for Supabase auth bootstrap, then always use the
+      // public navigation shell. Protected routes gate inside NavigationScreen.
+      // [devBypassAuth] only controls whether gated actions open LoginScreen.
+      home: StreamBuilder<AuthState>(
+        stream: SupabaseAuthService().authStateChanges,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData &&
+              Supabase.instance.client.auth.currentSession == null) {
+            return const SplashScreen();
+          }
+          return const NavigationScreen();
+        },
+      ),
     );
   }
 }

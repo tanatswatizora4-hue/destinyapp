@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:destiny/config/dev_auth_config.dart';
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/resources/app_colors.dart';
 import 'package:destiny/screens/accommodation_list_screen.dart';
@@ -15,6 +16,7 @@ import 'package:destiny/screens/tour_list_screen.dart';
 import 'package:destiny/screens/vehicle_list_screen.dart';
 import 'package:destiny/services/api_service.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
+import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/services/auth_service.dart';
 import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
@@ -198,15 +200,19 @@ class _NavigationScreenState extends State<NavigationScreen> {
     const protectedIndices = NavigationScreen.protectedNavIndices;
 
     if (protectedIndices.contains(index) && _authUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'You must be signed in to access this feature.',
-            style: TextStyle(color: Colors.white),
+      if (devBypassAuth) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'You must be signed in to access this feature.',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: AppColors.primary,
           ),
-          backgroundColor: AppColors.primary,
-        ),
-      );
+        );
+      } else {
+        _openLogin();
+      }
       return;
     }
 
@@ -240,10 +246,18 @@ class _NavigationScreenState extends State<NavigationScreen> {
       case 'contact':
         _onItemTapped(9);
         break;
+      case 'login':
+        _openLogin();
+        break;
       case 'logout':
         AuthService().signOut();
         break;
     }
+  }
+
+  Future<void> _openLogin() async {
+    await Navigator.of(context).pushNamed(LoginScreen.routeName);
+    // Auth subscription updates [_authUser]; no extra setState needed.
   }
 
   Future<void> _openAccountMenu(BuildContext buttonContext) async {
@@ -267,8 +281,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
       color: AppTheme.surface,
       elevation: 8,
       shadowColor: Colors.black.withValues(alpha: 0.12),
-      items: const <PopupMenuEntry<String>>[
-        PopupMenuItem<String>(
+      items: <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
           value: 'my_trips',
           child: ListTile(
             dense: true,
@@ -277,7 +291,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('My Trips'),
           ),
         ),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'my_bookings',
           child: ListTile(
             dense: true,
@@ -286,7 +300,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('My Bookings'),
           ),
         ),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'travel_documents',
           child: ListTile(
             dense: true,
@@ -295,7 +309,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('Travel Documents'),
           ),
         ),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'profile',
           child: ListTile(
             dense: true,
@@ -304,7 +318,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('Profile'),
           ),
         ),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'contact',
           child: ListTile(
             dense: true,
@@ -313,16 +327,27 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('Contact Us'),
           ),
         ),
-        PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'logout',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.exit_to_app, color: AppColors.accent),
-            title: Text('Logout', style: TextStyle(color: AppColors.accent)),
+        const PopupMenuDivider(),
+        if (_authUser == null)
+          const PopupMenuItem<String>(
+            value: 'login',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.login),
+              title: Text('Sign In'),
+            ),
+          )
+        else
+          const PopupMenuItem<String>(
+            value: 'logout',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.exit_to_app, color: AppColors.accent),
+              title: Text('Logout', style: TextStyle(color: AppColors.accent)),
+            ),
           ),
-        ),
       ],
     );
 

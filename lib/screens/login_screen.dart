@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
+  static const String routeName = '/login';
+
   const LoginScreen({Key? key}) : super(key: key);
 
   @override
@@ -55,13 +57,22 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else if (_isLogin) {
         await _authService.signInWithEmailAndPassword(email, password);
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        }
       } else {
-        await _authService.createUserWithEmailAndPassword(
+        final user = await _authService.createUserWithEmailAndPassword(
           fullName,
           email,
           password,
         );
-        if (mounted) {
+        if (!mounted) return;
+        // Email confirmation may leave no active session — stay on this screen.
+        if (user != null && _authService.currentUser != null) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(true);
+          }
+        } else {
           setState(() {
             _message =
                 'Account created. Check your email if confirmation is required, then sign in.';
@@ -94,6 +105,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      appBar: Navigator.of(context).canPop()
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.close, color: AppColors.textPrimary),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            )
+          : null,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
