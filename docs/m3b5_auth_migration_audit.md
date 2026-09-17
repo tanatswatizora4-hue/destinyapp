@@ -55,7 +55,10 @@ Target: Destiny Supabase `xchddfpfzrzhlbbmyhyn`
 
 ## Post-migration code status
 
-Implemented on `cursor/m3b5-supabase-auth-migration-194a`. Live cutover still requires DB migrate, function deploy, Auth URL config, first-admin seed.
+Implemented on `cursor/m3b5-supabase-auth-migration-194a`. **Human live QA has passed**
+(public browse, LoginScreen, signup, confirmation email, sign-in). Remaining operator
+work: confirm DB migration applied, first-admin seed with a **real** `auth.users` UUID
+(`docs/m3b5_staff_seed.sql`), and keep root `verify_jwt` config in Git.
 
 ## 6. Existing user risk
 

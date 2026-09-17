@@ -594,15 +594,24 @@ Deno.serve(async (req) => {
             .trim()
           : `Converted ${kind} enquiry`;
 
+        const validatedAmount = enquiry.validated_amount == null
+          ? null
+          : Number(enquiry.validated_amount);
+        const validatedCurrency = String(
+          enquiry.validated_currency ?? payload.currency ?? "USD",
+        ).slice(0, 8) || "USD";
+
         const bookingRow = {
           user_id: enquiry.user_id,
           item_type: itemType,
           item_name: itemName.slice(0, 200) || "Converted enquiry",
           num_travelers: Number(payload.num_travelers ?? 1) || 1,
-          requested_total: null,
+          requested_total: Number.isFinite(validatedAmount)
+            ? validatedAmount
+            : null,
           quoted_total: null,
           total_price: 0,
-          currency: "USD",
+          currency: validatedCurrency,
           payment_status: "none",
           status: "submitted",
           start_date: payload.departure_date
@@ -615,6 +624,17 @@ Deno.serve(async (req) => {
           customer_notes: `Converted from enquiry ${enquiryId}`,
           enquiry_id: enquiryId,
           assigned_staff_user_id: staff.user_id,
+          provider: enquiry.provider ?? null,
+          provider_offer_ref: enquiry.provider_offer_ref ?? null,
+          provider_order_ref: enquiry.provider_order_ref ?? null,
+          itinerary_snapshot: enquiry.itinerary_snapshot ?? {},
+          validated_amount: Number.isFinite(validatedAmount)
+            ? validatedAmount
+            : null,
+          validated_currency: enquiry.validated_currency ?? null,
+          offer_expires_at: enquiry.offer_expires_at ?? null,
+          passenger_summary: enquiry.passenger_summary ?? {},
+          provider_status: enquiry.provider_status ?? null,
         };
 
         const { data: booking, error: bookErr } = await db

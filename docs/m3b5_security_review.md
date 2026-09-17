@@ -17,6 +17,10 @@ Branch: `cursor/m3b5-supabase-auth-migration-194a`
 | Protected customer routes | Nav indices 5–8 gated; APIs require token |
 | `devBypassAuth` | UI browsing only; **does not** bypass Edge authorization |
 
+| Root `supabase/config.toml` function JWT | **Committed:** customer-api / staff-commerce-api `verify_jwt=true`; flight-commerce-api `false` (public search, in-function JWT for enquiry) |
+| Travelport secrets in Git / Flutter | **Forbidden** — server env only |
+| Provider tokens returned to Flutter | **No** |
+
 ## Residual legacy (non-authoritative)
 
 - DB columns: `firebase_uid`, `actor_firebase_uid`, `assigned_staff_uid`, `quoted_by_uid`

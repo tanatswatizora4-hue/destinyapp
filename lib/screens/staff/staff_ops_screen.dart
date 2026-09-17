@@ -1,9 +1,11 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/customer_booking.dart';
 import 'package:destiny/models/customer_enquiry.dart';
+import 'package:destiny/models/flight_offer.dart';
 import 'package:destiny/repositories/staff_commerce_repository.dart';
 import 'package:destiny/services/staff_api_client.dart';
 import 'package:destiny/services/supabase_auth_service.dart';
+import 'package:destiny/widgets/flight_offer_card.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -226,7 +228,9 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
               ),
               title: Text(b.itemName,
                   maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text('${b.statusLabel} · ${b.itemType}'),
+              subtitle: Text(
+                '${b.statusLabel} · ${destinyProductTypeLabel(b.itemType)}',
+              ),
               trailing: Text(b.status),
               onTap: () => setState(() => _selectedBooking = b),
             );
@@ -304,8 +308,14 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
                   color: selected ? AppTheme.primary : AppTheme.border,
                 ),
               ),
-              title: Text(route.trim().isEmpty ? e.kind : route),
-              subtitle: Text(e.statusLabel),
+              title: Text(
+                route.trim().isEmpty
+                    ? destinyProductTypeLabel(e.kind)
+                    : route,
+              ),
+              subtitle: Text(
+                '${destinyProductTypeLabel(e.kind)} · ${e.statusLabel}',
+              ),
               onTap: () => setState(() => _selectedEnquiry = e),
             );
           },
@@ -441,7 +451,7 @@ class _BookingDetailPanelState extends State<_BookingDetailPanel> {
             spacing: 8,
             children: [
               Chip(label: Text(b.statusLabel)),
-              Chip(label: Text(b.itemType)),
+              Chip(label: Text(destinyProductTypeLabel(b.itemType))),
               if (b.requestedTotal != null)
                 Chip(
                   label: Text(
@@ -460,6 +470,27 @@ class _BookingDetailPanelState extends State<_BookingDetailPanel> {
           const SizedBox(height: 16),
           Text('Customer: ${b.userId.isNotEmpty ? b.userId : b.firebaseUid}',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          if (b.itemType == 'flight') ...[
+            const SizedBox(height: 16),
+            Text('Flight details',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 8),
+            FlightItinerarySummary(
+              snapshot: b.itinerarySnapshot,
+              payload: {
+                'origin': b.itinerarySnapshot['origin'],
+                'destination': b.itinerarySnapshot['destination'],
+                'departure_date': b.startDate?.toIso8601String(),
+                'return_date': b.endDate?.toIso8601String(),
+              },
+              passengers: b.passengerSummary,
+              providerRef: b.providerOfferRef,
+              validatedAmount: b.validatedAmount,
+              validatedCurrency: b.validatedCurrency,
+            ),
+          ],
           if (b.customerNotes.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text('Customer notes: ${b.customerNotes}'),
@@ -608,7 +639,7 @@ class _EnquiryDetailPanelState extends State<_EnquiryDetailPanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${e.kind} · ${e.statusLabel}',
+            '${destinyProductTypeLabel(e.kind)} · ${e.statusLabel}',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppTheme.navy,
@@ -618,8 +649,22 @@ class _EnquiryDetailPanelState extends State<_EnquiryDetailPanel> {
           Text('Customer: ${e.userId.isNotEmpty ? e.userId : e.firebaseUid}',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
           const SizedBox(height: 12),
-          Text(e.payload.toString(),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+          if (e.kind == 'flight')
+            FlightItinerarySummary(
+              snapshot: e.itinerarySnapshot,
+              payload: e.payload,
+              passengers: e.passengerSummary,
+              providerRef: e.providerOfferRef,
+              validatedAmount: e.validatedAmount,
+              validatedCurrency: e.validatedCurrency,
+            )
+          else
+            Text(
+              e.payload.entries
+                  .map((kv) => '${kv.key}: ${kv.value}')
+                  .join('\n'),
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
           const SizedBox(height: 20),
           Wrap(
             spacing: 8,

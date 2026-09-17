@@ -1,6 +1,11 @@
 # Destiny staff commerce Edge Function (M3B.5).
-# verify_jwt = true: callers must present a Supabase Auth access token.
-# Staff role still resolved only via staff_users.user_id after getUser.
+#
+# AUTHORITATIVE GATEWAY SETTING LIVES IN ROOT supabase/config.toml:
+#   [functions.staff-commerce-api]
+#   verify_jwt = true
+#
+# Function-local files did not control hosted CLI deploy historically.
+# Keep this file in sync with the root block so local serve matches production.
 
 [functions.staff-commerce-api]
 verify_jwt = true

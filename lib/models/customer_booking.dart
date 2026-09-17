@@ -32,6 +32,12 @@ class CustomerBooking {
   final String paymentStatus;
   final String customerNotes;
   final DateTime? createdAt;
+  final String? provider;
+  final String? providerOfferRef;
+  final Map<String, dynamic> itinerarySnapshot;
+  final double? validatedAmount;
+  final String? validatedCurrency;
+  final Map<String, dynamic> passengerSummary;
 
   CustomerBooking({
     required this.id,
@@ -56,6 +62,12 @@ class CustomerBooking {
     required this.paymentStatus,
     required this.customerNotes,
     this.createdAt,
+    this.provider,
+    this.providerOfferRef,
+    this.itinerarySnapshot = const {},
+    this.validatedAmount,
+    this.validatedCurrency,
+    this.passengerSummary = const {},
   });
 
   bool get isCancelableByCustomer =>
@@ -154,6 +166,16 @@ class CustomerBooking {
       paymentStatus: json['payment_status']?.toString() ?? 'none',
       customerNotes: json['customer_notes']?.toString() ?? '',
       createdAt: asDate(json['created_at']),
+      provider: json['provider']?.toString(),
+      providerOfferRef: json['provider_offer_ref']?.toString(),
+      itinerarySnapshot: json['itinerary_snapshot'] is Map
+          ? Map<String, dynamic>.from(json['itinerary_snapshot'] as Map)
+          : const <String, dynamic>{},
+      validatedAmount: asDouble(json['validated_amount']),
+      validatedCurrency: json['validated_currency']?.toString(),
+      passengerSummary: json['passenger_summary'] is Map
+          ? Map<String, dynamic>.from(json['passenger_summary'] as Map)
+          : const <String, dynamic>{},
     );
   }
 }

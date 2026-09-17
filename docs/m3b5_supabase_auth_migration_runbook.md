@@ -25,10 +25,28 @@ supabase functions deploy staff-commerce-api --project-ref xchddfpfzrzhlbbmyhyn
 
 Both functions use **`verify_jwt = true`**.
 
+**Authoritative file:** root `supabase/config.toml`
+
+```
+[functions.customer-api]
+verify_jwt = true
+
+[functions.staff-commerce-api]
+verify_jwt = true
+```
+
+Function-local `config.toml` files are kept in sync for documentation only.
+They historically did **not** control hosted CLI deploy. Do not delete the root block
+when moving machines.
+
 Gateway rejects non-Supabase JWTs. Functions still call `auth.getUser(token)`
 and derive `user_id` server-side. Never trust body `user_id` / `role`.
 
 `FIREBASE_PROJECT_ID` is obsolete — may be removed from secrets after cutover.
+
+Human live QA (signup, confirmation email, sign-in, logged-out public browse)
+has passed. Seed the first admin with the **real** `auth.users.id` from
+Authentication → Users using `docs/m3b5_staff_seed.sql`. Do not invent a UUID.
 
 ## 4. Supabase Auth settings
 

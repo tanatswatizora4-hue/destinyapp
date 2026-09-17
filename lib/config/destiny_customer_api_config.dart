@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 
 /// Public config for the M3A customer commerce Edge Function.
 ///
-/// Never embeds service_role. The function verifies Firebase ID tokens and
-/// performs privileged DB writes server-side.
+/// Never embeds service_role. The function verifies Supabase Auth access tokens
+/// and performs privileged DB writes server-side.
 class DestinyCustomerApiConfig {
   static const String productionFunctionsBase =
       'https://xchddfpfzrzhlbbmyhyn.supabase.co/functions/v1';

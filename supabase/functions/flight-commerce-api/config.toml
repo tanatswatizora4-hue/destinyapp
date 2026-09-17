@@ -1,0 +1,13 @@
+# Destiny flight commerce Edge Function (M3C).
+#
+# AUTHORITATIVE GATEWAY SETTING LIVES IN ROOT supabase/config.toml:
+#   [functions.flight-commerce-api]
+#   verify_jwt = false
+#
+# Search/next-leg/reprice are public (logged-out shopping).
+# create_flight_enquiry still requires a verified Supabase JWT inside the
+# function. Do NOT set verify_jwt=true here or logged-out search will 401
+# at the gateway.
+
+[functions.flight-commerce-api]
+verify_jwt = false

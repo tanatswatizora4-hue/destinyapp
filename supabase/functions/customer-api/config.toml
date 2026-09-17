@@ -1,6 +1,11 @@
 # Destiny customer commerce Edge Function (M3B.5).
-# verify_jwt = true: gateway rejects non-Supabase JWTs.
-# Function still calls auth.getUser(token) and derives user_id server-side.
+#
+# AUTHORITATIVE GATEWAY SETTING LIVES IN ROOT supabase/config.toml:
+#   [functions.customer-api]
+#   verify_jwt = true
+#
+# Function-local files did not control hosted CLI deploy historically.
+# Keep this file in sync with the root block so local serve matches production.
 
 [functions.customer-api]
 verify_jwt = true

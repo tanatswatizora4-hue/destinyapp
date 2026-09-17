@@ -9,29 +9,31 @@
 | M2 | Destiny Supabase inventory cutover |
 | M3A | Secure customer commerce backend (`customer-api`) |
 | M3B | Staff ops + booking lifecycle (`staff-commerce-api`) |
+| M3B.5 | Supabase Auth ownership — **human live QA passed** |
 
-## Current: M3B.5 Auth Ownership Migration
+## Current: M3C Real flight commerce
 
-**Code complete on branch** `cursor/m3b5-supabase-auth-migration-194a`.
+Branch: `cursor/m3b5-supabase-auth-migration-194a`
 
-- Firebase Auth removed from Flutter runtime
-- Supabase Auth email/password + session restore + password reset UX
-- DB: `user_id` columns added; `firebase_uid` legacy retained
-- Edge: Supabase `getUser` + `verify_jwt=true`; ownership via `user_id`
-- Staff allowlist: `staff_users.user_id`
-- RLS: MODEL A (no authenticated policies on sensitive tables)
+- `flight-commerce-api` + Travelport TripServices adapter
+- Provider-neutral Destiny flight domain
+- Flutter Flights upgraded from enquiry-only to live shopping
+- Existing `enquiries` / `bookings` carry flight snapshots (no second CRM)
+- Ticketing / paid booking **not** implemented
 
-### Live follow-ups (operators)
+Live shopping is blocked only on operator-set Travelport **secret names** in Destiny Supabase. See `docs/m3c_flight_commerce.md`.
 
-1. Apply `20260911090000_m3b5_supabase_auth_identity.sql`
-2. Deploy `customer-api` + `staff-commerce-api`
-3. Configure Auth redirect URLs / email confirmation
-4. Seed first admin with real `auth.users` UUID
+## M3B.5 final
 
-See `docs/m3b5_supabase_auth_migration_runbook.md`.
+- Root `supabase/config.toml` commits `verify_jwt=true` for `customer-api` and `staff-commerce-api`
+- `devBypassAuth = false` (UI only; never bypasses APIs)
+- Identity: Flutter Bearer = Supabase access token; server `getUser` → `auth.users.id`
+- Staff: `staff_users.user_id` — seed with a **real** UUID (`docs/m3b5_staff_seed.sql`)
+- Firebase Auth runtime remains removed
 
-## Not started
+## Not started / later
 
-- M3C Travelport / live fares
 - M3D payments
 - M3E travel docs migration off bymapara
+- Travelport credential rotation before production
+- Optional Google OAuth on Supabase Auth
