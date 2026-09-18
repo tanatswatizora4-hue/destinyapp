@@ -1,0 +1,12 @@
+# Destiny payment commerce Edge Function (M3D).
+#
+# AUTHORITATIVE GATEWAY SETTING LIVES IN ROOT supabase/config.toml:
+#   [functions.payment-commerce-api]
+#   verify_jwt = false
+#
+# Gateway JWT is off so provider webhooks can POST without a user session.
+# Customer/staff actions still verify the Supabase access token inside the
+# function. Do NOT set verify_jwt=true here or webhooks will 401 at the gateway.
+
+[functions.payment-commerce-api]
+verify_jwt = false

@@ -28,9 +28,14 @@
 - Customer bookings/profiles remain on bymapara until auth bridge (intentional)
 - See `docs/m2_*` reports for status
 
-## M3 — Live flight shopping (Travelport / GDS)
-- Only when real inventory APIs exist
-- Replace enquiry-only Flights shopping UX where appropriate
+## M3 — Live flight shopping (Travelport / GDS) — ARCHITECTURE COMPLETE
+- Provider-neutral flight domain + Travelport TripServices adapter
+- Live PP offers blocked on Travelport channel inventory (`NO OFFERS FOUND FOR THE CHANNEL`)
+- Ticketing not implemented
+
+## M3D — Payment-ready commerce — IN REPO
+- Provider-neutral intents, mock QA provider, ledger, refunds, staff visibility
+- Real PSP adapters require official docs + credentials (`docs/m3d_payments.md`)
 
 ## M4 — Destina production assistant
 - Tool-backed planning beyond preview snackbars

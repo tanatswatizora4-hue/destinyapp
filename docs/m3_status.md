@@ -10,18 +10,27 @@
 | M3A | Secure customer commerce backend (`customer-api`) |
 | M3B | Staff ops + booking lifecycle (`staff-commerce-api`) |
 | M3B.5 | Supabase Auth ownership — **human live QA passed** |
+| M3C | Flight commerce architecture + Travelport adapter (live PP inventory blocked externally) |
 
-## Current: M3C Real flight commerce
+## Current: M3D Payment-ready commerce
 
 Branch: `cursor/m3b5-supabase-auth-migration-194a`
 
-- `flight-commerce-api` + Travelport TripServices adapter
-- Provider-neutral Destiny flight domain
-- Flutter Flights upgraded from enquiry-only to live shopping
-- Existing `enquiries` / `bookings` carry flight snapshots (no second CRM)
-- Ticketing / paid booking **not** implemented
+- `payment-commerce-api` + provider-neutral payment domain
+- Mock/test provider (fail-closed in production)
+- Intents, ledger, refunds, webhooks, reconciliation model
+- Customer pay UX on `awaiting_payment` bookings
+- Staff ops Payments tab
+- Platform fee defaults to **0**
+- Real Zimswitch / Tooma / Paynow adapters are placeholders pending official docs
 
-Live shopping is blocked only on operator-set Travelport **secret names** in Destiny Supabase. See `docs/m3c_flight_commerce.md`.
+See `docs/m3d_payments.md`.
+
+## M3C note
+
+Travelport auth/JWT/API processing work. Official PP control (JFK→LAX) returns
+`NO OFFERS FOUND FOR THE CHANNEL` — external inventory/channel provisioning.
+No hardcoded diagnostic special-case remains. Does not block M3D.
 
 ## M3B.5 final
 
@@ -33,7 +42,7 @@ Live shopping is blocked only on operator-set Travelport **secret names** in Des
 
 ## Not started / later
 
-- M3D payments
-- M3E travel docs migration off bymapara
-- Travelport credential rotation before production
+- M3E travel docs migration off bymapara + commerce completion / legacy cleanup
+- Live PSP integration (Tooma / Zimswitch / Paynow) after official docs + credentials
+- Travelport PP inventory/channel provisioning (external)
 - Optional Google OAuth on Supabase Auth

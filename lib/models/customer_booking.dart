@@ -79,6 +79,15 @@ class CustomerBooking {
 
   bool get hasAuthoritativeQuote => quotedTotal != null;
 
+  /// Payable only when Destiny has quoted and staff moved the booking to await payment.
+  bool get isPayable =>
+      status == 'awaiting_payment' &&
+      quotedTotal != null &&
+      quotedTotal! > 0 &&
+      paymentStatus != 'paid' &&
+      paymentStatus != 'refunded' &&
+      paymentStatus != 'partially_refunded';
+
   String get mainImageUrl => DestinyMediaUrl.resolve(
         imageRefs.isNotEmpty ? imageRefs.first : null,
       );

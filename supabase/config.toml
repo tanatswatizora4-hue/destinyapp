@@ -419,6 +419,11 @@ verify_jwt = true
 [functions.flight-commerce-api]
 verify_jwt = false
 
+# Provider webhooks have no user JWT. Customer/staff actions still verify
+# the Supabase access token inside payment-commerce-api.
+[functions.payment-commerce-api]
+verify_jwt = false
+
 # pg-delta is the schema diff engine for db diff / db pull / db remote commit.
 # Set enabled = false to fall back to the legacy migra engine.
 [experimental.pgdelta]

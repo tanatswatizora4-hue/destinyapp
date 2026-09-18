@@ -15,7 +15,7 @@ Flutter UI
 Flutter
   → Supabase Auth (email/password baseline)
   → access token (Authorization: Bearer)
-  → customer-api / staff-commerce-api
+  → customer-api / staff-commerce-api / payment-commerce-api
   → auth.getUser(token) → user_id = auth.users.id
   → service_role DB ops scoped by user_id
 ```
@@ -44,6 +44,17 @@ Flutter Staff Ops (/staff-ops)
   → quote / transition / enquiry ops + audit events (actor_user_id)
 ```
 
+## Payment plane (M3D)
+
+```
+Flutter (customer My Bookings / staff-ops Payments)
+  → payment-commerce-api (verify_jwt=false for webhooks; getUser for user actions)
+  → PaymentProvider adapters (mock QA; Zimswitch/Tooma/Paynow placeholders)
+  → payment_intents + append-only ledger + booking confirmation
+```
+
+Flutter never supplies authoritative amount, fees, or payment success.
+
 ## RLS model: **MODEL A**
 
 Sensitive tables keep RLS enabled with **no** anon/authenticated policies.
@@ -57,8 +68,9 @@ Clients never touch commerce/staff tables directly. Edge Functions only.
 | Customer + staff auth | **Supabase Auth** |
 | Booking requests / flight enquiries | customer-api |
 | Authoritative quotes + lifecycle | staff-commerce-api |
+| Payments / ledger / refunds | payment-commerce-api |
 | Travel documents / legacy photos | bymapara until M3E |
-| Live fares / payments | M3C / M3D |
+| Live fares | flight-commerce-api (Travelport PP inventory externally blocked) |
 
 ## Secrets
 

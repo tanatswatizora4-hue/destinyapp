@@ -3,6 +3,7 @@ import 'package:destiny/models/customer_booking.dart';
 import 'package:destiny/models/customer_enquiry.dart';
 import 'package:destiny/models/flight_offer.dart';
 import 'package:destiny/repositories/staff_commerce_repository.dart';
+import 'package:destiny/screens/staff/staff_payments_tab.dart';
 import 'package:destiny/services/staff_api_client.dart';
 import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:destiny/widgets/flight_offer_card.dart';
@@ -39,7 +40,7 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 3, vsync: this);
     _bootstrap();
   }
 
@@ -124,6 +125,7 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
                 tabs: const [
                   Tab(text: 'Bookings'),
                   Tab(text: 'Enquiries'),
+                  Tab(text: 'Payments'),
                 ],
               ),
         actions: [
@@ -202,6 +204,7 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
       children: [
         _bookingsPane(),
         _enquiriesPane(),
+        const StaffPaymentsTab(),
       ],
     );
   }
@@ -577,7 +580,7 @@ class _BookingDetailPanelState extends State<_BookingDetailPanel> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Payment capture is M3D — awaiting_payment does not mean paid.',
+            'Operational confirm does not record a payment. Prefer customer checkout; only trusted payment verification marks a booking paid.',
             style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
           ),
         ],
