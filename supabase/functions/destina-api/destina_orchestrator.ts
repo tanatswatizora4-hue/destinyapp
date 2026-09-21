@@ -15,6 +15,7 @@ import {
 import {
   DESTINA_LIMITS,
   DESTINA_SYSTEM_PROMPT,
+  customerFacingToolError,
   parseToolArguments,
 } from "./destina_rules.ts";
 import { withTimeout } from "./destina_model.ts";
@@ -115,10 +116,6 @@ export async function runDestinaLoop(
       break;
     }
 
-    const onlyStateUpdate = generated.toolCalls.every((c) =>
-      c.name === "update_trip_state"
-    );
-
     messages.push({
       role: "assistant",
       content: generated.text.trim() ||
@@ -128,20 +125,43 @@ export async function runDestinaLoop(
 
     for (const call of generated.toolCalls) {
       if (toolRuns.length >= DESTINA_LIMITS.maxToolCalls) break;
-      const args = parseToolArguments(call.arguments);
-      const { result, tripState: next } = await executeDestinaTool(
-        input.deps,
-        {
-          actor: input.actor,
-          tripState,
-          conversationId: input.conversationId,
-          flightSearchesUsed,
-          catalogCallsUsed,
-        },
-        call.name,
-        args,
-      );
-      tripState = next;
+      let result: DestinaToolResult;
+      try {
+        const args = parseToolArguments(call.arguments);
+        const executed = await executeDestinaTool(
+          input.deps,
+          {
+            actor: input.actor,
+            tripState,
+            conversationId: input.conversationId,
+            flightSearchesUsed,
+            catalogCallsUsed,
+          },
+          call.name,
+          args,
+        );
+        tripState = executed.tripState;
+        result = executed.result;
+      } catch (e) {
+        if (e instanceof DestinaError) {
+          result = {
+            name: call.name,
+            status: "needs_input",
+            activity: "Need a bit more detail…",
+            summary: customerFacingToolError(e),
+            error_code: e.code,
+          };
+        } else {
+          result = {
+            name: call.name,
+            status: "error",
+            activity: "Something went wrong…",
+            summary:
+              "I hit a snag with that just now. I can try again, or send it to our travel team.",
+            error_code: "tool_error",
+          };
+        }
+      }
       toolRuns.push(result);
       if (call.name === "search_flights" && result.status !== "needs_input") {
         flightSearchesUsed += 1;
@@ -158,13 +178,9 @@ export async function runDestinaLoop(
           status: result.status,
           summary: result.summary,
           data: result.data ?? null,
+          error_code: result.error_code ?? null,
         }),
       });
-    }
-
-    if (generated.text.trim() && onlyStateUpdate) {
-      assistantContent = generated.text.trim();
-      break;
     }
   }
 

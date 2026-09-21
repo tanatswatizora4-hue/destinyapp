@@ -23,6 +23,7 @@ import {
   applySeedContext,
   assertNoAuthoritativeClientFields,
   clampMessage,
+  customerFacingToolError,
   DESTINA_LIMITS,
   emptyTripState,
   hashAnonSession,
@@ -64,10 +65,11 @@ function adminClient() {
 
 function errorJson(err: unknown): Response {
   if (err instanceof DestinaError) {
+    const leaked = /IATA|airport codes must/i.test(err.message);
     return json(err.status, {
       status: "error",
       code: err.code,
-      message: err.message,
+      message: leaked ? customerFacingToolError(err) : err.message,
     });
   }
   console.warn(JSON.stringify({

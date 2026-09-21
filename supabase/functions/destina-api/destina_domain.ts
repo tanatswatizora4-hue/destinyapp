@@ -7,6 +7,9 @@ export type DestinaRole = "user" | "assistant" | "system" | "tool";
 export type TripState = {
   destination: string | null;
   origin: string | null;
+  /** Resolved IATA when uniquely known. Null until flight-search resolution. */
+  origin_iata: string | null;
+  destination_iata: string | null;
   departure_date: string | null;
   return_date: string | null;
   adults: number;

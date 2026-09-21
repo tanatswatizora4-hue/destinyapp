@@ -7,7 +7,9 @@ import {
   assertRejects,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { DestinaError } from "./destina_domain.ts";
+import { FlightProviderError } from "../flight-commerce-api/flight_domain.ts";
 import { emptyTripState } from "./destina_rules.ts";
+import { DESTINA_PLACE_COPY } from "./destina_airports.ts";
 import {
   DestinaToolDeps,
   executeDestinaTool,
@@ -36,6 +38,82 @@ const ctxBase = {
   catalogCallsUsed: 0,
 };
 
+Deno.test("search_flights resolves Harare and Johannesburg to HRE/JNB", async () => {
+  const captured: Record<string, unknown>[] = [];
+  const { result, tripState } = await executeDestinaTool(
+    deps({
+      searchFlights: async (body) => {
+        captured.push(body);
+        return {
+          offers: [],
+          nextLegRequired: false,
+          provider: "travelport",
+          transactionId: "txn",
+          warnings: [],
+        };
+      },
+    }),
+    ctxBase,
+    "search_flights",
+    { origin: "Harare", destination: "Johannesburg", departure_date: "2026-11-20" },
+  );
+  assertEquals(result.status, "ok");
+  assertEquals(captured[0]?.origin, "HRE");
+  assertEquals(captured[0]?.destination, "JNB");
+  assertEquals(tripState.origin, "Harare");
+  assertEquals(tripState.destination, "Johannesburg");
+  assertEquals(tripState.origin_iata, "HRE");
+  assertEquals(tripState.destination_iata, "JNB");
+});
+
+Deno.test("search_flights does not send London to Travelport", async () => {
+  let called = false;
+  const { result, tripState } = await executeDestinaTool(
+    deps({
+      searchFlights: async () => {
+        called = true;
+        return {
+          offers: [],
+          nextLegRequired: false,
+          provider: "travelport",
+          transactionId: null,
+          warnings: [],
+        };
+      },
+    }),
+    ctxBase,
+    "search_flights",
+    { origin: "Harare", destination: "London", departure_date: "2026-11-20" },
+  );
+  assertEquals(called, false);
+  assertEquals(result.status, "needs_input");
+  assertEquals(result.error_code, "airport_unresolved");
+  assertEquals(result.summary, DESTINA_PLACE_COPY.flyTo);
+  assertEquals(tripState.destination, "London");
+  assertEquals(tripState.destination_iata, null);
+  assertEquals(/IATA|Airport codes must/i.test(result.summary), false);
+});
+
+Deno.test("provider IATA validation is converted to a natural clarification", async () => {
+  const { result } = await executeDestinaTool(
+    deps({
+      searchFlights: async () => {
+        throw new FlightProviderError(
+          "validation_error",
+          "Origin and destination must be 3-letter IATA airport codes",
+        );
+      },
+    }),
+    ctxBase,
+    "search_flights",
+    { origin: "HRE", destination: "JNB", departure_date: "2026-11-20" },
+  );
+  assertEquals(result.status, "needs_input");
+  assertEquals(result.error_code, "invalid_flight_request");
+  assertEquals(result.summary, DESTINA_PLACE_COPY.unresolved);
+  assertEquals(/IATA|Airport codes must/i.test(result.summary), false);
+});
+
 Deno.test("search_flights asks for missing origin instead of calling Travelport", async () => {
   let called = false;
   const { result } = await executeDestinaTool(
@@ -57,6 +135,8 @@ Deno.test("search_flights asks for missing origin instead of calling Travelport"
   );
   assertEquals(result.status, "needs_input");
   assertEquals(called, false);
+  assertEquals(result.summary, DESTINA_PLACE_COPY.flyFrom);
+  assertEquals(/IATA|Airport codes must/i.test(result.summary), false);
 });
 
 Deno.test("search_flights returns live quotes without inventing fares", async () => {

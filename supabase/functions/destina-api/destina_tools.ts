@@ -11,14 +11,16 @@ import {
 } from "./destina_domain.ts";
 import {
   assertKnownTool,
+  customerFacingToolError,
   DESTINA_LIMITS,
   mergeTripState,
   missingFlightFields,
   sanitizeSearchQuery,
   truncateJson,
 } from "./destina_rules.ts";
+import { DESTINA_PLACE_COPY, resolveAirport } from "./destina_airports.ts";
 import { sanitizeSearchRequest } from "../flight-commerce-api/flight_rules.ts";
-import { searchResultToApi } from "../flight-commerce-api/flight_domain.ts";
+import { FlightProviderError, searchResultToApi } from "../flight-commerce-api/flight_domain.ts";
 import { FlightSearchResult } from "../flight-commerce-api/flight_domain.ts";
 
 export type DestinaActor = {
@@ -75,7 +77,8 @@ export type DestinaToolDeps = {
 export const DESTINA_TOOL_SPECS: DestinaToolSpec[] = [
   {
     name: "update_trip_state",
-    description: "Merge validated trip fields (IATA, dates, passengers). Never invent fares.",
+    description:
+      "Optional memory only. Save a trip fact the customer already stated (city names are fine, e.g. Zanzibar). Do not call for greetings, inspiration, packing, seasons, or general questions. Never require IATA. Never invent fares. Never search flights.",
     parameters: {
       type: "object",
       properties: {
@@ -101,7 +104,7 @@ export const DESTINA_TOOL_SPECS: DestinaToolSpec[] = [
   {
     name: "search_flights",
     description:
-      "Search live Travelport flights. Requires origin, destination, departure_date (IATA + YYYY-MM-DD). Never invent fares.",
+      "ONLY if the customer asked to find or search live flights. City names are OK. Requires origin, destination, and departure date. Never invent fares. Do not call for destination inspiration.",
     parameters: {
       type: "object",
       properties: {
@@ -119,7 +122,7 @@ export const DESTINA_TOOL_SPECS: DestinaToolSpec[] = [
   },
   {
     name: "search_tours",
-    description: "Search Destiny published tour catalog. Catalog is not a live hold.",
+    description: "Search Destiny published tour catalog ONLY when the customer asks for Destiny tours/packages. Catalog is not a live hold.",
     parameters: {
       type: "object",
       properties: { query: { type: "string" } },
@@ -280,7 +283,22 @@ export async function executeDestinaTool(
 
   switch (tool) {
     case "update_trip_state": {
-      tripState = mergeTripState(tripState, args);
+      try {
+        tripState = mergeTripState(tripState, args);
+      } catch (e) {
+        if (e instanceof DestinaError) {
+          return {
+            tripState,
+            result: needs(
+              tool,
+              "Need a bit more detail…",
+              customerFacingToolError(e),
+              { error_code: e.code },
+            ),
+          };
+        }
+        throw e;
+      }
       return {
         tripState,
         result: ok(
@@ -292,29 +310,84 @@ export async function executeDestinaTool(
       };
     }
     case "search_flights": {
-      const merged = mergeTripState(tripState, {
-        origin: args.origin ?? tripState.origin,
-        destination: args.destination ?? tripState.destination,
-        departure_date: args.departure_date ?? tripState.departure_date,
-        return_date: args.return_date ?? tripState.return_date,
-        adults: args.adults ?? tripState.adults,
-        children: args.children ?? tripState.children,
-        infants: args.infants ?? tripState.infants,
-        flight_required: true,
-      });
-      tripState = merged;
-      const missing = missingFlightFields(merged);
-      if (missing.length) {
+      try {
+        tripState = mergeTripState(tripState, {
+          origin: args.origin ?? tripState.origin,
+          destination: args.destination ?? tripState.destination,
+          departure_date: args.departure_date ?? tripState.departure_date,
+          return_date: args.return_date ?? tripState.return_date,
+          adults: args.adults ?? tripState.adults,
+          children: args.children ?? tripState.children,
+          infants: args.infants ?? tripState.infants,
+          flight_required: true,
+        });
+      } catch (e) {
+        if (e instanceof DestinaError) {
+          return {
+            tripState,
+            result: needs(
+              tool,
+              "Need a few flight details…",
+              customerFacingToolError(e),
+              { error_code: e.code },
+            ),
+          };
+        }
+        throw e;
+      }
+      const missing = missingFlightFields(tripState);
+      if (missing.includes("origin")) {
         return {
           tripState,
-          result: needs(
-            tool,
-            "Need a few flight details…",
-            `Missing ${missing.join(", ")} before a live search.`,
-            { data: { missing, source: "none" } },
-          ),
+          result: needs(tool, "Need a few flight details…", DESTINA_PLACE_COPY.flyFrom, {
+            data: { missing, source: "none" },
+            error_code: "missing_flight_fields",
+          }),
         };
       }
+      if (missing.includes("destination")) {
+        return {
+          tripState,
+          result: needs(tool, "Need a few flight details…", DESTINA_PLACE_COPY.flyTo, {
+            data: { missing, source: "none" },
+            error_code: "missing_flight_fields",
+          }),
+        };
+      }
+      if (missing.includes("departure_date")) {
+        return {
+          tripState,
+          result: needs(tool, "Need a few flight details…", DESTINA_PLACE_COPY.flyWhen, {
+            data: { missing, source: "none" },
+            error_code: "missing_flight_fields",
+          }),
+        };
+      }
+      const originRes = resolveAirport(tripState.origin);
+      const destRes = resolveAirport(tripState.destination);
+      if (originRes.status !== "resolved") {
+        return {
+          tripState,
+          result: needs(tool, "Need a departure city…", DESTINA_PLACE_COPY.flyFrom, {
+            data: { field: "origin", source: "none" },
+            error_code: "airport_unresolved",
+          }),
+        };
+      }
+      if (destRes.status !== "resolved") {
+        return {
+          tripState,
+          result: needs(tool, "Need an arrival city…", DESTINA_PLACE_COPY.flyTo, {
+            data: { field: "destination", source: "none" },
+            error_code: "airport_unresolved",
+          }),
+        };
+      }
+      tripState = {
+        ...tripState,
+        origin_iata: originRes.iata,
+        destination_iata: destRes.iata,
+      };
       if (ctx.flightSearchesUsed >= DESTINA_LIMITS.maxFlightSearches) {
         return {
           tripState,
@@ -330,14 +403,14 @@ export async function executeDestinaTool(
       }
       try {
         const request = sanitizeSearchRequest({
-          origin: merged.origin,
-          destination: merged.destination,
-          departure_date: merged.departure_date,
-          return_date: merged.return_date,
-          trip_type: merged.return_date ? "return" : "one_way",
-          adults: merged.adults,
-          children: merged.children,
-          infants: merged.infants,
+          origin: originRes.iata,
+          destination: destRes.iata,
+          departure_date: tripState.departure_date,
+          return_date: tripState.return_date,
+          trip_type: tripState.return_date ? "return" : "one_way",
+          adults: tripState.adults,
+          children: tripState.children,
+          infants: tripState.infants,
           cabin_class: args.cabin_class ?? "economy",
         });
         const result = await deps.searchFlights({
@@ -380,7 +453,19 @@ export async function executeDestinaTool(
           ),
         };
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Travelport search failed";
+        if (e instanceof FlightProviderError && e.code === "validation_error") {
+          return {
+            tripState,
+            result: needs(
+              tool,
+              "Need a few flight details…",
+              /IATA|airport/i.test(e.message)
+                ? DESTINA_PLACE_COPY.unresolved
+                : DESTINA_PLACE_COPY.generic,
+              { error_code: "invalid_flight_request" },
+            ),
+          };
+        }
         return {
           tripState,
           result: {
@@ -390,7 +475,6 @@ export async function executeDestinaTool(
             summary:
               "I couldn't complete the live flight search just now. I can try again, or I can send the request to our travel team.",
             error_code: "travelport_failure",
-            data: { message: msg.slice(0, 200) },
           },
         };
       }

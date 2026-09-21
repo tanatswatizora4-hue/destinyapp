@@ -4,29 +4,38 @@ Project: Destiny OS `xchddfpfzrzhlbbmyhyn`
 
 Destina is Destiny Travel & Tours’ official AI travel consultant.
 
-The model reasons. The backend is authoritative. Allowlisted tools act.
+**Conversational-first, tools when authoritative data/actions are required.**
+
+The model reasons. Tools are optional capabilities, not a form to fill in.
+Ordinary conversation (greetings, inspiration, packing, seasons, follow-ups,
+small talk) is answered directly. Failure to update trip state never suppresses
+the natural reply.
 
 ```
-Customer
-  → Destina chat UI
-    → destina-api
-      → DestinaModelProvider (Gemini 3.6 Flash, or mock in non-prod tests)
-        → allowlisted tools
-          → flight-commerce-api domain / Travelport
-          → published Destiny catalog
-          → customer-api-equivalent enquiry/booking reads
-        → structured DestinaTurn
+USER
+  → GEMINI / DESTINA
+    → decides whether tools are necessary
+    → optional allowlisted tool call(s)
+    → tool results
+    → GEMINI
+    → natural final answer
   → Flutter renders cards / actions (never raw JSON)
 ```
 
 Flutter never calls Gemini. `DESTINA_API_KEY` stays on the Edge Function.
 
-## Identity
+## Knowledge vs live data
 
-Warm, confident, concise, professional. One useful question at a time.
+| Source | When Destina uses it |
+|--------|----------------------|
+| **Model knowledge** | Destination advice, inspiration, packing, etiquette, general comparisons, ordinary chat. Frame time-sensitive claims as general, not live. |
+| **Destiny catalog** | Published tours/stays/vehicles via `search_tours` / `search_stays` / `search_vehicles` / `get_*_details`. Catalog is not a live hold. |
+| **Live Travelport** | Current flight inventory/fares via `search_flights` only after the customer asked to search flights. Quotes, not tickets. |
+| **Customer-owned data** | Profile/bookings via JWT-gated tools. Never other customers. |
+| **Actions / handoffs** | Enquiry create and consultant handoff after confirmation (or explicit “send to a consultant”). |
 
-Never invent: live availability, fares, booking/payment confirmation, visas,
-tickets, PNRs, or staff actions.
+Never invent live availability, fares, catalog holds, booking/payment
+confirmation, visas, tickets, PNRs, or staff actions.
 
 Label sources:
 
@@ -34,17 +43,30 @@ Label sources:
 - **DESTINY CATALOG CONTENT** — published tours/stays/vehicles (not a live hold)
 - **CUSTOMER REQUEST / STAFF QUOTE / CONFIRMED BOOKING** — commerce states
 
+## Identity
+
+Warm, confident, conversational, concise, genuinely helpful. One useful
+question at a time. Not robotic, not pushy. City names are valid; Destina
+never asks customers for IATA codes.
+
 ## Tools
 
-`update_trip_state`, `search_flights`, `search_tours`, `search_stays`,
-`search_vehicles`, `get_*_details`, `get_customer_profile`,
+`update_trip_state` (optional memory), `search_flights`, `search_tours`,
+`search_stays`, `search_vehicles`, `get_*_details`, `get_customer_profile`,
 `list_customer_bookings`, `get_booking_status`, `create_travel_enquiry`,
 `create_flight_enquiry`, `handoff_to_consultant`.
 
 No arbitrary SQL, HTTP, or Edge Function names.
 
-`search_flights` requires origin, destination, departure date (IATA + ISO date)
-and reuses Travelport normalization (`Price` / `BestCombinablePrice`).
+`update_trip_state` is optional supporting state. A state-only tool call is
+followed by another Gemini turn so Destina can still answer naturally.
+
+`search_flights` requires origin, destination, and departure date. Human place
+names are resolved with a bounded alias list (Harare→HRE, Johannesburg→JNB,
+Zanzibar→ZNZ, Cape Town→CPT, Victoria Falls→VFA, Dubai→DXB). Unknown or
+ambiguous airports ask a natural clarification and never reach Travelport.
+IATA validation stays at the flight-provider boundary and is never shown as
+developer copy in chat.
 
 Enquiries require customer confirmation and a signed-in user. Anonymous users
 get `auth_required` — Destina does not fake a submit.
@@ -133,7 +155,7 @@ errors, thought signatures, or chain-of-thought to Flutter.
 ## Known limitations
 
 - Live Destina replies need `DESTINA_API_KEY` on the Edge Function secrets
-- Redeploy `destina-api` for Gemini 3.6 thought-signature tool continuation
+- Redeploy `destina-api` for conversational-first Destina (M4.1)
 - Real PSPs still unimplemented (M3D)
 - Travelport ticketing not implemented
 - Private travel-document storage remains a product decision

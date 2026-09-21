@@ -48,8 +48,11 @@ Deno.test("basic Zanzibar conversation asks one question", async () => {
     history: [],
     userMessage: "I want to go to Zanzibar.",
   });
-  assertEquals(out.response.message.content.includes("When are you hoping"), true);
-  assertEquals(out.tripState.destination, "ZNZ");
+  assertEquals(out.response.message.content.toLowerCase().includes("zanzibar"), true);
+  assertEquals(out.response.message.content.includes("IATA"), false);
+  assertEquals(out.tripState.destination, "Zanzibar");
+  assertEquals(out.tripState.destination_iata, "ZNZ");
+  assertEquals(out.toolRuns.some((t) => t.name === "search_flights"), false);
 });
 
 Deno.test("incomplete flight request does not call Travelport", async () => {

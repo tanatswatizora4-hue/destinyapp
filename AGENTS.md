@@ -11,7 +11,7 @@ Destiny owns auth via **Supabase Auth** (not Firebase).
 - Canonical identity: `user_id` → `auth.users.id`
 - RLS MODEL A: Edge Functions only for sensitive tables
 - Flight shopping: Flutter → `flight-commerce-api` → Travelport (server-side only). Live GDS search works; normalize `Price` and `BestCombinablePrice`.
-- Destina: Flutter → `destina-api` → Gemini 3.6 Flash + allowlisted tools. Flutter never calls Gemini. Never invent fares or confirmations.
+- Destina: Flutter → `destina-api` → Gemini 3.6 Flash (conversational-first; tools only for live/authoritative data or actions). Flutter never calls Gemini. Never invent fares or confirmations.
 - Payments: Flutter → `payment-commerce-api` → provider adapters (mock QA; real PSPs later)
 - Flutter is never authoritative for payment success, amount, fees, or refunds
 - Platform technology fee **defaults to 0**
