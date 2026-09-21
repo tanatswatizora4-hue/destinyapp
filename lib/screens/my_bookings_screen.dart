@@ -4,6 +4,7 @@ import 'package:destiny/models/customer_booking.dart';
 import 'package:destiny/models/payment_intent.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/repositories/payment_commerce_repository.dart';
+import 'package:destiny/screens/destina_launch.dart';
 import 'package:destiny/services/payment_api_client.dart';
 import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
@@ -535,6 +536,18 @@ class _CustomerBookingCardState extends State<_CustomerBookingCard> {
                 ),
               ),
             ],
+            TextButton(
+              onPressed: () => openDestinaChat(
+                context,
+                seedPrompt: 'Ask about this booking: ${booking.itemName}',
+                seedContext: {
+                  'product_type': 'booking',
+                  'booking_id': booking.id,
+                  'product_name': booking.itemName,
+                },
+              ),
+              child: const Text('Ask Destina about this booking'),
+            ),
           ],
         ),
       ),

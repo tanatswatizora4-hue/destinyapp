@@ -35,7 +35,9 @@
 - See `docs/m3e_commerce.md`
 
 ## M4 — Destina production assistant
-- Tool-backed planning beyond preview snackbars
+- Production Destina chat via `destina-api` (Gemini Flash provider, mock tests)
+- Allowlisted tools: live flights, Destiny catalog, enquiries, consultant handoff
+- See `docs/m4_destina.md`
 
 ## M5 — Private customer documents storage
 - Separate private bucket (not `destiny-media`)

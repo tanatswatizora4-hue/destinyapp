@@ -1,6 +1,7 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/vehicle.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
+import 'package:destiny/screens/destina_launch.dart';
 import 'package:destiny/widgets/destiny_discovery.dart';
 import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
@@ -78,9 +79,15 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                               extra: DestinyDestinaAssist(
                                 compact: true,
                                 prompt: 'Ask Destina to refine this transport brief.',
-                                onTap: () => showDestinyPreviewMessage(
+                                onTap: () => openDestinaChat(
                                   context,
-                                  'Destina planning is coming soon.',
+                                  seedPrompt:
+                                      'Tell me about this vehicle: ${vehicle.displayName}',
+                                  seedContext: {
+                                    'product_type': 'vehicle',
+                                    'product_id': vehicle.id.toString(),
+                                    'product_name': vehicle.displayName,
+                                  },
                                 ),
                               ),
                             ),
@@ -150,9 +157,14 @@ class _VehicleBody extends StatelessWidget {
           const SizedBox(height: 18),
           DestinyDestinaAssist(
             prompt: '“Need a driver and airport pickup with this hire…”',
-            onTap: () => showDestinyPreviewMessage(
+            onTap: () => openDestinaChat(
               context,
-              'Destina planning is coming soon.',
+              seedPrompt: 'Need a driver and airport pickup with this hire',
+              seedContext: {
+                'product_type': 'vehicle',
+                'product_id': vehicle.id.toString(),
+                'product_name': vehicle.displayName,
+              },
             ),
           ),
         ],

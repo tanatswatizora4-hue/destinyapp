@@ -12,16 +12,16 @@
 | M3B.5 | Supabase Auth ownership — **LIVE** |
 | M3C | Travelport flight shopping — **LIVE and working** |
 | M3D | Payment-ready architecture — **LIVE** (mock QA; real PSPs pending docs) |
+| M3E | Commerce completion + legacy cleanup — **LIVE** |
 
-## Current: M3E Commerce completion + legacy cleanup
+## Current: M4 Destina production assistant
 
 Branch: `cursor/m3b5-supabase-auth-migration-194a`
 
-- Return-flight two-step selection + provider-validated combined total
-- BestCombinablePrice GDS normalization (repo matches live)
-- Booking → quote → pay → server confirm
-- Travel docs isolated on legacy SQL (not public storage)
-- See `docs/m3e_commerce.md`
+- `destina-api` + Gemini provider abstraction (key server-side)
+- Allowlisted tools over Travelport + Destiny catalog + commerce
+- Destina chat UI wired from Home / Flights / Tours / Stays / Vehicles / Bookings
+- See `docs/m4_destina.md`
 
 ## Travelport
 
@@ -37,7 +37,7 @@ M3D schema + `payment-commerce-api` are live. Platform fee is 0. Mock provider i
 
 ## Later
 
-- M4 Destina production assistant
+- Live Destina model key (`DESTINA_API_KEY`) on Edge Function secrets
 - Live PSP integration after official docs + credentials
 - Private travel-document bucket (product decision)
 - Optional Google OAuth on Supabase Auth

@@ -1,0 +1,12 @@
+# Destiny Destina assistant (M4).
+#
+# AUTHORITATIVE GATEWAY SETTING LIVES IN ROOT supabase/config.toml:
+#   [functions.destina-api]
+#   verify_jwt = false
+#
+# Logged-out discovery must work. Customer-owned tools still verify a
+# Supabase access token inside the function. Do NOT set verify_jwt=true
+# here or anonymous Destina chat will 401 at the gateway.
+
+[functions.destina-api]
+verify_jwt = false

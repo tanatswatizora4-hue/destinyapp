@@ -4,6 +4,7 @@ import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/navigation_screen.dart';
 import 'package:destiny/screens/splash_screen.dart';
 import 'package:destiny/screens/staff/staff_ops_screen.dart';
+import 'package:destiny/screens/destina_screen.dart';
 import 'package:destiny/services/api_service.dart';
 import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +44,7 @@ class MyApp extends StatelessWidget {
       routes: {
         StaffOpsScreen.routeName: (_) => const StaffOpsScreen(),
         LoginScreen.routeName: (_) => const LoginScreen(),
+        DestinaScreen.routeName: (_) => const DestinaScreen(),
       },
       // Session restore: wait for Supabase auth bootstrap, then always use the
       // public navigation shell. Protected routes gate inside NavigationScreen.

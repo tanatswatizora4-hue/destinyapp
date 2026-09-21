@@ -424,6 +424,11 @@ verify_jwt = false
 [functions.payment-commerce-api]
 verify_jwt = false
 
+# Public Destina discovery while logged out. Customer-owned tools
+# (profile, bookings, enquiry) still verify a Supabase JWT inside destina-api.
+[functions.destina-api]
+verify_jwt = false
+
 # pg-delta is the schema diff engine for db diff / db pull / db remote commit.
 # Set enabled = false to fall back to the legacy migra engine.
 [experimental.pgdelta]

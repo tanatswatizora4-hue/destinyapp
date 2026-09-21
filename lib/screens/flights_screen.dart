@@ -1,6 +1,7 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/flight_offer.dart';
 import 'package:destiny/repositories/flight_commerce_repository.dart';
+import 'package:destiny/screens/destina_launch.dart';
 import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:destiny/widgets/destiny_discovery.dart';
@@ -355,9 +356,11 @@ class _FlightsScreenState extends State<FlightsScreen> {
                     DestinyDestinaAssist(
                       prompt:
                           '“Not sure of airport codes? Ask Destina for HRE, JNB, LHR…”',
-                      onTap: () => showDestinyPreviewMessage(
+                      onTap: () => openDestinaChat(
                         context,
-                        'Destina planning is coming soon — use 3-letter airport codes to search meanwhile.',
+                        seedPrompt:
+                            'Help me choose flights. I am not sure of airport codes.',
+                        seedContext: const {'product_type': 'flight'},
                       ),
                     ),
                     const SizedBox(height: 20),

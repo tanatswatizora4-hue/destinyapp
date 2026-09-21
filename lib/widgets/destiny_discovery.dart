@@ -312,7 +312,7 @@ class DestinyMessageState extends StatelessWidget {
   }
 }
 
-/// Compact Destina assist band — preview-only CTA until Destina is live.
+/// Compact Destina assist band — opens the Destina chat.
 class DestinyDestinaAssist extends StatelessWidget {
   final String prompt;
   final VoidCallback onTap;

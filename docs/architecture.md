@@ -70,6 +70,7 @@ Clients never touch commerce/staff tables directly. Edge Functions only.
 | Authoritative quotes + lifecycle | staff-commerce-api |
 | Payments / ledger / refunds | payment-commerce-api |
 | Travel documents / legacy photos | Isolated bymapara SQL (not public Storage; private bucket is a product decision) |
+| Destina assistant | destina-api (Gemini server-side; tools to Travelport/catalog/commerce) |
 | Live fares | flight-commerce-api (Travelport live search working) |
 
 ## Secrets

@@ -665,10 +665,31 @@ class _EnquiryDetailPanelState extends State<_EnquiryDetailPanel> {
           else
             Text(
               e.payload.entries
+                  .where((kv) => kv.key != 'destina')
                   .map((kv) => '${kv.key}: ${kv.value}')
                   .join('\n'),
               style: const TextStyle(fontSize: 13, height: 1.4),
             ),
+          if (e.payload['destina'] is Map) ...[
+            const SizedBox(height: 16),
+            Text('Destina brief',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 6),
+            Text(
+              () {
+                final d = Map<String, dynamic>.from(e.payload['destina'] as Map);
+                final summary = d['summary']?.toString() ?? '';
+                final reason = d['handoff_reason']?.toString() ?? '';
+                return [
+                  if (reason.isNotEmpty) 'Handoff: $reason',
+                  if (summary.isNotEmpty) summary,
+                ].join('\n');
+              }(),
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
+          ],
           const SizedBox(height: 20),
           Wrap(
             spacing: 8,

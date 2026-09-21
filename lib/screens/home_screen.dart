@@ -4,6 +4,7 @@ import 'package:destiny/models/tour.dart';
 import 'package:destiny/models/vehicle.dart';
 import 'package:destiny/screens/accommodation_details_screen.dart';
 import 'package:destiny/screens/accommodation_list_screen.dart';
+import 'package:destiny/screens/destina_launch.dart';
 import 'package:destiny/screens/tour_list_screen.dart';
 import 'package:destiny/screens/vehicle_details_screen.dart';
 import 'package:destiny/screens/vehicle_list_screen.dart';
@@ -438,8 +439,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(width: 18),
                 FilledButton(
-                  onPressed: () => _showPreviewMessage(
-                    'Destina planning is coming soon — explore Destiny Picks meanwhile.',
+                  onPressed: () => openDestinaChat(
+                    context,
+                    seedPrompt:
+                        '5 nights in Zanzibar for two, around \$2,500',
                   ),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppTheme.accent,
@@ -485,8 +488,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () => _showPreviewMessage(
-                      'Destina planning is coming soon — explore Destiny Picks meanwhile.',
+                    onPressed: () => openDestinaChat(
+                      context,
+                      seedPrompt:
+                          '5 nights in Zanzibar for two, around \$2,500',
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppTheme.accent,
@@ -1083,7 +1088,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Destina helps shape itineraries, budgets and logistics — coming soon as a product experience.',
+                            'Destina helps shape itineraries, budgets and logistics with Destiny’s live flights and catalog.',
                             style:
                                 Theme.of(context).textTheme.titleMedium?.copyWith(
                                       color: Colors.white.withValues(alpha: 0.82),
@@ -1095,9 +1100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 28),
                     FilledButton(
-                      onPressed: () => _showPreviewMessage(
-                        'We’ll notify you when Destina launches.',
-                      ),
+                      onPressed: () => openDestinaChat(context),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppTheme.accent,
                         foregroundColor: Colors.white,
@@ -1109,7 +1112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Notify me'),
+                      child: const Text('Start planning'),
                     ),
                   ],
                 )
@@ -1149,7 +1152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Destina helps shape itineraries, budgets and logistics — coming soon.',
+                      'Destina helps shape itineraries, budgets and logistics.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Colors.white.withValues(alpha: 0.82),
                             height: 1.4,
@@ -1157,9 +1160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 18),
                     FilledButton(
-                      onPressed: () => _showPreviewMessage(
-                        'We’ll notify you when Destina launches.',
-                      ),
+                      onPressed: () => openDestinaChat(context),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppTheme.accent,
                         foregroundColor: Colors.white,
@@ -1167,7 +1168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Notify me'),
+                      child: const Text('Start planning'),
                     ),
                   ],
                 ),
