@@ -95,9 +95,14 @@ npx deno@2.1.4 test supabase/functions/destina-api
 
 Deterministic scripted model. No paid Gemini calls in CI.
 
+Gemini HTTP failures are mocked. Live `destina-api` logs
+`destina_model_provider_error` (`http_status`, `provider_status`,
+sanitized `provider_message`) and never returns Google errors to Flutter.
+
 ## Known limitations
 
 - Live Destina replies need `DESTINA_API_KEY` on the Edge Function secrets
+- Redeploy `destina-api` to apply Gemini diagnostics + parameterless-tool schema
 - Real PSPs still unimplemented (M3D)
 - Travelport ticketing not implemented
 - Private travel-document storage remains a product decision

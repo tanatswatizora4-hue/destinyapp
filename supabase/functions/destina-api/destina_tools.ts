@@ -171,12 +171,12 @@ export const DESTINA_TOOL_SPECS: DestinaToolSpec[] = [
   {
     name: "get_customer_profile",
     description: "Get the signed-in customer's safe profile (name/email). Auth required.",
-    parameters: { type: "object", properties: {} },
+    parameters: { type: "object" },
   },
   {
     name: "list_customer_bookings",
     description: "List the signed-in customer's bookings. Auth required. Never other customers.",
-    parameters: { type: "object", properties: {} },
+    parameters: { type: "object" },
   },
   {
     name: "get_booking_status",

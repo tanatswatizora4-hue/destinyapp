@@ -37,7 +37,7 @@ M3D schema + `payment-commerce-api` are live. Platform fee is 0. Mock provider i
 
 ## Later
 
-- Live Destina model key (`DESTINA_API_KEY`) on Edge Function secrets
+- Redeploy `destina-api` for Gemini diagnostics (`destina_model_provider_error`) + parameterless-tool schema fix
 - Live PSP integration after official docs + credentials
 - Private travel-document bucket (product decision)
 - Optional Google OAuth on Supabase Auth
