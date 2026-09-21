@@ -69,8 +69,8 @@ Clients never touch commerce/staff tables directly. Edge Functions only.
 | Booking requests / flight enquiries | customer-api |
 | Authoritative quotes + lifecycle | staff-commerce-api |
 | Payments / ledger / refunds | payment-commerce-api |
-| Travel documents / legacy photos | bymapara until M3E |
-| Live fares | flight-commerce-api (Travelport PP inventory externally blocked) |
+| Travel documents / legacy photos | Isolated bymapara SQL (not public Storage; private bucket is a product decision) |
+| Live fares | flight-commerce-api (Travelport live search working) |
 
 ## Secrets
 

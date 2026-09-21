@@ -45,6 +45,28 @@ export function parseIsoDurationMinutes(raw: unknown): number | null {
   return Number.isFinite(total) ? total : null;
 }
 
+function numericField(obj: Json, ...keys: string[]): number | null {
+  for (const key of keys) {
+    if (!(key in obj) || obj[key] == null) continue;
+    const raw = obj[key];
+    const n = Number(asObj(raw)?.value ?? raw);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+/** Travelport GDS often prices under BestCombinablePrice rather than Price. */
+export function priceFromProductBrandOffering(
+  pbo: Record<string, unknown>,
+): Money | null {
+  return parseMoney(
+    pbo.Price ??
+      pbo.price ??
+      pbo.BestCombinablePrice ??
+      pbo.bestCombinablePrice,
+  );
+}
+
 export function parseMoney(price: unknown, fallbackCurrency = ""): Money | null {
   const obj = asObj(price);
   if (!obj) {
@@ -58,14 +80,26 @@ export function parseMoney(price: unknown, fallbackCurrency = ""): Money | null 
     obj.code ??
       asObj(obj.CurrencyCode)?.value ??
       obj.CurrencyCode ??
+      obj.currencyCode ??
       fallbackCurrency,
   ).toUpperCase();
 
-  const amountRaw = obj.TotalPrice ?? obj.totalPrice ?? obj.value ?? obj.Amount;
-  const amount = Number(
-    asObj(amountRaw)?.value ?? amountRaw,
+  let amount = numericField(
+    obj,
+    "TotalPrice",
+    "totalPrice",
+    "value",
+    "Amount",
+    "amount",
   );
-  if (!Number.isFinite(amount) || amount < 0 || !currency) return null;
+  if (amount == null) {
+    const base = numericField(obj, "Base", "base") ?? 0;
+    const taxes = numericField(obj, "TotalTaxes", "totalTaxes") ?? 0;
+    const fees = numericField(obj, "TotalFees", "totalFees") ?? 0;
+    const sum = base + taxes + fees;
+    amount = sum > 0 ? sum : null;
+  }
+  if (amount == null || amount < 0 || !currency) return null;
   return { amount: roundMoney(amount), currency: currency.slice(0, 8) };
 }
 
@@ -157,6 +191,17 @@ function segmentFromFlight(flight: Json, cabin: string | null): FlightSegment | 
   const number = str(flight.number ?? flight.flightNumber);
   if (!origin || !dest || !carrierCode || !number) return null;
   const flightNumber = `${carrierCode}${number.replace(/^0+/, "") || number}`;
+  const opCode = str(
+    flight.operatingCarrier ??
+      flight.OperatingCarrier ??
+      asObj(flight.operatingCarrier)?.value ??
+      flight.operatingCarrierCode,
+  );
+  const opName = str(
+    flight.operatingCarrierName ??
+      flight.OperatingCarrierName ??
+      asObj(flight.operatingCarrier)?.name,
+  );
   return {
     origin: airport(origin),
     destination: airport(dest),
@@ -164,6 +209,9 @@ function segmentFromFlight(flight: Json, cabin: string | null): FlightSegment | 
     arrival: combineDateTime(arr.date, arr.time),
     durationMinutes: parseIsoDurationMinutes(flight.duration),
     carrier: carrier(carrierCode, str(flight.carrierName) || undefined),
+    operatingCarrier: opCode
+      ? carrier(opCode, opName || undefined)
+      : undefined,
     flightNumber,
     cabin,
   };
@@ -306,7 +354,7 @@ export function normalizeSearchResponse(
       for (const pboRaw of asArr(option.ProductBrandOffering)) {
         const pbo = asObj(pboRaw);
         if (!pbo) continue;
-        const money = parseMoney(pbo.Price ?? pbo.price);
+        const money = priceFromProductBrandOffering(pbo);
         if (!money) continue;
 
         const productIds: string[] = [];
@@ -411,7 +459,7 @@ export function normalizePriceResponse(
     return null;
   }
 
-  const money = parseMoney(first.Price ?? first.price);
+  const money = priceFromProductBrandOffering(first);
   if (!money) return null;
 
   const productNodes = asArr(first.Product);

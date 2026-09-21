@@ -93,13 +93,13 @@ class AuthService {
       print('customer profile upsert deferred: $e');
     }
 
-    // Legacy bymapara SQL bridge for Travel Docs / photos until M3E.
-    // Identity string is now the Supabase Auth UUID (not Firebase).
+    // Isolated legacy SQL bridge for Travel Documents / photos only.
+    // Active commerce (bookings, payments, flights) uses customer-api.
     try {
       await _apiService.syncUserWithSql(user.id, name, email);
     } catch (e) {
       // ignore: avoid_print
-      print('legacy SQL sync deferred: $e');
+      print('legacy travel-docs SQL sync deferred: $e');
     }
   }
 

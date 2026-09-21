@@ -2,7 +2,6 @@ import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:open_file/open_file.dart';
 
 class TravelDocumentsScreen extends StatefulWidget {
   final int userId;

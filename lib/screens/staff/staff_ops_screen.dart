@@ -232,7 +232,7 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
               title: Text(b.itemName,
                   maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(
-                '${b.statusLabel} · ${destinyProductTypeLabel(b.itemType)}',
+                '${b.statusLabel} · ${destinyProductTypeLabel(b.itemType)} · ${b.paymentStatus}',
               ),
               trailing: Text(b.status),
               onTap: () => setState(() => _selectedBooking = b),
@@ -455,6 +455,7 @@ class _BookingDetailPanelState extends State<_BookingDetailPanel> {
             children: [
               Chip(label: Text(b.statusLabel)),
               Chip(label: Text(destinyProductTypeLabel(b.itemType))),
+              Chip(label: Text('Payment: ${b.paymentStatus}')),
               if (b.requestedTotal != null)
                 Chip(
                   label: Text(
@@ -471,7 +472,7 @@ class _BookingDetailPanelState extends State<_BookingDetailPanel> {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Customer: ${b.userId.isNotEmpty ? b.userId : b.firebaseUid}',
+          Text('Customer: ${b.userId.isNotEmpty ? b.userId : '—'}',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
           if (b.itemType == 'flight') ...[
             const SizedBox(height: 16),

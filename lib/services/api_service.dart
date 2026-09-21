@@ -13,11 +13,14 @@ import 'package:http_parser/http_parser.dart';
 class ApiService {
   static const String _baseUrl = 'https://bymapara.com';
 
-  /// Optional inventory backend (Supabase composite). When null, uses legacy PHP.
+  /// Optional inventory backend (Supabase composite). When null, inventory reads fail closed.
   static InventoryRepository? inventoryRepository;
 
-  // --- BOOKING METHODS ---
-  /// Creates a general booking (e.g., for a tour, accommodation, or vehicle).
+  // --- LEGACY PHP (travel documents / unused booking endpoints) ---
+  // Active Destiny commerce uses customer-api / payment-commerce-api / flight-commerce-api.
+  // Do not call createBooking/getUserBookings from new screens.
+
+  /// Unused by active commerce. Kept only for historical PHP contract.
   Future<void> createBooking({
     required int sqlId,
     required int itemId,

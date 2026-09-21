@@ -19,6 +19,7 @@ import {
   normalizeSearchResponse,
   parseIsoDurationMinutes,
   parseMoney,
+  priceFromProductBrandOffering,
 } from "./travelport_normalize.ts";
 import { searchResultToApi } from "./flight_domain.ts";
 
@@ -185,6 +186,33 @@ Deno.test("ISO duration and money parsing", () => {
     currency: "EUR",
   });
   assertEquals(parseMoney("not-a-price"), null);
+  assertEquals(
+    parseMoney({
+      CurrencyCode: "GBP",
+      Base: 180,
+      TotalTaxes: 30.1,
+      TotalFees: 4,
+    }),
+    { amount: 214.1, currency: "GBP" },
+  );
+  assertEquals(
+    priceFromProductBrandOffering({
+      BestCombinablePrice: {
+        CurrencyCode: { value: "GBP" },
+        TotalPrice: 214.1,
+      },
+    }),
+    { amount: 214.1, currency: "GBP" },
+  );
+  assertEquals(
+    priceFromProductBrandOffering({
+      bestCombinablePrice: {
+        CurrencyCode: { value: "GBP" },
+        TotalPrice: 214.1,
+      },
+    }),
+    { amount: 214.1, currency: "GBP" },
+  );
 });
 
 Deno.test("normalizes multi-segment Travelport search without inventing fares", () => {
@@ -202,7 +230,108 @@ Deno.test("normalizes multi-segment Travelport search without inventing fares", 
   assertEquals(result.nextLegRequired, false);
 });
 
-Deno.test("drops offerings that have no parseable price", () => {
+Deno.test("GDS BestCombinablePrice HRE-JNB is normalized (live shape)", () => {
+  const gds = {
+    CatalogProductOfferingsResponse: {
+      CatalogProductOfferings: {
+        Identifier: { value: "gds-hre-jnb" },
+        CatalogProductOffering: [
+          {
+            sequence: 1,
+            id: "out-1",
+            ProductBrandOptions: [
+              {
+                flightRefs: ["f1"],
+                ProductBrandOffering: [
+                  {
+                    BestCombinablePrice: {
+                      CurrencyCode: { value: "GBP" },
+                      TotalPrice: 214.1,
+                      Base: 180,
+                      TotalTaxes: 30.1,
+                      TotalFees: 4,
+                    },
+                    Product: [{ productRef: "p-out" }],
+                    Brand: { name: "Value Flex" },
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            sequence: 2,
+            id: "in-1",
+            ProductBrandOptions: [
+              {
+                flightRefs: ["f2"],
+                ProductBrandOffering: [
+                  {
+                    bestCombinablePrice: {
+                      CurrencyCode: { value: "GBP" },
+                      TotalPrice: 198.4,
+                    },
+                    Product: [{ productRef: "p-in" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      ReferenceList: [
+        {
+          "@type": "ReferenceListFlight",
+          Flight: [
+            {
+              id: "f1",
+              carrier: "FN",
+              number: "8331",
+              duration: "PT1H45M",
+              Departure: { location: "HRE", date: "2026-10-18", time: "07:25:00" },
+              Arrival: { location: "JNB", date: "2026-10-18", time: "09:10:00" },
+            },
+            {
+              id: "f2",
+              carrier: "FN",
+              number: "8332",
+              duration: "PT1H45M",
+              Departure: { location: "JNB", date: "2026-10-25", time: "10:00:00" },
+              Arrival: { location: "HRE", date: "2026-10-25", time: "11:45:00" },
+            },
+          ],
+        },
+        {
+          "@type": "ReferenceListProduct",
+          Product: [
+            {
+              id: "p-out",
+              PassengerFlight: [
+                { FlightProduct: [{ cabin: "Economy" }] },
+              ],
+            },
+            {
+              id: "p-in",
+              PassengerFlight: [
+                { FlightProduct: [{ cabin: "Economy" }] },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+  const result = normalizeSearchResponse(gds, "return", "economy");
+  assertEquals(result.offers.length, 2);
+  const outbound = result.offers.find((o) => o.provider.sequence === 1);
+  const inbound = result.offers.find((o) => o.provider.sequence === 2);
+  assertEquals(outbound?.totalPrice, { amount: 214.1, currency: "GBP" });
+  assertEquals(outbound?.itineraries[0].segments[0].flightNumber, "FN8331");
+  assertEquals(outbound?.cabin, "Economy");
+  assertEquals(inbound?.totalPrice.amount, 198.4);
+  assertEquals(result.nextLegRequired, false);
+});
+
+Deno.test("offerings without Price or BestCombinablePrice are dropped", () => {
   const raw = structuredClone(sampleSearch);
   const offering =
     raw.CatalogProductOfferingsResponse.CatalogProductOfferings

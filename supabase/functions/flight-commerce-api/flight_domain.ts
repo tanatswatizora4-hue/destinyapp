@@ -39,6 +39,7 @@ export type FlightSegment = {
   arrival: string;
   durationMinutes: number | null;
   carrier: Carrier;
+  operatingCarrier?: Carrier;
   flightNumber: string;
   cabin: string | null;
 };
@@ -196,6 +197,7 @@ export function offerToApi(offer: FlightOffer): Record<string, unknown> {
         arrival: s.arrival,
         duration_minutes: s.durationMinutes,
         carrier: s.carrier,
+        operating_carrier: s.operatingCarrier ?? null,
         flight_number: s.flightNumber,
         cabin: s.cabin,
       })),

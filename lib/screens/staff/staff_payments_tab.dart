@@ -216,6 +216,17 @@ class _PaymentDetail extends StatelessWidget {
         if (p.createdAt != null)
           Text('Created: ${DateFormat.yMMMd().add_jm().format(p.createdAt!.toLocal())}'),
         const SizedBox(height: 16),
+        Text('Attempts', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 6),
+        if (detail.attempts.isEmpty) const Text('No attempts yet.'),
+        ...detail.attempts.map(
+          (a) => Text(
+            '${a['created_at'] ?? ''}  ${a['status'] ?? '—'}'
+            '${a['failure_code'] != null ? ' · ${a['failure_code']}' : ''}'
+            '${a['provider_reference'] != null ? ' · ${a['provider_reference']}' : ''}',
+          ),
+        ),
+        const SizedBox(height: 16),
         Text('Ledger', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 6),
         if (detail.ledger.isEmpty) const Text('No ledger entries yet.'),

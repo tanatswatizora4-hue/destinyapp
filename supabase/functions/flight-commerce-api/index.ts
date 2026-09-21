@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
             payload,
             status: "received",
             provider: "travelport",
-            provider_offer_ref: offer.provider.transactionId,
+            provider_offer_ref: `${offer.provider.transactionId}:${offer.provider.offerId}`,
             itinerary_snapshot: snapshot,
             validated_amount: offer.totalPrice.amount,
             validated_currency: offer.totalPrice.currency,

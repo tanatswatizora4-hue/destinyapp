@@ -90,35 +90,19 @@ class _NavigationScreenState extends State<NavigationScreen> {
       if (user != null) {
         final displayName = _supabaseAuth.displayNameOf(user) ?? '';
         final email = user.email ?? '';
-        // Best-effort legacy SQL sync for Travel Docs until M3E.
         try {
-          final userData = await _apiService.syncUserWithSql(
-            user.id,
-            displayName,
-            email,
+          await CustomerRepository().upsertProfile(
+            fullName: displayName,
+            email: email,
           );
-          try {
-            await CustomerRepository().upsertProfile(
-              fullName: displayName,
-              email: email,
-            );
-          } catch (e) {
-            debugPrint('M3B.5 profile upsert deferred: $e');
-          }
-          if (!mounted) return;
-          setState(() {
-            _sqlUserId = userData['id'];
-            _isLoadingAuth = false;
-          });
         } catch (e) {
-          debugPrint('Failed to sync user with SQL: $e');
-          if (!mounted) return;
-          setState(() {
-            // Supabase session still valid for commerce even if legacy sync fails.
-            _sqlUserId = null;
-            _isLoadingAuth = false;
-          });
+          debugPrint('M3B.5 profile upsert deferred: $e');
         }
+        if (!mounted) return;
+        setState(() => _isLoadingAuth = false);
+        // Travel documents remain on the isolated legacy SQL link.
+        // Failure must not block Destiny commerce (bookings/payments/flights).
+        unawaited(_syncLegacyTravelDocs(user.id, displayName, email));
       } else {
         if (!mounted) return;
         setState(() {
@@ -133,6 +117,25 @@ class _NavigationScreenState extends State<NavigationScreen> {
   void dispose() {
     _authSubscription.cancel();
     super.dispose();
+  }
+
+  Future<void> _syncLegacyTravelDocs(
+    String userId,
+    String displayName,
+    String email,
+  ) async {
+    try {
+      final userData = await _apiService.syncUserWithSql(
+        userId,
+        displayName,
+        email,
+      );
+      final sqlId = userData['id'];
+      if (!mounted) return;
+      setState(() => _sqlUserId = sqlId is int ? sqlId : int.tryParse('$sqlId'));
+    } catch (e) {
+      debugPrint('Legacy travel-docs sync deferred: $e');
+    }
   }
 
   // A list of widgets that are conditionally built based on selected index
@@ -171,7 +174,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           ? TravelDocumentsScreen(userId: _sqlUserId!)
           : _buildPlaceholder(
               signedIn
-                  ? 'Travel documents still use the legacy account link. Try again shortly, or contact Destiny support.'
+                  ? 'Travel documents still use a separate legacy account link and are not stored in Destiny public media. If this stays empty, contact Destiny support. Bookings and payments are not affected.'
                   : 'Please sign in to view your travel documents.',
             ),
       signedIn

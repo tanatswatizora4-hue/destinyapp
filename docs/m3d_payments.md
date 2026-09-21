@@ -126,12 +126,10 @@ DESTINY_ENV=production
 Destiny OS must never store full card numbers, CVV, PIN, or raw banking
 credentials. Prefer hosted/provider checkout. Mock QA does not collect cards.
 
-## Travelport PP (does not block M3D)
+## Travelport (does not block payments)
 
-Travelport authentication works. The official PP control example still returns
-`NO OFFERS FOUND FOR THE CHANNEL`. That is an external inventory/channel
-provisioning issue. See `docs/m3c_flight_commerce.md`. No JFK/LAX diagnostic
-special-case remains in the repo.
+Travelport live search **works**. GDS offerings are priced under `BestCombinablePrice`
+as well as `Price`. Confirmed live HRE↔JNB. See `docs/m3c_flight_commerce.md`.
 
 ## Real provider integration checklist
 
@@ -157,7 +155,8 @@ supabase db push --project-ref xchddfpfzrzhlbbmyhyn
 supabase functions deploy payment-commerce-api --project-ref xchddfpfzrzhlbbmyhyn
 ```
 
-Migration: `supabase/migrations/20260918120000_m3d_payment_commerce.sql`
+M3D migration is **already applied live** — do not re-run it.
+M3E follow-up (search_path only): `supabase/migrations/20260921120000_m3e_function_search_path.sql`
 
 ## Known limitations
 

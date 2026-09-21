@@ -72,6 +72,72 @@ void main() {
       expect(offer.provider.toSelectionJson()['offer_id'], 'o1');
     });
 
+    test('return search splits outbound vs inbound sequences', () {
+      Map<String, dynamic> offerJson({
+        required String id,
+        required int sequence,
+        required String origin,
+        required String dest,
+      }) {
+        return {
+          'id': id,
+          'provider': {
+            'provider': 'travelport',
+            'transaction_id': 'gds-hre-jnb',
+            'offer_id': id,
+            'product_ids': ['p$id'],
+            'sequence': sequence,
+          },
+          'itineraries': [
+            {
+              'origin': {'code': origin},
+              'destination': {'code': dest},
+              'departure': '2026-10-18T07:25:00',
+              'arrival': '2026-10-18T09:10:00',
+              'duration_minutes': 105,
+              'stops': 0,
+              'segments': [
+                {
+                  'origin': {'code': origin},
+                  'destination': {'code': dest},
+                  'departure': '2026-10-18T07:25:00',
+                  'arrival': '2026-10-18T09:10:00',
+                  'duration_minutes': 105,
+                  'carrier': {'code': 'FN'},
+                  'flight_number': 'FN8331',
+                  'cabin': 'Economy',
+                }
+              ],
+            }
+          ],
+          'total_price': {
+            'amount': sequence == 1 ? 214.1 : 198.4,
+            'currency': 'GBP',
+          },
+          'cabin': 'Economy',
+          'fare_name': 'Value Flex',
+        };
+      }
+
+      final result = FlightSearchResult.fromJson({
+        'offers': [
+          offerJson(id: 'out', sequence: 1, origin: 'HRE', dest: 'JNB'),
+          offerJson(id: 'in', sequence: 2, origin: 'JNB', dest: 'HRE'),
+        ],
+        'next_leg_required': false,
+        'provider': 'travelport',
+      });
+      expect(result.hasSeparateInboundSequence, isTrue);
+      expect(result.outboundOffers, hasLength(1));
+      expect(result.inboundOffers, hasLength(1));
+      expect(result.outboundOffers.first.routeLabel, 'HRE → JNB');
+      expect(result.inboundOffers.first.routeLabel, 'JNB → HRE');
+      expect(result.outboundOffers.first.airlineLabel, 'FN');
+      final combinedDisplayed = result.outboundOffers.first.totalPrice.amount +
+          result.inboundOffers.first.totalPrice.amount;
+      expect(combinedDisplayed, isNot(214.1));
+    });
+
     test('empty offers stay empty — never invent inventory', () {
       final result = FlightSearchResult.fromJson({
         'offers': [],

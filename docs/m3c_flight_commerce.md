@@ -19,6 +19,10 @@ Canonical models at the application boundary:
 
 Flutter never receives raw Travelport JSON, provider access tokens, or secrets.
 
+GDS `ProductBrandOffering` pricing is read from, in order:
+
+`Price` / `price` / `BestCombinablePrice` / `bestCombinablePrice`.
+
 ## Auth vs public
 
 | Action | JWT |
@@ -160,8 +164,8 @@ flutter build web --debug
 
 - Live shopping requires operator-set Travelport secrets (access group included).
 - Default environment is pre-production (`TRAVELPORT_ENV=pp`).
-- **EXTERNAL BLOCKER — Travelport PP inventory/channel:** Authentication, JWT acquisition, and request processing succeed. The provider’s official pre-production control example (JFK→LAX, 2026-10-18, 1 ADT, AA NDC) still returns `NO OFFERS FOUND FOR THE CHANNEL`. This is a Travelport PP inventory/channel provisioning issue, not a Destiny search bug. No hardcoded JFK/LAX diagnostic special-case remains in the repo. Do not block M3D payments on this.
-- No ticketing / PNR commit (later). Payments are M3D (`docs/m3d_payments.md`).
+- **Live search works.** GDS offerings priced under `BestCombinablePrice` (as well as `Price`) are normalized. Confirmed live: HRE↔JNB.
+- No ticketing / PNR commit. Payments are M3D (`docs/m3d_payments.md`).
 - Airport input is IATA codes, not city-name lookup.
 - Google OAuth still deferred (M3B.5).
-- Travel Documents remain on legacy bymapara (M3E). M3C adds no new bymapara dependency.
+- Travel Documents remain isolated on legacy bymapara (`docs/m3e_commerce.md`).

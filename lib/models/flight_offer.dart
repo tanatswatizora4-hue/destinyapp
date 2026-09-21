@@ -54,6 +54,7 @@ class FlightSegment {
   final DateTime? arrival;
   final int? durationMinutes;
   final FlightCarrier carrier;
+  final FlightCarrier? operatingCarrier;
   final String flightNumber;
   final String? cabin;
 
@@ -64,6 +65,7 @@ class FlightSegment {
     this.arrival,
     this.durationMinutes,
     required this.carrier,
+    this.operatingCarrier,
     required this.flightNumber,
     this.cabin,
   });
@@ -83,6 +85,11 @@ class FlightSegment {
       carrier: FlightCarrier.fromJson(
         Map<String, dynamic>.from(json['carrier'] as Map? ?? const {}),
       ),
+      operatingCarrier: json['operating_carrier'] is Map
+          ? FlightCarrier.fromJson(
+              Map<String, dynamic>.from(json['operating_carrier'] as Map),
+            )
+          : null,
       flightNumber: json['flight_number']?.toString() ?? '',
       cabin: json['cabin']?.toString(),
     );
@@ -221,6 +228,9 @@ class FlightOffer {
   FlightItinerary? get outbound =>
       itineraries.isEmpty ? null : itineraries.first;
 
+  FlightItinerary? get inbound =>
+      itineraries.length > 1 ? itineraries[1] : null;
+
   String get airlineLabel {
     final first = outbound?.segments.isNotEmpty == true
         ? outbound!.segments.first.carrier
@@ -264,6 +274,16 @@ class FlightSearchResult {
           .toList(growable: false),
     );
   }
+
+  List<FlightOffer> get outboundOffers => offers
+      .where((o) => (o.provider.sequence ?? 1) <= 1)
+      .toList(growable: false);
+
+  List<FlightOffer> get inboundOffers => offers
+      .where((o) => o.provider.sequence == 2)
+      .toList(growable: false);
+
+  bool get hasSeparateInboundSequence => inboundOffers.isNotEmpty;
 }
 
 class FlightOfferValidation {

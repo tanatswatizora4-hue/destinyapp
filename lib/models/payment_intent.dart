@@ -187,6 +187,7 @@ class StaffPaymentDetail {
   final List<PaymentLedgerEntry> ledger;
   final List<PaymentRefund> refunds;
   final List<Map<String, dynamic>> events;
+  final List<Map<String, dynamic>> attempts;
 
   StaffPaymentDetail({
     required this.intent,
@@ -194,6 +195,7 @@ class StaffPaymentDetail {
     required this.ledger,
     required this.refunds,
     required this.events,
+    this.attempts = const [],
   });
 
   factory StaffPaymentDetail.fromJson(Map<String, dynamic> json) {
@@ -210,12 +212,16 @@ class StaffPaymentDetail {
     final events = (json['events'] as List? ?? const [])
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList(growable: false);
+    final attempts = (json['attempts'] as List? ?? const [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList(growable: false);
     return StaffPaymentDetail(
       intent: PaymentIntent.fromJson(intentMap),
       booking: booking,
       ledger: ledger,
       refunds: refunds,
       events: events,
+      attempts: attempts,
     );
   }
 }
