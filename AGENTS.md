@@ -1,6 +1,6 @@
 # AGENTS.md — Destiny
 
-## Active milestone: M4 Destina production assistant
+## Active milestone: M5 Internal operations (in repo)
 
 Branch: `cursor/m3b5-supabase-auth-migration-194a`  
 Supabase: **`xchddfpfzrzhlbbmyhyn` only** (never Wanzwei).
@@ -9,13 +9,15 @@ Destiny owns auth via **Supabase Auth** (not Firebase).
 
 - Flutter → Supabase Auth access token → `customer-api` / `staff-commerce-api` / `flight-commerce-api` (enquiry) / `payment-commerce-api` / `destina-api`
 - Canonical identity: `user_id` → `auth.users.id`
-- RLS MODEL A: Edge Functions only for sensitive tables
+- RLS MODEL A: Edge Functions only for sensitive tables (including M5 travel docs, CRM notes, ops audit)
+- Private travel docs: bucket `customer-travel-documents` via `customer-api` / staff document actions — never `destiny-media`
+- Staff ops: CRM / work queue / dashboard on `staff-commerce-api` (`/staff-ops`)
 - Flight shopping: Flutter → `flight-commerce-api` → Travelport (server-side only). Live GDS search works; normalize `Price` and `BestCombinablePrice`.
-- Destina: Flutter → `destina-api` → Gemini 3.6 Flash (conversational-first; tools only for live/authoritative data or actions). Flutter never calls Gemini. Never invent fares or confirmations.
+- Destina: Flutter → `destina-api` → Gemini 3.6 Flash (conversational-first; tools only for live/authoritative data or actions). Flutter never calls Gemini. Never invent fares or confirmations. Destina does **not** read private travel documents.
 - Payments: Flutter → `payment-commerce-api` → provider adapters (mock QA; real PSPs later)
 - Flutter is never authoritative for payment success, amount, fees, or refunds
 - Platform technology fee **defaults to 0**
-- Deploy: `docs/m4_destina.md`, `docs/m3e_commerce.md`, `docs/m3d_payments.md`, `docs/m3c_flight_commerce.md`
+- Deploy: `docs/m5_internal_ops.md`, `docs/m4_destina.md`, `docs/m3e_commerce.md`, `docs/m3d_payments.md`, `docs/m3c_flight_commerce.md`
 - Status: `docs/m3_status.md`
 
 Do **not** invent staff UUIDs. Do not implement Travelport ticketing.
@@ -23,3 +25,4 @@ Do not invent Zimswitch / Tooma / Paynow API details.
 Never embed `service_role`, Travelport, Destina, or payment provider secrets in Flutter.
 `devBypassAuth` is UI-only and must not bypass backend auth.
 Root `supabase/config.toml` is authoritative for function `verify_jwt`.
+Gemini billing/quota is external — not an M5 task.
