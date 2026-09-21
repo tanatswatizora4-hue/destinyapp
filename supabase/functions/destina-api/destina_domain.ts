@@ -84,6 +84,20 @@ export type DestinaChatMessage = {
   content: string;
   toolCallId?: string;
   toolName?: string;
+  /**
+   * Opaque provider continuation for this model turn.
+   * Protocol metadata only — never copy into DestinaTurnResponse or UI.
+   */
+  providerTurn?: DestinaProviderTurn;
+};
+
+/**
+ * Opaque model-turn parts for the same provider's next generate() call.
+ * Never interpret, log, or return to Flutter.
+ */
+export type DestinaProviderTurn = {
+  provider: string;
+  parts: unknown[];
 };
 
 export type DestinaToolCall = {
@@ -107,6 +121,7 @@ export type DestinaModelGenerateRequest = {
 export type DestinaModelGenerateResult = {
   text: string;
   toolCalls: DestinaToolCall[];
+  providerTurn?: DestinaProviderTurn;
 };
 
 export interface DestinaModelProvider {

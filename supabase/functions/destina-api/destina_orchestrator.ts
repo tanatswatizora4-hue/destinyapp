@@ -119,6 +119,13 @@ export async function runDestinaLoop(
       c.name === "update_trip_state"
     );
 
+    messages.push({
+      role: "assistant",
+      content: generated.text.trim() ||
+        generated.toolCalls.map((c) => `tool:${c.name}`).join(","),
+      providerTurn: generated.providerTurn,
+    });
+
     for (const call of generated.toolCalls) {
       if (toolRuns.length >= DESTINA_LIMITS.maxToolCalls) break;
       const args = parseToolArguments(call.arguments);
@@ -143,10 +150,6 @@ export async function runDestinaLoop(
         catalogCallsUsed += 1;
       }
       if (result.status === "auth_required") authRequired = true;
-      messages.push({
-        role: "assistant",
-        content: generated.text || `tool:${call.name}`,
-      });
       messages.push({
         role: "tool",
         toolName: call.name,

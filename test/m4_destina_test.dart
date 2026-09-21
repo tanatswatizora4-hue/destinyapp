@@ -41,7 +41,7 @@ void main() {
       ],
       'handoff': null,
       'auth_required': false,
-      'model': {'provider': 'gemini', 'name': 'gemini-2.5-flash', 'configured': true},
+      'model': {'provider': 'gemini', 'name': 'gemini-3.6-flash', 'configured': true},
     });
     expect(turn.assistantMessage, contains('hoping to travel'));
     expect(turn.tripState.destination, 'ZNZ');

@@ -18,9 +18,10 @@
 
 Branch: `cursor/m3b5-supabase-auth-migration-194a`
 
-- `destina-api` + Gemini provider abstraction (key server-side)
+- `destina-api` + Gemini 3.6 Flash (`gemini-3.6-flash`)
 - Allowlisted tools over Travelport + Destiny catalog + commerce
 - Destina chat UI wired from Home / Flights / Tours / Stays / Vehicles / Bookings
+- Tool loop replays opaque Gemini thought signatures; never user-facing
 - See `docs/m4_destina.md`
 
 ## Travelport
@@ -37,7 +38,7 @@ M3D schema + `payment-commerce-api` are live. Platform fee is 0. Mock provider i
 
 ## Later
 
-- Redeploy `destina-api` for Gemini diagnostics (`destina_model_provider_error`) + parameterless-tool schema fix
+- Redeploy `destina-api` for Gemini 3.6 thought-signature tool continuation
 - Live PSP integration after official docs + credentials
 - Private travel-document bucket (product decision)
 - Optional Google OAuth on Supabase Auth

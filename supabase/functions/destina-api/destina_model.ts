@@ -9,6 +9,8 @@ import { ScriptedDestinaProvider } from "./mock_provider.ts";
 
 export type { DestinaModelProvider } from "./destina_domain.ts";
 
+export const DEFAULT_DESTINA_MODEL = "gemini-3.6-flash";
+
 export class ModelNotConfiguredError extends DestinaError {
   constructor() {
     super(
@@ -50,8 +52,8 @@ export function createDestinaModelProvider(
   env: EnvLike = Deno.env.toObject(),
 ): DestinaModelProvider {
   const provider = (env.DESTINA_MODEL_PROVIDER ?? "gemini").trim().toLowerCase();
-  const model = (env.DESTINA_MODEL ?? "gemini-2.5-flash").trim() ||
-    "gemini-2.5-flash";
+  const model = (env.DESTINA_MODEL ?? DEFAULT_DESTINA_MODEL).trim() ||
+    DEFAULT_DESTINA_MODEL;
   const key = (env.DESTINA_API_KEY ?? "").trim();
 
   if (provider === "mock") {

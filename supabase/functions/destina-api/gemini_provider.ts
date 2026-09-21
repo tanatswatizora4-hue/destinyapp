@@ -1,6 +1,6 @@
 /**
- * Gemini Destina adapter (Gemini 2.5 Flash by default).
- * Credentials stay server-side. Never log the API key or request auth headers.
+ * Gemini Destina adapter (Gemini 3.6 Flash by default).
+ * Credentials stay server-side. Never log the API key, auth headers, or thought signatures.
  */
 
 import {
@@ -60,6 +60,12 @@ export function sanitizeGeminiProviderMessage(raw: unknown, max = 400): string {
   s = s.replace(/\bAuthorization\b/gi, "[redacted]");
   s = s.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]");
   s = s.replace(/[?&](?:key|api_key|access_token)=[^&\s"]+/gi, "[redacted]");
+  s = s.replace(/"thoughtSignature"\s*:\s*"[^"]*"/g, '"thoughtSignature":"[redacted]"');
+  s = s.replace(/"thought_signature"\s*:\s*"[^"]*"/g, '"thought_signature":"[redacted]"');
+  s = s.replace(
+    /thought[_-]?signature["'\s:=]+[A-Za-z0-9+/=._-]{12,}/gi,
+    "thought_signature=[redacted]",
+  );
   if (s.length > max) s = `${s.slice(0, max)}…`;
   return s;
 }
@@ -113,9 +119,50 @@ function parseFunctionResponse(content: string): Record<string, unknown> {
   }
 }
 
-function isPlaceholderAssistant(msg: DestinaChatMessage): boolean {
-  const text = msg.content.trim();
-  return text.length === 0 || text.startsWith("tool:");
+function cloneOpaqueParts(parts: unknown[]): unknown[] {
+  return JSON.parse(JSON.stringify(parts)) as unknown[];
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function partFunctionCall(part: unknown): Record<string, unknown> | null {
+  const rec = asRecord(part);
+  if (!rec) return null;
+  return asRecord(rec.functionCall) ?? asRecord(rec.function_call);
+}
+
+function isGeminiProviderTurn(
+  turn: DestinaChatMessage["providerTurn"],
+): turn is { provider: string; parts: unknown[] } {
+  return Boolean(
+    turn &&
+      turn.provider === "gemini" &&
+      Array.isArray(turn.parts) &&
+      turn.parts.length > 0,
+  );
+}
+
+function functionResponsesFor(
+  toolMsgs: DestinaChatMessage[],
+  modelParts: unknown[],
+): Record<string, unknown>[] {
+  const calls = modelParts.map(partFunctionCall).filter((fc): fc is Record<string, unknown> =>
+    Boolean(fc && typeof fc.name === "string")
+  );
+  return toolMsgs.map((toolMsg, idx) => {
+    const fc = calls[idx];
+    const name = toolMsg.toolName ??
+      (typeof fc?.name === "string" ? fc.name : "tool");
+    const fr: Record<string, unknown> = {
+      name,
+      response: parseFunctionResponse(toolMsg.content),
+    };
+    if (typeof fc?.id === "string" && fc.id) fr.id = fc.id;
+    return { functionResponse: fr };
+  });
 }
 
 function toGeminiParameters(
@@ -168,22 +215,11 @@ export function buildGeminiContents(
       continue;
     }
     if (msg.role === "tool") {
-      const name = msg.toolName ?? "tool";
-      contents.push({
-        role: "model",
-        parts: [{ functionCall: { name, args: {} } }],
-      });
-      contents.push({
-        role: "user",
-        parts: [{
-          functionResponse: {
-            name,
-            response: parseFunctionResponse(msg.content),
-          },
-        }],
-      });
-      i += 1;
-      continue;
+      throw new DestinaError(
+        "model_unavailable",
+        DESTINA_MODEL_UNAVAILABLE_MESSAGE,
+        503,
+      );
     }
     if (msg.role === "assistant") {
       const following: DestinaChatMessage[] = [];
@@ -193,35 +229,20 @@ export function buildGeminiContents(
         j += 1;
       }
       if (following.length > 0) {
-        const parts: Record<string, unknown>[] = [];
-        if (!isPlaceholderAssistant(msg)) {
-          parts.push({ text: msg.content });
+        if (!isGeminiProviderTurn(msg.providerTurn)) {
+          throw new DestinaError(
+            "model_unavailable",
+            DESTINA_MODEL_UNAVAILABLE_MESSAGE,
+            503,
+          );
         }
-        for (const toolMsg of following) {
-          parts.push({
-            functionCall: {
-              name: toolMsg.toolName ?? "tool",
-              args: {},
-            },
-          });
-        }
-        if (parts.length === 0) {
-          parts.push({
-            functionCall: {
-              name: following[0].toolName ?? "tool",
-              args: {},
-            },
-          });
-        }
-        contents.push({ role: "model", parts });
+        contents.push({
+          role: "model",
+          parts: cloneOpaqueParts(msg.providerTurn.parts),
+        });
         contents.push({
           role: "user",
-          parts: following.map((toolMsg) => ({
-            functionResponse: {
-              name: toolMsg.toolName ?? "tool",
-              response: parseFunctionResponse(toolMsg.content),
-            },
-          })),
+          parts: functionResponsesFor(following, msg.providerTurn.parts),
         });
         i = j;
         continue;
@@ -300,7 +321,23 @@ export class GeminiDestinaProvider implements DestinaModelProvider {
     req: DestinaModelGenerateRequest,
   ): Promise<DestinaModelGenerateResult> {
     const url = geminiGenerateContentUrl(this.model);
-    const body = buildGeminiGenerateContentBody(req);
+    let body: Record<string, unknown>;
+    try {
+      body = buildGeminiGenerateContentBody(req);
+    } catch (e) {
+      this.emitProviderError({
+        http_status: 0,
+        provider_status: "missing_provider_continuation",
+        provider_code: null,
+        provider_message: "function_call continuation missing",
+      });
+      if (e instanceof DestinaError) throw e;
+      throw new DestinaError(
+        "model_unavailable",
+        DESTINA_MODEL_UNAVAILABLE_MESSAGE,
+        503,
+      );
+    }
 
     let res: Response;
     try {
@@ -352,31 +389,39 @@ export class GeminiDestinaProvider implements DestinaModelProvider {
     const json = await res.json() as Record<string, unknown>;
     const candidate = (json.candidates as Record<string, unknown>[] | undefined)
       ?.[0];
-    const parts = ((candidate?.content as Record<string, unknown> | undefined)
-      ?.parts as Record<string, unknown>[] | undefined) ?? [];
+    const rawParts = ((candidate?.content as Record<string, unknown> | undefined)
+      ?.parts as unknown[] | undefined) ?? [];
+    const continuationParts = cloneOpaqueParts(rawParts);
 
     const toolCalls: DestinaToolCall[] = [];
     const texts: string[] = [];
     let i = 0;
-    for (const part of parts) {
-      const fc = part.functionCall as Record<string, unknown> | undefined;
+    for (const part of rawParts) {
+      const rec = asRecord(part);
+      if (!rec) continue;
+      if (rec.thought === true) continue;
+      const fc = partFunctionCall(part);
       if (fc && typeof fc.name === "string") {
         const args = (fc.args && typeof fc.args === "object")
           ? fc.args as Record<string, unknown>
           : {};
+        const providerId = typeof fc.id === "string" && fc.id ? fc.id : "";
         toolCalls.push({
-          id: `call_${i++}`,
+          id: providerId || `call_${i++}`,
           name: fc.name,
           arguments: args,
         });
-      } else if (typeof part.text === "string" && part.text.trim()) {
-        texts.push(part.text.trim());
+      } else if (typeof rec.text === "string" && rec.text.trim()) {
+        texts.push(rec.text.trim());
       }
     }
 
     return {
       text: texts.join("\n").trim(),
       toolCalls,
+      providerTurn: toolCalls.length > 0
+        ? { provider: "gemini", parts: continuationParts }
+        : undefined,
     };
   }
 
