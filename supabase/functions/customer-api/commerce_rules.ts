@@ -134,13 +134,17 @@ export function assertNoAuthoritativeClientFields(
   body: Record<string, unknown>,
 ): void {
   const forbidden = [
+    "user_id",
     "firebase_uid",
     "legacy_user_id",
+    "actor_user_id",
+    "actor_firebase_uid",
     "quoted_total",
     "payment_status",
     "status",
     "total_price",
     "service_role",
+    "role",
   ];
   for (const key of forbidden) {
     if (Object.prototype.hasOwnProperty.call(body, key)) {

@@ -1,30 +1,25 @@
-// File: promotion.dart
-// Root: destiny/lib/models/
-import 'package:cloud_firestore/cloud_firestore.dart';
-
+/// Legacy Firestore Promotion model — unused after M3B.5 auth cutover.
+/// Retained as a plain DTO in case marketing content is wired later.
+/// Do not reintroduce cloud_firestore for this.
 class Promotion {
   final String id;
-  final String code;
+  final String title;
   final String description;
-  final double discountPercentage;
-  final DateTime validUntil;
+  final String? imageUrl;
 
   Promotion({
     required this.id,
-    required this.code,
+    required this.title,
     required this.description,
-    required this.discountPercentage,
-    required this.validUntil,
+    this.imageUrl,
   });
 
-  factory Promotion.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
+  factory Promotion.fromJson(Map<String, dynamic> data, {String? id}) {
     return Promotion(
-      id: doc.id,
-      code: data['code'] ?? '',
-      description: data['description'] ?? '',
-      discountPercentage: data['discountPercentage'] ?? 0.0,
-      validUntil: (data['validUntil'] as Timestamp).toDate(),
+      id: id ?? data['id']?.toString() ?? '',
+      title: data['title']?.toString() ?? '',
+      description: data['description']?.toString() ?? '',
+      imageUrl: data['imageUrl']?.toString(),
     );
   }
 }

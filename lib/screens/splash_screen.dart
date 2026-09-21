@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:destiny/screens/navigation_screen.dart'; // Assuming this is your main navigation screen
-import 'package:destiny/config/theme/app_theme.dart';
 import 'package:lottie/lottie.dart'; // Import the lottie package
 
 class SplashScreen extends StatefulWidget {

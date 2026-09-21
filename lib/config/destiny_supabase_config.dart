@@ -82,4 +82,16 @@ class DestinySupabaseConfig {
     if (_preferSupabaseOverride != null) return _preferSupabaseOverride!;
     return isConfigured;
   }
+
+  /// Web password-reset redirect (must be allowlisted in Supabase Auth URLs).
+  /// Override with `--dart-define=DESTINY_PASSWORD_RESET_REDIRECT=...`.
+  static const String _resetRedirectFromEnv =
+      String.fromEnvironment('DESTINY_PASSWORD_RESET_REDIRECT');
+
+  static String get passwordResetRedirectUrl {
+    final env = _resetRedirectFromEnv.trim();
+    if (env.isNotEmpty) return env;
+    // Default site origin placeholder — operators must allowlist the live URL.
+    return 'https://destinyos.local/auth/reset';
+  }
 }

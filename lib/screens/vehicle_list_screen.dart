@@ -1,5 +1,6 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/vehicle.dart';
+import 'package:destiny/screens/destina_launch.dart';
 import 'package:destiny/screens/vehicle_details_screen.dart';
 import 'package:destiny/services/api_service.dart';
 import 'package:destiny/widgets/destiny_discovery.dart';
@@ -116,9 +117,10 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                   onSearchChanged: (v) => setState(() => _query = v),
                   trailing: DestinyDestinaAssist(
                     prompt: '“4×4 for Hwange with a driver for five days…”',
-                    onTap: () => showDestinyPreviewMessage(
+                    onTap: () => openDestinaChat(
                       context,
-                      'Destina planning is coming soon — browse vehicles below.',
+                      seedPrompt: '4x4 for Hwange with a driver for five days',
+                      seedContext: const {'product_type': 'vehicle'},
                     ),
                   ),
                 ),

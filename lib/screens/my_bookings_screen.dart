@@ -1,8 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/customer_booking.dart';
+import 'package:destiny/models/payment_intent.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/repositories/payment_commerce_repository.dart';
+import 'package:destiny/screens/destina_launch.dart';
+import 'package:destiny/services/payment_api_client.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
@@ -26,7 +30,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 
   Future<void> _loadBookings() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = SupabaseAuthService().currentUser;
     if (user == null) {
       if (mounted) {
         setState(() {
@@ -98,6 +102,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
                     itemBuilder: (context, index) {
                       return _CustomerBookingCard(
                         booking: bookings[index],
+                        onRefresh: _refreshBookings,
                         onCancel: (id) async {
                           final confirmed = await showDialog<bool>(
                             context: context,
@@ -205,14 +210,123 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   }
 }
 
-class _CustomerBookingCard extends StatelessWidget {
+class _CustomerBookingCard extends StatefulWidget {
   final CustomerBooking booking;
   final Future<void> Function(String id) onCancel;
+  final Future<void> Function() onRefresh;
 
   const _CustomerBookingCard({
     required this.booking,
     required this.onCancel,
+    required this.onRefresh,
   });
+
+  @override
+  State<_CustomerBookingCard> createState() => _CustomerBookingCardState();
+}
+
+class _CustomerBookingCardState extends State<_CustomerBookingCard> {
+  final PaymentCommerceRepository _payments = PaymentCommerceRepository();
+  bool _payBusy = false;
+  String? _payMessage;
+  PaymentIntent? _intent;
+
+  CustomerBooking get booking => widget.booking;
+
+  Future<void> _startPayment() async {
+    setState(() {
+      _payBusy = true;
+      _payMessage = null;
+    });
+    try {
+      final intent = await _payments.createIntent(bookingId: booking.id);
+      if (!mounted) return;
+      setState(() => _intent = intent);
+      if (intent.isMock) {
+        await _showMockCheckout(intent);
+      } else if (intent.isSucceeded) {
+        await widget.onRefresh();
+      } else {
+        setState(() {
+          _payMessage =
+              'Checkout opened with ${intent.provider}. Complete payment, then tap Refresh status.';
+        });
+      }
+    } on PaymentApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _payMessage = e.message);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _payMessage = '$e');
+    } finally {
+      if (mounted) setState(() => _payBusy = false);
+    }
+  }
+
+  Future<void> _showMockCheckout(PaymentIntent intent) async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Development checkout'),
+        content: Text(
+          'Mock provider (no real money).\n\n'
+          '${booking.itemName}\n'
+          'Amount: ${intent.grossAmount.toStringAsFixed(2)} ${intent.currency}\n'
+          'Reference: ${intent.providerReference ?? intent.id}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'cancelled'),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'failed'),
+            child: const Text('Fail'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, 'succeeded'),
+            child: const Text('Pay (mock)'),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || choice == 'cancelled') {
+      setState(() => _payMessage = 'Checkout cancelled. No payment was recorded.');
+      return;
+    }
+    final updated = await _payments.mockSimulate(
+      paymentIntentId: intent.id,
+      result: choice,
+    );
+    if (!mounted) return;
+    setState(() {
+      _intent = updated;
+      _payMessage = updated.isSucceeded
+          ? 'Payment verified. Refreshing booking…'
+          : updated.statusLabel;
+    });
+    await widget.onRefresh();
+  }
+
+  Future<void> _refreshStatus() async {
+    final id = _intent?.id;
+    if (id == null) return;
+    setState(() => _payBusy = true);
+    try {
+      final updated = await _payments.verify(id);
+      if (!mounted) return;
+      setState(() {
+        _intent = updated;
+        _payMessage = updated.statusLabel;
+      });
+      await widget.onRefresh();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _payMessage = '$e');
+    } finally {
+      if (mounted) setState(() => _payBusy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -349,10 +463,66 @@ class _CustomerBookingCard extends StatelessWidget {
                 ),
               ),
             ],
-            if (booking.status == 'awaiting_payment') ...[
+            if (booking.isPayable) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Amount due: ${currency.format(booking.quotedTotal)} ${booking.currency}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _intent == null
+                    ? 'Secure checkout — Destiny confirms payment only after provider verification.'
+                    : 'Payment: ${_intent!.statusLabel}'
+                        '${_intent!.providerReference != null ? ' · Ref ${_intent!.providerReference}' : ''}',
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              if (_intent?.isMock == true)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Development mock provider — no real money is moved.',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              if (_payMessage != null) ...[
+                const SizedBox(height: 6),
+                Text(_payMessage!, style: const TextStyle(fontSize: 12)),
+              ],
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  FilledButton(
+                    onPressed: _payBusy ? null : _startPayment,
+                    style: FilledButton.styleFrom(backgroundColor: AppTheme.navy),
+                    child: _payBusy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(_intent == null ? 'Pay securely' : 'Retry checkout'),
+                  ),
+                  if (_intent != null) ...[
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: _payBusy ? null : _refreshStatus,
+                      child: const Text('Refresh status'),
+                    ),
+                  ],
+                ],
+              ),
+            ] else if (booking.status == 'confirmed' &&
+                booking.paymentStatus == 'paid') ...[
               const SizedBox(height: 8),
               const Text(
-                'Payment instructions will be provided by Destiny.',
+                'Payment verified. Your booking is confirmed.',
+                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green),
+              ),
+            ] else if (booking.status == 'awaiting_payment') ...[
+              const SizedBox(height: 8),
+              const Text(
+                'This booking is awaiting payment.',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ],
@@ -361,11 +531,23 @@ class _CustomerBookingCard extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () => onCancel(booking.id),
+                  onPressed: () => widget.onCancel(booking.id),
                   child: const Text('Cancel request'),
                 ),
               ),
             ],
+            TextButton(
+              onPressed: () => openDestinaChat(
+                context,
+                seedPrompt: 'Ask about this booking: ${booking.itemName}',
+                seedContext: {
+                  'product_type': 'booking',
+                  'booking_id': booking.id,
+                  'product_name': booking.itemName,
+                },
+              ),
+              child: const Text('Ask Destina about this booking'),
+            ),
           ],
         ),
       ),

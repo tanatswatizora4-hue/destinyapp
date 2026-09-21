@@ -29,6 +29,12 @@ Deno.test("sanitizeBookingCreateInput rejects client authority fields via assert
   assertThrows(() =>
     assertNoAuthoritativeClientFields({ firebase_uid: "evil" })
   );
+  assertThrows(() =>
+    assertNoAuthoritativeClientFields({ user_id: "spoof" })
+  );
+  assertThrows(() =>
+    assertNoAuthoritativeClientFields({ role: "admin" })
+  );
   assertThrows(() => assertNoAuthoritativeClientFields({ status: "confirmed" }));
   assertThrows(() =>
     assertNoAuthoritativeClientFields({ payment_status: "paid" })

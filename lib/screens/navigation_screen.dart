@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:destiny/config/dev_auth_config.dart';
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/resources/app_colors.dart';
 import 'package:destiny/screens/accommodation_list_screen.dart';
@@ -15,9 +16,11 @@ import 'package:destiny/screens/tour_list_screen.dart';
 import 'package:destiny/screens/vehicle_list_screen.dart';
 import 'package:destiny/services/api_service.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
+import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/services/auth_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -32,10 +35,10 @@ class NavigationScreen extends StatefulWidget {
 
 class _NavigationScreenState extends State<NavigationScreen> {
   int _selectedIndex = 0;
-  int? _sqlUserId;
-  User? _firebaseUser;
-  late StreamSubscription<User?> _authSubscription;
+  User? _authUser;
+  late StreamSubscription<AuthState> _authSubscription;
   final ApiService _apiService = ApiService();
+  final SupabaseAuthService _supabaseAuth = SupabaseAuthService();
   bool _isLoadingAuth = true;
   /// Home desktop hero overlay becomes solid after the user scrolls.
   bool _homeHeroScrolled = false;
@@ -71,44 +74,37 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   void initState() {
     super.initState();
+    // Seed from restored session; onAuthStateChange also emits thereafter.
+    _authUser = _supabaseAuth.currentUser;
+    if (_authUser == null) {
+      _isLoadingAuth = false;
+    }
     _authSubscription =
-        FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+        _supabaseAuth.authStateChanges.listen((AuthState state) async {
+      final user = state.session?.user;
       setState(() {
-        _firebaseUser = user;
+        _authUser = user;
         _isLoadingAuth = true;
       });
       if (user != null) {
-        // Best-effort legacy SQL sync for Travel Docs / profile until those migrate.
+        final displayName = _supabaseAuth.displayNameOf(user) ?? '';
+        final email = user.email ?? '';
         try {
-          final userData = await _apiService.syncUserWithSql(
-              user.uid, user.displayName ?? '', user.email ?? '');
-          // Also upsert Destiny customer_profiles via Edge Function (non-blocking).
-          try {
-            await CustomerRepository().upsertProfile(
-              fullName: user.displayName ?? '',
-              email: user.email ?? '',
-            );
-          } catch (e) {
-            debugPrint('M3A profile upsert deferred: $e');
-          }
-          if (!mounted) return;
-          setState(() {
-            _sqlUserId = userData['id'];
-            _isLoadingAuth = false;
-          });
+          await CustomerRepository().upsertProfile(
+            fullName: displayName,
+            email: email,
+          );
         } catch (e) {
-          debugPrint('Failed to sync user with SQL: $e');
-          if (!mounted) return;
-          setState(() {
-            // Firebase session still valid for M3A commerce even if legacy sync fails.
-            _sqlUserId = null;
-            _isLoadingAuth = false;
-          });
+          debugPrint('M3B.5 profile upsert deferred: $e');
         }
+        if (!mounted) return;
+        setState(() => _isLoadingAuth = false);
+        // Best-effort legacy SQL sync for historical tooling only.
+        // Travel Docs now use Supabase Auth + customer-api private documents.
+        unawaited(_syncLegacyTravelDocs(user.id, displayName, email));
       } else {
         if (!mounted) return;
         setState(() {
-          _sqlUserId = null;
           _isLoadingAuth = false;
         });
       }
@@ -119,6 +115,22 @@ class _NavigationScreenState extends State<NavigationScreen> {
   void dispose() {
     _authSubscription.cancel();
     super.dispose();
+  }
+
+  Future<void> _syncLegacyTravelDocs(
+    String userId,
+    String displayName,
+    String email,
+  ) async {
+    try {
+      await _apiService.syncUserWithSql(
+        userId,
+        displayName,
+        email,
+      );
+    } catch (e) {
+      debugPrint('Legacy travel-docs sync deferred: $e');
+    }
   }
 
   // A list of widgets that are conditionally built based on selected index
@@ -132,7 +144,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
       );
     }
 
-    final signedIn = _firebaseUser != null;
+    final signedIn = _authUser != null;
 
     return <Widget>[
       HomeScreen(
@@ -153,12 +165,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
       signedIn
           ? const MyBookingsScreen()
           : _buildPlaceholder('Please sign in to view your bookings.'),
-      (_sqlUserId != null)
-          ? TravelDocumentsScreen(userId: _sqlUserId!)
+      signedIn
+          ? const TravelDocumentsScreen()
           : _buildPlaceholder(
-              signedIn
-                  ? 'Travel documents still use the legacy account link. Try again shortly, or contact Destiny support.'
-                  : 'Please sign in to view your travel documents.',
+              'Please sign in to view your travel documents.',
             ),
       signedIn
           ? const ProfileScreen()
@@ -185,16 +195,20 @@ class _NavigationScreenState extends State<NavigationScreen> {
     // Protected account area: 5 My Trips, 6 Bookings, 7 Docs, 8 Profile.
     const protectedIndices = NavigationScreen.protectedNavIndices;
 
-    if (protectedIndices.contains(index) && _firebaseUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'You must be signed in to access this feature.',
-            style: TextStyle(color: Colors.white),
+    if (protectedIndices.contains(index) && _authUser == null) {
+      if (devBypassAuth) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'You must be signed in to access this feature.',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: AppColors.primary,
           ),
-          backgroundColor: AppColors.primary,
-        ),
-      );
+        );
+      } else {
+        _openLogin();
+      }
       return;
     }
 
@@ -228,10 +242,18 @@ class _NavigationScreenState extends State<NavigationScreen> {
       case 'contact':
         _onItemTapped(9);
         break;
+      case 'login':
+        _openLogin();
+        break;
       case 'logout':
         AuthService().signOut();
         break;
     }
+  }
+
+  Future<void> _openLogin() async {
+    await Navigator.of(context).pushNamed(LoginScreen.routeName);
+    // Auth subscription updates [_authUser]; no extra setState needed.
   }
 
   Future<void> _openAccountMenu(BuildContext buttonContext) async {
@@ -255,8 +277,8 @@ class _NavigationScreenState extends State<NavigationScreen> {
       color: AppTheme.surface,
       elevation: 8,
       shadowColor: Colors.black.withValues(alpha: 0.12),
-      items: const <PopupMenuEntry<String>>[
-        PopupMenuItem<String>(
+      items: <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
           value: 'my_trips',
           child: ListTile(
             dense: true,
@@ -265,7 +287,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('My Trips'),
           ),
         ),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'my_bookings',
           child: ListTile(
             dense: true,
@@ -274,7 +296,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('My Bookings'),
           ),
         ),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'travel_documents',
           child: ListTile(
             dense: true,
@@ -283,7 +305,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('Travel Documents'),
           ),
         ),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'profile',
           child: ListTile(
             dense: true,
@@ -292,7 +314,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('Profile'),
           ),
         ),
-        PopupMenuItem<String>(
+        const PopupMenuItem<String>(
           value: 'contact',
           child: ListTile(
             dense: true,
@@ -301,16 +323,27 @@ class _NavigationScreenState extends State<NavigationScreen> {
             title: Text('Contact Us'),
           ),
         ),
-        PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: 'logout',
-          child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.exit_to_app, color: AppColors.accent),
-            title: Text('Logout', style: TextStyle(color: AppColors.accent)),
+        const PopupMenuDivider(),
+        if (_authUser == null)
+          const PopupMenuItem<String>(
+            value: 'login',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.login),
+              title: Text('Sign In'),
+            ),
+          )
+        else
+          const PopupMenuItem<String>(
+            value: 'logout',
+            child: ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.exit_to_app, color: AppColors.accent),
+              title: Text('Logout', style: TextStyle(color: AppColors.accent)),
+            ),
           ),
-        ),
       ],
     );
 

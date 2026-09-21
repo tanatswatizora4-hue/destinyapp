@@ -1,61 +1,40 @@
-# M3 status — Booking + Travel Commerce
+# M3 status
 
-## M3A — Secure customer backend — COMPLETE (live)
+## Complete
 
-Flutter Firebase Auth → `customer-api` → verified UID → protected tables.
+| Milestone | Notes |
+|-----------|-------|
+| M0 | Inventory + media foundation |
+| M1 | Customer travel product composition |
+| M2 | Destiny Supabase inventory cutover |
+| M3A | Secure customer commerce backend (`customer-api`) — **LIVE** |
+| M3B | Staff ops + booking lifecycle (`staff-commerce-api`) — **LIVE** |
+| M3B.5 | Supabase Auth ownership — **LIVE** |
+| M3C | Travelport flight shopping — **LIVE and working** |
+| M3D | Payment-ready architecture — **LIVE** (mock QA; real PSPs pending docs) |
+| M3E | Commerce completion + legacy cleanup — **LIVE** |
 
-## M3B — Booking lifecycle + staff operations — THIS MILESTONE
+## Current: M5 Internal operations (in repo)
 
-**Code status:** implemented on `cursor/m3b-booking-operations-194a`  
-**Deploy status:** migration + `staff-commerce-api` + first `staff_users` row required
+- M4 Destina remains live; Gemini quota is an external M4 concern (not M5)
+- M5A–E implemented in repository — apply migrations + redeploy customer-api / staff-commerce-api
+- See `docs/m5_internal_ops.md`
 
-### Architecture
-```
-Staff Flutter (Firebase Auth)
-  → Firebase ID token
-  → staff-commerce-api (verify_jwt=false)
-  → verify token + staff_users allowlist (is_active)
-  → service_role ops + booking_events / enquiry_events
-```
+## Travelport
 
-Customers continue through `customer-api` only. Staff privileges are never mixed into customer actions.
+Live search works. Confirmed HRE↔JNB (example FN8331 Economy Value Flex GBP 214.10).
 
-### Delivered
-- Migration `20260910140000_m3b_staff_ops_and_audit.sql`
-- Edge Function `staff-commerce-api`
-- Lifecycle rules + Deno tests
-- Minimal Staff Ops UI (`/staff-ops`, gated server-side)
-- Customer My Bookings quote/status panels
-- Flutter tests `test/m3b_staff_commerce_test.dart`
-- Docs: `m3b_agent_operations_audit.md`, `m3b_deploy_runbook.md`
+The previous “NO OFFERS FOUND FOR THE CHANNEL” note was **not** the current status. The live bug was GDS pricing under `ProductBrandOffering.BestCombinablePrice` rather than `Price`. That normalizer is now in the repo.
 
-### Booking transition matrix
-| From | To |
-|------|-----|
-| draft | submitted, cancelled |
-| submitted | quoted, cancelled |
-| quoted | awaiting_payment, cancelled |
-| awaiting_payment | confirmed, cancelled |
-| confirmed | completed, cancelled |
-| cancelled / completed | terminal |
+No JFK/LAX diagnostic special-case remains.
 
-Quote sets `quoted_total` and moves `submitted → quoted` without marking paid.
+## Payments
 
-### External action required
-1. Apply M3B migration
-2. Deploy `staff-commerce-api` (+ redeploy `customer-api` for audit events)
-3. Insert first `staff_users` row with a real Firebase UID
+M3D schema + `payment-commerce-api` are live. Platform fee is 0. Mock provider is fail-closed in production. Tooma / Zimswitch / Paynow need official API docs and credentials before implementation.
 
-See `docs/m3b_deploy_runbook.md`.
+## Later
 
----
-
-## M3C — Travelport — not started
-## M3D — Payments — not started
-## M3E — Legacy retirement — not started
-
-## Stop
-```
-STOP_REASON=EXTERNAL_ACTION_REQUIRED
-```
-Do not start M3C/M3D automatically.
+- Apply M5 migrations + deploy `customer-api` / `staff-commerce-api`
+- Optional: migrate legacy bymapara travel-doc binaries (requires operator credentials)
+- Live PSP integration after official docs + credentials
+- Optional Google OAuth on Supabase Auth

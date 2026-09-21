@@ -1,6 +1,7 @@
 class CustomerEnquiry {
   final String id;
   final String kind;
+  final String userId;
   final String firebaseUid;
   final Map<String, dynamic> payload;
 
@@ -8,15 +9,28 @@ class CustomerEnquiry {
   final String status;
   final String customerResponseNote;
   final DateTime? createdAt;
+  final String? provider;
+  final String? providerOfferRef;
+  final Map<String, dynamic> itinerarySnapshot;
+  final double? validatedAmount;
+  final String? validatedCurrency;
+  final Map<String, dynamic> passengerSummary;
 
   CustomerEnquiry({
     required this.id,
     required this.kind,
-    required this.firebaseUid,
+    this.userId = '',
+    this.firebaseUid = '',
     required this.payload,
     required this.status,
     this.customerResponseNote = '',
     this.createdAt,
+    this.provider,
+    this.providerOfferRef,
+    this.itinerarySnapshot = const {},
+    this.validatedAmount,
+    this.validatedCurrency,
+    this.passengerSummary = const {},
   });
 
   factory CustomerEnquiry.fromJson(Map<String, dynamic> json) {
@@ -24,10 +38,13 @@ class CustomerEnquiry {
     final Map<String, dynamic> payload = raw is Map
         ? Map<String, dynamic>.from(raw)
         : <String, dynamic>{};
+    final snap = json['itinerary_snapshot'];
+    final pax = json['passenger_summary'];
 
     return CustomerEnquiry(
       id: json['id'].toString(),
       kind: json['kind']?.toString() ?? 'general',
+      userId: json['user_id']?.toString() ?? '',
       firebaseUid: json['firebase_uid']?.toString() ?? '',
       payload: payload,
       status: json['status']?.toString() ?? 'received',
@@ -36,6 +53,18 @@ class CustomerEnquiry {
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
           : null,
+      provider: json['provider']?.toString(),
+      providerOfferRef: json['provider_offer_ref']?.toString(),
+      itinerarySnapshot: snap is Map
+          ? Map<String, dynamic>.from(snap)
+          : const <String, dynamic>{},
+      validatedAmount: json['validated_amount'] == null
+          ? null
+          : double.tryParse(json['validated_amount'].toString()),
+      validatedCurrency: json['validated_currency']?.toString(),
+      passengerSummary: pax is Map
+          ? Map<String, dynamic>.from(pax)
+          : const <String, dynamic>{},
     );
   }
 
@@ -59,6 +88,7 @@ class CustomerEnquiry {
 
 class CustomerProfile {
   final String id;
+  final String userId;
   final String firebaseUid;
   final String fullName;
   final String email;
@@ -67,7 +97,8 @@ class CustomerProfile {
 
   CustomerProfile({
     required this.id,
-    required this.firebaseUid,
+    this.userId = '',
+    this.firebaseUid = '',
     required this.fullName,
     required this.email,
     this.phone,
@@ -77,6 +108,7 @@ class CustomerProfile {
   factory CustomerProfile.fromJson(Map<String, dynamic> json) {
     return CustomerProfile(
       id: json['id'].toString(),
+      userId: json['user_id']?.toString() ?? '',
       firebaseUid: json['firebase_uid']?.toString() ?? '',
       fullName: json['full_name']?.toString() ?? '',
       email: json['email']?.toString() ?? '',

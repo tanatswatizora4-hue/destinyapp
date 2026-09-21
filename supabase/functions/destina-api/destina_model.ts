@@ -1,0 +1,103 @@
+/**
+ * Provider-neutral Destina model factory.
+ */
+
+import { DestinaError, DestinaModelProvider } from "./destina_domain.ts";
+import { DESTINA_LIMITS, EnvLike, isMockModelAllowed } from "./destina_rules.ts";
+import { GeminiDestinaProvider } from "./gemini_provider.ts";
+import { ScriptedDestinaProvider } from "./mock_provider.ts";
+
+export type { DestinaModelProvider } from "./destina_domain.ts";
+
+export const DEFAULT_DESTINA_MODEL = "gemini-3.6-flash";
+
+export class ModelNotConfiguredError extends DestinaError {
+  constructor() {
+    super(
+      "model_not_configured",
+      "Destina isn't connected to a language model yet. I can still take a note for our travel team once that's enabled.",
+      503,
+    );
+  }
+}
+
+export function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number = DESTINA_LIMITS.modelTimeoutMs,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => {
+      reject(
+        new DestinaError(
+          "model_timeout",
+          "I couldn't finish that just now. I can try again, or I can send this to our travel team.",
+          504,
+          "model",
+        ),
+      );
+    }, ms);
+    promise.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
+}
+
+export function createDestinaModelProvider(
+  env: EnvLike = Deno.env.toObject(),
+  opts: {
+    requestId?: string;
+    onRetry?: (info: { reason: string; retry_number: number }) => void;
+    log?: (event: {
+      event: "destina_model_provider_error";
+      request_id?: string;
+      provider: "gemini";
+      model: string;
+      http_status: number;
+      provider_status: string | null;
+      provider_code: string | number | null;
+      provider_message: string;
+    }) => void;
+  } = {},
+): DestinaModelProvider {
+  const provider = (env.DESTINA_MODEL_PROVIDER ?? "gemini").trim().toLowerCase();
+  const model = (env.DESTINA_MODEL ?? DEFAULT_DESTINA_MODEL).trim() ||
+    DEFAULT_DESTINA_MODEL;
+  const key = (env.DESTINA_API_KEY ?? "").trim();
+
+  if (provider === "mock") {
+    if (!isMockModelAllowed(env)) {
+      throw new DestinaError(
+        "mock_disabled",
+        "The Destina mock model is not allowed in this environment.",
+        403,
+      );
+    }
+    return new ScriptedDestinaProvider(model);
+  }
+
+  if (provider === "gemini") {
+    if (!key) throw new ModelNotConfiguredError();
+    return new GeminiDestinaProvider({
+      apiKey: key,
+      model,
+      requestId: opts.requestId,
+      onRetry: opts.onRetry,
+      log: opts.log,
+      maxRetries: DESTINA_LIMITS.geminiMaxRetries,
+      retryBackoffMs: DESTINA_LIMITS.geminiRetryBackoffMs,
+    });
+  }
+
+  throw new DestinaError(
+    "model_not_configured",
+    `Unknown Destina model provider '${provider}'`,
+    503,
+  );
+}

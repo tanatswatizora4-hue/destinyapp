@@ -3,8 +3,10 @@ import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/tour.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/utils/tour_display.dart';
+import 'package:destiny/screens/destina_launch.dart';
+import 'package:destiny/widgets/destiny_discovery.dart';
 import 'package:destiny/widgets/travel_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 
 class TourDetailsScreen extends StatefulWidget {
@@ -105,6 +107,19 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                           ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 18),
+                DestinyDestinaAssist(
+                  prompt: 'Ask Destina about this tour',
+                  onTap: () => openDestinaChat(
+                    context,
+                    seedPrompt: 'Tell me about this tour: ${tour.title}',
+                    seedContext: {
+                      'product_type': 'tour',
+                      'product_id': tour.id.toString(),
+                      'product_name': tour.title,
+                    },
+                  ),
                 ),
                 const SizedBox(height: 28),
                 _AboutSection(description: tour.description),
@@ -249,6 +264,20 @@ class _TourDetailsScreenState extends State<TourDetailsScreen> {
                               label: duration,
                             ),
                           ],
+                          const SizedBox(height: 18),
+                          DestinyDestinaAssist(
+                            prompt: 'Ask Destina about this tour',
+                            onTap: () => openDestinaChat(
+                              context,
+                              seedPrompt:
+                                  'Tell me about this tour: ${tour.title}',
+                              seedContext: {
+                                'product_type': 'tour',
+                                'product_id': tour.id.toString(),
+                                'product_name': tour.title,
+                              },
+                            ),
+                          ),
                           const SizedBox(height: 28),
                           _AboutSection(description: tour.description),
                           if (tour.amenities.isNotEmpty) ...[
@@ -814,7 +843,7 @@ class _BookingSheetContentState extends State<_BookingSheetContent> {
   @override
   void initState() {
     super.initState();
-    _signedIn = FirebaseAuth.instance.currentUser != null;
+    _signedIn = SupabaseAuthService().currentUser != null;
   }
 
   void _incrementTravelers() => setState(() => _travelerCount++);

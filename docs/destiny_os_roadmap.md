@@ -9,7 +9,7 @@
 ## M1 — Customer travel product — COMPLETE
 - Stays list + details premium redesign (agent request flow)
 - Vehicles list + details premium redesign (agent request flow)
-- Flights honest enquiry UX (not live fare shopping)
+- Flights enquiry UX (later upgraded to live Travelport shopping in M3C/M3E)
 - Shared discovery primitives (`destiny_discovery.dart`)
 - Destina assist entry points on Stays / Vehicles / Flights
 - Loading / empty / error / retry states
@@ -17,27 +17,31 @@
 - Home / Tours left intact; nav indices unchanged
 - Final QA repair: web HTML-element media loading for owned Home WebP; Flights public browse (account tabs still protected)
 
-## M2 — Destiny backend migration — IN PROGRESS (credential-blocked)
-- Legacy audit complete (`docs/m2_legacy_backend_audit.md`)
-- Versioned schema + RLS migration in repo (`supabase/migrations/...`)
-- Flutter inventory repository layer (PostgREST → Storage catalog → asset; no bymapara inventory API)
-- Idempotent migration script ready (`scripts/migrate_inventory_to_supabase.py`)
-- Seeds + staged media (81/84) + apply runbook (`docs/m2_apply_runbook.md`)
-- Optional GitHub Actions applicator (`.github/workflows/m2-destiny-supabase-apply.yml`; enable on main via PR #13)
-- **Blocked:** remote apply needs `SUPABASE_ACCESS_TOKEN` (PAT alone); `apply_m2_remote.sh` bootstraps `service_role` + anon. See `docs/m2_apply_runbook.md`
-- Customer bookings/profiles remain on bymapara until auth bridge (intentional)
-- See `docs/m2_*` reports for status
+## M2 — Destiny backend migration — COMPLETE
+- Inventory + public media live on Destiny Supabase (`xchddfpfzrzhlbbmyhyn`)
+- Customer commerce later moved to Edge Functions (M3A+) — no bymapara inventory fallback
 
-## M3 — Live flight shopping (Travelport / GDS)
-- Only when real inventory APIs exist
-- Replace enquiry-only Flights shopping UX where appropriate
+## M3 — Live flight shopping (Travelport / GDS) — COMPLETE
+- Provider-neutral flight domain + Travelport TripServices adapter
+- **Live search works** (HRE↔JNB). GDS `BestCombinablePrice` is normalized
+- Ticketing not implemented
+
+## M3D — Payment-ready commerce — LIVE
+- Provider-neutral intents, mock QA provider, ledger, refunds, staff visibility
+- Real PSP adapters require official docs + credentials (`docs/m3d_payments.md`)
+
+## M3E — Commerce completion + legacy cleanup
+- Return selection UX, validated combined totals, isolated travel docs
+- See `docs/m3e_commerce.md`
 
 ## M4 — Destina production assistant
-- Tool-backed planning beyond preview snackbars
+- Production Destina chat via `destina-api` (Gemini Flash provider, mock tests)
+- Allowlisted tools: live flights, Destiny catalog, enquiries, consultant handoff
+- See `docs/m4_destina.md`
 
-## M5 — Private customer documents storage
-- Separate private bucket (not `destiny-media`)
+## M5 — Internal operations & private documents — IN REPO
+- Private travel-document bucket + customer-api actions
+- Staff CRM workspace, work queue, ops dashboard
+- See `docs/m5_internal_ops.md`
 
-## M6 — Ops / agent tooling
-
-## M7 — Growth / personalization
+## M6 — Growth / personalization (next)

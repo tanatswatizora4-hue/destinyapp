@@ -4,22 +4,18 @@ import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/navigation_screen.dart';
 import 'package:destiny/screens/splash_screen.dart';
 import 'package:destiny/screens/staff/staff_ops_screen.dart';
+import 'package:destiny/screens/destina_screen.dart';
 import 'package:destiny/services/api_service.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/services.dart'; // Import this
-import 'firebase_options.dart';
+import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// DEV ONLY — UI redesign preview.
-/// Set to `false` (or remove this flag + the bypass branch) to restore
-/// the production auth landing/login flow. Does not delete Firebase Auth.
-const bool devBypassAuth = true;
+export 'package:destiny/config/dev_auth_config.dart' show devBypassAuth;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Add these lines for edge-to-edge display
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -28,14 +24,9 @@ void main() async {
   );
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await initializeDestinySupabase();
 
   // M2 cutover: tours/stays/vehicles/awards read Destiny Supabase PostgREST only.
-  // Failures surface as loading/error/retry in inventory screens — no silent
-  // bymapara inventory fallback. Bookings/profile/docs still use ApiService →
-  // bymapara until those authenticated flows are migrated (M3+).
   ApiService.inventoryRepository = SupabaseInventoryRepository();
 
   runApp(const MyApp());
@@ -52,29 +43,23 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.themeData,
       routes: {
         StaffOpsScreen.routeName: (_) => const StaffOpsScreen(),
+        LoginScreen.routeName: (_) => const LoginScreen(),
+        DestinaScreen.routeName: (_) => const DestinaScreen(),
       },
-      // Easy to remove: delete the `devBypassAuth` ternary and keep only
-      // the StreamBuilder below when restoring production auth gating.
-      home: devBypassAuth
-          ? const NavigationScreen()
-          : StreamBuilder<User?>(
-              stream: FirebaseAuth.instance.authStateChanges(),
-              builder: (context, snapshot) {
-                // Check if Firebase connection is still loading
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const SplashScreen();
-                }
-
-                // Check if the user is authenticated
-                if (snapshot.hasData) {
-                  // User is signed in, show the main navigation screen
-                  return const NavigationScreen();
-                } else {
-                  // User is not signed in, show the login screen
-                  return const LoginScreen();
-                }
-              },
-            ),
+      // Session restore: wait for Supabase auth bootstrap, then always use the
+      // public navigation shell. Protected routes gate inside NavigationScreen.
+      // [devBypassAuth] only controls whether gated actions open LoginScreen.
+      home: StreamBuilder<AuthState>(
+        stream: SupabaseAuthService().authStateChanges,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData &&
+              Supabase.instance.client.auth.currentSession == null) {
+            return const SplashScreen();
+          }
+          return const NavigationScreen();
+        },
+      ),
     );
   }
 }

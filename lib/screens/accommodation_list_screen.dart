@@ -1,6 +1,7 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/accommodation.dart';
 import 'package:destiny/screens/accommodation_details_screen.dart';
+import 'package:destiny/screens/destina_launch.dart';
 import 'package:destiny/services/api_service.dart';
 import 'package:destiny/widgets/accommodation_card.dart';
 import 'package:destiny/widgets/destiny_discovery.dart';
@@ -118,9 +119,11 @@ class _AccommodationListScreenState extends State<AccommodationListScreen> {
                   trailing: DestinyDestinaAssist(
                     prompt:
                         '“Quiet lodge near Victoria Falls for four nights…”',
-                    onTap: () => showDestinyPreviewMessage(
+                    onTap: () => openDestinaChat(
                       context,
-                      'Destina planning is coming soon — browse stays below.',
+                      seedPrompt:
+                          'Quiet lodge near Victoria Falls for four nights',
+                      seedContext: const {'product_type': 'stay'},
                     ),
                   ),
                 ),

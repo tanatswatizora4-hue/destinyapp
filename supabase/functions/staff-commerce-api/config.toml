@@ -1,3 +1,11 @@
-# Staff commerce API — Firebase ID tokens, not Supabase JWTs.
+# Destiny staff commerce Edge Function (M3B.5).
+#
+# AUTHORITATIVE GATEWAY SETTING LIVES IN ROOT supabase/config.toml:
+#   [functions.staff-commerce-api]
+#   verify_jwt = true
+#
+# Function-local files did not control hosted CLI deploy historically.
+# Keep this file in sync with the root block so local serve matches production.
+
 [functions.staff-commerce-api]
-verify_jwt = false
+verify_jwt = true

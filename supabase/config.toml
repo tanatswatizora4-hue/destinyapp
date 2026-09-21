@@ -403,6 +403,32 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
 
+# ---------------------------------------------------------------------------
+# Edge Function JWT gateway (authoritative for `supabase functions deploy`)
+# Function-local config.toml files are documentation only and do NOT control
+# hosted gateway verify_jwt. Always keep this root block in Git.
+# ---------------------------------------------------------------------------
+[functions.customer-api]
+verify_jwt = true
+
+[functions.staff-commerce-api]
+verify_jwt = true
+
+# Public flight search must work while logged out. Customer-owned actions
+# (enquiry/continue) still require a Supabase JWT inside the function.
+[functions.flight-commerce-api]
+verify_jwt = false
+
+# Provider webhooks have no user JWT. Customer/staff actions still verify
+# the Supabase access token inside payment-commerce-api.
+[functions.payment-commerce-api]
+verify_jwt = false
+
+# Public Destina discovery while logged out. Customer-owned tools
+# (profile, bookings, enquiry) still verify a Supabase JWT inside destina-api.
+[functions.destina-api]
+verify_jwt = false
+
 # pg-delta is the schema diff engine for db diff / db pull / db remote commit.
 # Set enabled = false to fall back to the legacy migra engine.
 [experimental.pgdelta]

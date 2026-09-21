@@ -1,8 +1,9 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/accommodation.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
+import 'package:destiny/screens/destina_launch.dart';
 import 'package:destiny/widgets/destiny_discovery.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -89,9 +90,15 @@ class _AccommodationDetailsScreenState
                               extra: DestinyDestinaAssist(
                                 compact: true,
                                 prompt: 'Ask Destina to refine this stay brief.',
-                                onTap: () => showDestinyPreviewMessage(
+                                onTap: () => openDestinaChat(
                                   context,
-                                  'Destina planning is coming soon.',
+                                  seedPrompt:
+                                      'Tell me about this stay: ${stay.name}',
+                                  seedContext: {
+                                    'product_type': 'stay',
+                                    'product_id': stay.id.toString(),
+                                    'product_name': stay.name,
+                                  },
                                 ),
                               ),
                             ),
@@ -175,9 +182,14 @@ class _StayBody extends StatelessWidget {
           const SizedBox(height: 18),
           DestinyDestinaAssist(
             prompt: '“Compare this stay with quieter options nearby…”',
-            onTap: () => showDestinyPreviewMessage(
+            onTap: () => openDestinaChat(
               context,
-              'Destina planning is coming soon.',
+              seedPrompt: 'Tell me about this stay: ${stay.name}',
+              seedContext: {
+                'product_type': 'stay',
+                'product_id': stay.id.toString(),
+                'product_name': stay.name,
+              },
             ),
           ),
         ],
@@ -313,7 +325,7 @@ class _StayBookingSheetState extends State<_StayBookingSheet> {
     _selectedRoom = widget.accommodation.roomTypes.isNotEmpty
         ? widget.accommodation.roomTypes.first
         : null;
-    _signedIn = FirebaseAuth.instance.currentUser != null;
+    _signedIn = SupabaseAuthService().currentUser != null;
   }
 
   Future<void> _selectDateRange() async {

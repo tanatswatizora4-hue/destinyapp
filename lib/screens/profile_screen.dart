@@ -35,7 +35,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
-    final user = await _authService.getAppUser(_authService.currentUser!.uid);
+    final current = _authService.currentUser;
+    if (current == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+    final user = await _authService.getAppUser(current.id);
     if (user != null) {
       if (mounted) {
         setState(() {
@@ -67,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() => _isLoading = true);
       try {
         await _authService.updateUserProfile(
-          sqlId: _currentUser!.sqlId!,
+          sqlId: _currentUser!.sqlId,
           fullName: _fullNameController.text,
           email: _emailController.text,
           phone: _phoneController.text,

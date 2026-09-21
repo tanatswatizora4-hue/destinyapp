@@ -3,6 +3,9 @@ import 'package:destiny/utils/destiny_media_url.dart';
 /// Destiny-owned booking request (M3A/M3B). Distinct from legacy bymapara [Booking].
 class CustomerBooking {
   final String id;
+  /// Canonical Supabase Auth UUID (M3B.5).
+  final String userId;
+  /// Legacy Firebase UID — deprecated, non-authoritative.
   final String firebaseUid;
   final String itemName;
   final String itemType;
@@ -29,10 +32,17 @@ class CustomerBooking {
   final String paymentStatus;
   final String customerNotes;
   final DateTime? createdAt;
+  final String? provider;
+  final String? providerOfferRef;
+  final Map<String, dynamic> itinerarySnapshot;
+  final double? validatedAmount;
+  final String? validatedCurrency;
+  final Map<String, dynamic> passengerSummary;
 
   CustomerBooking({
     required this.id,
-    required this.firebaseUid,
+    this.userId = '',
+    this.firebaseUid = '',
     required this.itemName,
     required this.itemType,
     this.itemId,
@@ -52,6 +62,12 @@ class CustomerBooking {
     required this.paymentStatus,
     required this.customerNotes,
     this.createdAt,
+    this.provider,
+    this.providerOfferRef,
+    this.itinerarySnapshot = const {},
+    this.validatedAmount,
+    this.validatedCurrency,
+    this.passengerSummary = const {},
   });
 
   bool get isCancelableByCustomer =>
@@ -62,6 +78,15 @@ class CustomerBooking {
   double? get displayAmount => quotedTotal ?? requestedTotal;
 
   bool get hasAuthoritativeQuote => quotedTotal != null;
+
+  /// Payable only when Destiny has quoted and staff moved the booking to await payment.
+  bool get isPayable =>
+      status == 'awaiting_payment' &&
+      quotedTotal != null &&
+      quotedTotal! > 0 &&
+      paymentStatus != 'paid' &&
+      paymentStatus != 'refunded' &&
+      paymentStatus != 'partially_refunded';
 
   String get mainImageUrl => DestinyMediaUrl.resolve(
         imageRefs.isNotEmpty ? imageRefs.first : null,
@@ -126,6 +151,7 @@ class CustomerBooking {
 
     return CustomerBooking(
       id: json['id'].toString(),
+      userId: (json['user_id'] ?? '').toString(),
       firebaseUid: (json['firebase_uid'] ?? '').toString(),
       itemName: json['item_name']?.toString() ?? 'Booking request',
       itemType: json['item_type']?.toString() ?? 'unknown',
@@ -149,6 +175,16 @@ class CustomerBooking {
       paymentStatus: json['payment_status']?.toString() ?? 'none',
       customerNotes: json['customer_notes']?.toString() ?? '',
       createdAt: asDate(json['created_at']),
+      provider: json['provider']?.toString(),
+      providerOfferRef: json['provider_offer_ref']?.toString(),
+      itinerarySnapshot: json['itinerary_snapshot'] is Map
+          ? Map<String, dynamic>.from(json['itinerary_snapshot'] as Map)
+          : const <String, dynamic>{},
+      validatedAmount: asDouble(json['validated_amount']),
+      validatedCurrency: json['validated_currency']?.toString(),
+      passengerSummary: json['passenger_summary'] is Map
+          ? Map<String, dynamic>.from(json['passenger_summary'] as Map)
+          : const <String, dynamic>{},
     );
   }
 }

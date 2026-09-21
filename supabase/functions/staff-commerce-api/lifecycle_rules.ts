@@ -17,9 +17,13 @@ export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 export const ENQUIRY_STATUSES = [
   "received",
   "in_review",
+  "contacted",
+  "researching",
   "quoted",
+  "awaiting_customer",
   "converted",
   "closed",
+  "cancelled",
 ] as const;
 
 export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
@@ -45,11 +49,22 @@ export const STAFF_ENQUIRY_TRANSITIONS: Record<
   EnquiryStatus,
   ReadonlyArray<EnquiryStatus>
 > = {
-  received: ["in_review", "closed"],
-  in_review: ["quoted", "closed"],
-  quoted: ["converted", "closed"],
+  received: ["in_review", "contacted", "cancelled", "closed"],
+  in_review: [
+    "contacted",
+    "researching",
+    "quoted",
+    "awaiting_customer",
+    "cancelled",
+    "closed",
+  ],
+  contacted: ["researching", "quoted", "awaiting_customer", "cancelled", "closed"],
+  researching: ["quoted", "awaiting_customer", "cancelled", "closed"],
+  quoted: ["awaiting_customer", "converted", "cancelled", "closed"],
+  awaiting_customer: ["quoted", "converted", "cancelled", "closed"],
   converted: [],
   closed: [],
+  cancelled: [],
 };
 
 export const CUSTOMER_CANCELABLE: ReadonlySet<BookingStatus> = new Set([
@@ -103,9 +118,12 @@ export function sanitizeQuoteInput(body: Record<string, unknown>): {
   if (
     Object.prototype.hasOwnProperty.call(body, "payment_status") ||
     Object.prototype.hasOwnProperty.call(body, "firebase_uid") ||
+    Object.prototype.hasOwnProperty.call(body, "user_id") ||
     Object.prototype.hasOwnProperty.call(body, "status")
   ) {
-    throw new Error("Quote payload may not set payment_status/status/firebase_uid");
+    throw new Error(
+      "Quote payload may not set payment_status/status/user_id/firebase_uid",
+    );
   }
 
   let expiry: string | null = null;
@@ -129,7 +147,15 @@ export function sanitizeQuoteInput(body: Record<string, unknown>): {
 
 export function assertStaffBodySafe(body: Record<string, unknown>): void {
   // Staff still cannot spoof actor identity — server derives from token.
-  const forbidden = ["firebase_uid", "actor_firebase_uid", "service_role"];
+  const forbidden = [
+    "user_id",
+    "firebase_uid",
+    "actor_user_id",
+    "actor_firebase_uid",
+    "role",
+    "is_active",
+    "service_role",
+  ];
   for (const key of forbidden) {
     if (Object.prototype.hasOwnProperty.call(body, key)) {
       throw new Error(`Client may not set '${key}'`);

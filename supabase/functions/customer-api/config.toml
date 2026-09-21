@@ -1,6 +1,11 @@
-# Destiny customer commerce Edge Function.
-# verify_jwt = false because callers send Firebase ID tokens, not Supabase JWTs.
-# The function verifies Firebase tokens itself, then uses service_role.
+# Destiny customer commerce Edge Function (M3B.5).
+#
+# AUTHORITATIVE GATEWAY SETTING LIVES IN ROOT supabase/config.toml:
+#   [functions.customer-api]
+#   verify_jwt = true
+#
+# Function-local files did not control hosted CLI deploy historically.
+# Keep this file in sync with the root block so local serve matches production.
 
 [functions.customer-api]
-verify_jwt = false
+verify_jwt = true

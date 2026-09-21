@@ -4,7 +4,7 @@ import 'package:destiny/config/destiny_staff_api_config.dart';
 import 'package:destiny/config/destiny_supabase_config.dart';
 import 'package:destiny/models/customer_booking.dart';
 import 'package:destiny/repositories/staff_commerce_repository.dart';
-import 'package:destiny/services/firebase_id_token_provider.dart';
+import 'package:destiny/services/access_token_provider.dart';
 import 'package:destiny/services/staff_api_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -144,6 +144,8 @@ void main() {
       );
       expect(sent!['action'], 'quote_booking');
       expect(sent!.containsKey('firebase_uid'), isFalse);
+      expect(sent!.containsKey('user_id'), isFalse);
+      expect(sent!.containsKey('role'), isFalse);
       expect(sent!['quoted_total'], 120);
       expect(out.status, 'quoted');
       expect(out.paymentStatus, 'none');

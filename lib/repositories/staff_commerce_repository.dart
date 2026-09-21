@@ -4,6 +4,7 @@ import 'package:destiny/services/staff_api_client.dart';
 
 class StaffUser {
   final String id;
+  final String userId;
   final String firebaseUid;
   final String email;
   final String displayName;
@@ -12,7 +13,8 @@ class StaffUser {
 
   StaffUser({
     required this.id,
-    required this.firebaseUid,
+    this.userId = '',
+    this.firebaseUid = '',
     required this.email,
     required this.displayName,
     required this.role,
@@ -22,6 +24,7 @@ class StaffUser {
   factory StaffUser.fromJson(Map<String, dynamic> json) {
     return StaffUser(
       id: json['id'].toString(),
+      userId: json['user_id']?.toString() ?? '',
       firebaseUid: json['firebase_uid']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       displayName: json['display_name']?.toString() ?? '',
@@ -146,6 +149,79 @@ class StaffCommerceRepository {
   Future<Map<String, dynamic>> convertEnquiry(String enquiryId) async {
     final res = await _client.postAction('convert_enquiry', {
       'enquiry_id': enquiryId,
+    });
+    return Map<String, dynamic>.from(res['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> opsDashboard() async {
+    final res = await _client.postAction('ops_dashboard');
+    return Map<String, dynamic>.from(res['data'] as Map);
+  }
+
+  Future<List<Map<String, dynamic>>> workQueue({
+    String? status,
+    String? assigned,
+  }) async {
+    final res = await _client.postAction('work_queue', {
+      if (status != null) 'status': status,
+      if (assigned != null) 'assigned': assigned,
+    });
+    final data = Map<String, dynamic>.from(res['data'] as Map);
+    final items = data['items'] as List? ?? const [];
+    return items
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList(growable: false);
+  }
+
+  Future<List<Map<String, dynamic>>> searchCustomers({String query = ''}) async {
+    final res = await _client.postAction('search_customers', {
+      'query': query,
+      'page': 1,
+      'page_size': 40,
+    });
+    final data = Map<String, dynamic>.from(res['data'] as Map);
+    final items = data['items'] as List? ?? const [];
+    return items
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList(growable: false);
+  }
+
+  Future<Map<String, dynamic>> getCustomerWorkspace(String customerUserId) async {
+    final res = await _client.postAction('get_customer_workspace', {
+      'customer_user_id': customerUserId,
+    });
+    return Map<String, dynamic>.from(res['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> addCustomerNote({
+    required String customerUserId,
+    required String body,
+  }) async {
+    final res = await _client.postAction('add_customer_note', {
+      'customer_user_id': customerUserId,
+      'body': body,
+    });
+    return Map<String, dynamic>.from(res['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> assignEnquiry(String enquiryId) async {
+    final res = await _client.postAction('assign_enquiry', {
+      'enquiry_id': enquiryId,
+    });
+    return Map<String, dynamic>.from(res['data'] as Map);
+  }
+
+  Future<Map<String, dynamic>> setEnquiryFollowUp({
+    required String enquiryId,
+    String? nextFollowUpAt,
+    String followUpNote = '',
+    bool complete = false,
+  }) async {
+    final res = await _client.postAction('set_enquiry_follow_up', {
+      'enquiry_id': enquiryId,
+      if (nextFollowUpAt != null) 'next_follow_up_at': nextFollowUpAt,
+      'follow_up_note': followUpNote,
+      'complete': complete,
     });
     return Map<String, dynamic>.from(res['data'] as Map);
   }

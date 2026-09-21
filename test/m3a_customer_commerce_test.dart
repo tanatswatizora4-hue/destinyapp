@@ -5,7 +5,7 @@ import 'package:destiny/config/destiny_supabase_config.dart';
 import 'package:destiny/models/customer_booking.dart';
 import 'package:destiny/repositories/customer_commerce_repository.dart';
 import 'package:destiny/services/customer_api_client.dart';
-import 'package:destiny/services/firebase_id_token_provider.dart';
+import 'package:destiny/services/access_token_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -72,7 +72,7 @@ void main() {
   });
 
   group('CustomerApiClient', () {
-    test('requires Firebase ID token', () async {
+    test('requires Supabase access token', () async {
       DestinyCustomerApiConfig.debugOverride(
         baseUrl: 'https://example.test/functions/v1',
       );
@@ -92,11 +92,11 @@ void main() {
       );
       Map<String, dynamic>? sentBody;
       final client = CustomerApiClient(
-        tokenProvider: FakeIdTokenProvider('fake-firebase-token'),
+        tokenProvider: FakeIdTokenProvider('fake-supabase-token'),
         httpClient: MockClient((request) async {
           expect(
             request.headers['Authorization'],
-            'Bearer fake-firebase-token',
+            'Bearer fake-supabase-token',
           );
           expect(
             request.headers['apikey'],
@@ -137,6 +137,7 @@ void main() {
 
       expect(sentBody!['action'], 'create_booking_request');
       expect(sentBody!.containsKey('firebase_uid'), isFalse);
+      expect(sentBody!.containsKey('user_id'), isFalse);
       expect(sentBody!.containsKey('quoted_total'), isFalse);
       expect(sentBody!.containsKey('status'), isFalse);
       expect(sentBody!.containsKey('payment_status'), isFalse);

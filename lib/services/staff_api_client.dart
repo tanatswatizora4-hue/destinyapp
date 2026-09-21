@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:destiny/config/destiny_staff_api_config.dart';
 import 'package:destiny/config/destiny_supabase_config.dart';
-import 'package:destiny/services/firebase_id_token_provider.dart';
+import 'package:destiny/services/access_token_provider.dart';
 import 'package:http/http.dart' as http;
 
 class StaffApiException implements Exception {
@@ -18,28 +18,32 @@ class StaffApiException implements Exception {
 class StaffApiClient {
   StaffApiClient({
     http.Client? httpClient,
-    IdTokenProvider? tokenProvider,
+    AccessTokenProvider? tokenProvider,
   })  : _http = httpClient ?? http.Client(),
-        _tokens = tokenProvider ?? FirebaseIdTokenProvider();
+        _tokens = tokenProvider ?? SupabaseAccessTokenProvider();
 
   final http.Client _http;
-  final IdTokenProvider _tokens;
+  final AccessTokenProvider _tokens;
 
   Future<Map<String, dynamic>> postAction(
     String action, [
     Map<String, dynamic> body = const {},
   ]) async {
-    final token = await _tokens.getIdToken();
+    final token = await _tokens.getAccessToken();
     if (token == null || token.isEmpty) {
       throw StaffApiException(
-        'Sign in required: Firebase ID token is missing',
+        'Sign in required: Supabase access token is missing',
         statusCode: 401,
       );
     }
 
     final safeBody = Map<String, dynamic>.from(body)
+      ..remove('user_id')
       ..remove('firebase_uid')
+      ..remove('actor_user_id')
       ..remove('actor_firebase_uid')
+      ..remove('role')
+      ..remove('is_active')
       ..remove('service_role')
       ..['action'] = action;
 

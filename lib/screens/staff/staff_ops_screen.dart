@@ -1,9 +1,12 @@
 import 'package:destiny/config/theme/app_theme.dart';
 import 'package:destiny/models/customer_booking.dart';
 import 'package:destiny/models/customer_enquiry.dart';
+import 'package:destiny/models/flight_offer.dart';
 import 'package:destiny/repositories/staff_commerce_repository.dart';
+import 'package:destiny/screens/staff/staff_payments_tab.dart';
 import 'package:destiny/services/staff_api_client.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:destiny/services/supabase_auth_service.dart';
+import 'package:destiny/widgets/flight_offer_card.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -31,19 +34,28 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
   bool _loadingLists = false;
   Object? _listError;
 
+  Map<String, dynamic>? _dashboard;
+  List<Map<String, dynamic>> _queue = const [];
+  List<Map<String, dynamic>> _customers = const [];
+  Map<String, dynamic>? _customerWorkspace;
+  final _customerSearch = TextEditingController();
+  final _noteInput = TextEditingController();
+
   CustomerBooking? _selectedBooking;
   CustomerEnquiry? _selectedEnquiry;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 6, vsync: this);
     _bootstrap();
   }
 
   @override
   void dispose() {
     _tabs.dispose();
+    _customerSearch.dispose();
+    _noteInput.dispose();
     super.dispose();
   }
 
@@ -52,7 +64,7 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
       _loadingAuth = true;
       _authError = null;
     });
-    if (FirebaseAuth.instance.currentUser == null) {
+    if (SupabaseAuthService().currentUser == null) {
       setState(() {
         _loadingAuth = false;
         _authError = 'Sign in required';
@@ -89,10 +101,16 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
     try {
       final bookings = await _repo.listBookings();
       final enquiries = await _repo.listEnquiries();
+      final dashboard = await _repo.opsDashboard();
+      final queue = await _repo.workQueue();
+      final customers = await _repo.searchCustomers();
       if (!mounted) return;
       setState(() {
         _bookings = bookings;
         _enquiries = enquiries;
+        _dashboard = dashboard;
+        _queue = queue;
+        _customers = customers;
         _loadingLists = false;
       });
     } catch (e) {
@@ -120,8 +138,12 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white70,
                 tabs: const [
+                  Tab(text: 'Dashboard'),
+                  Tab(text: 'Queue'),
+                  Tab(text: 'Customers'),
                   Tab(text: 'Bookings'),
                   Tab(text: 'Enquiries'),
+                  Tab(text: 'Payments'),
                 ],
               ),
         actions: [
@@ -198,8 +220,314 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
     return TabBarView(
       controller: _tabs,
       children: [
+        _dashboardPane(),
+        _queuePane(),
+        _customersPane(),
         _bookingsPane(),
         _enquiriesPane(),
+        const StaffPaymentsTab(),
+      ],
+    );
+  }
+
+  Widget _dashboardPane() {
+    final counts = Map<String, dynamic>.from(_dashboard?['counts'] as Map? ?? {});
+    final attention = (_dashboard?['attention'] as List? ?? const [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'What needs attention',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppTheme.navy,
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _metricChip('New', counts['new_enquiries']),
+            _metricChip('Unassigned', counts['unassigned_enquiries']),
+            _metricChip('Follow-ups due', counts['follow_ups_due']),
+            _metricChip('Overdue', counts['follow_ups_overdue']),
+            _metricChip('In pipeline', counts['in_pipeline']),
+            _metricChip('Awaiting customer', counts['awaiting_customer']),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'Attention list',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.navy,
+              ),
+        ),
+        const SizedBox(height: 8),
+        if (attention.isEmpty)
+          const Text('Nothing urgent in the current scope.')
+        else
+          ...attention.map(
+            (row) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('${row['kind'] ?? 'enquiry'} · ${row['status']}'),
+              subtitle: Text(
+                [
+                  if (row['assigned_staff_user_id'] == null) 'Unassigned',
+                  if (row['follow_up_state'] != null)
+                    'Follow-up: ${row['follow_up_state']}',
+                ].join(' · '),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _metricChip(String label, Object? value) {
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$value',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.navy,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: AppTheme.textSecondary)),
+        ],
+      ),
+    );
+  }
+
+  Widget _queuePane() {
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: _queue.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, i) {
+        final row = _queue[i];
+        return Material(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          child: ListTile(
+            title: Text('${row['kind'] ?? 'enquiry'} · ${row['status']}'),
+            subtitle: Text(
+              [
+                if (row['assigned_staff_user_id'] == null) 'Unassigned',
+                if (row['follow_up_state'] != null)
+                  'Follow-up ${row['follow_up_state']}',
+                if (row['updated_at'] != null) '${row['updated_at']}',
+              ].join(' · '),
+            ),
+            trailing: TextButton(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                try {
+                  await _repo.assignEnquiry(row['id'].toString());
+                  await _refreshLists();
+                } catch (e) {
+                  if (!mounted) return;
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Assign failed: $e')),
+                  );
+                }
+              },
+              child: const Text('Assign to me'),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _customersPane() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _customerSearch,
+                  decoration: const InputDecoration(
+                    hintText: 'Search customers…',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onSubmitted: (_) async {
+                    final items = await _repo.searchCustomers(
+                      query: _customerSearch.text,
+                    );
+                    if (!mounted) return;
+                    setState(() {
+                      _customers = items;
+                      _customerWorkspace = null;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () async {
+                  final items = await _repo.searchCustomers(
+                    query: _customerSearch.text,
+                  );
+                  if (!mounted) return;
+                  setState(() {
+                    _customers = items;
+                    _customerWorkspace = null;
+                  });
+                },
+                child: const Text('Search'),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _customers.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, i) {
+                    final c = _customers[i];
+                    return ListTile(
+                      tileColor: AppTheme.surface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      title: Text(c['full_name']?.toString() ?? 'Customer'),
+                      subtitle: Text(c['email']?.toString() ?? ''),
+                      onTap: () async {
+                        final ws = await _repo.getCustomerWorkspace(
+                          c['user_id'].toString(),
+                        );
+                        if (!mounted) return;
+                        setState(() => _customerWorkspace = ws);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                flex: 3,
+                child: _customerWorkspace == null
+                    ? const Center(child: Text('Select a customer'))
+                    : _customerDetail(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _customerDetail() {
+    final profile =
+        Map<String, dynamic>.from(_customerWorkspace!['profile'] as Map);
+    final notes = (_customerWorkspace!['notes'] as List? ?? const [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    final docs = (_customerWorkspace!['documents'] as List? ?? const [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    final enquiries = (_customerWorkspace!['enquiries'] as List? ?? const [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          profile['full_name']?.toString() ?? 'Customer',
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.navy,
+          ),
+        ),
+        Text(profile['email']?.toString() ?? ''),
+        if (profile['phone'] != null) Text(profile['phone'].toString()),
+        const SizedBox(height: 16),
+        Text('Enquiries (${enquiries.length})',
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        ...enquiries.take(8).map(
+              (e) => ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text('${e['kind']} · ${e['status']}'),
+              ),
+            ),
+        const SizedBox(height: 12),
+        Text('Documents (${docs.length})',
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        ...docs.map(
+          (d) => ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: Text(d['display_name']?.toString() ?? d['document_type'].toString()),
+            subtitle: Text('${d['verification_status']}'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text('Internal notes',
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        ...notes.map(
+          (n) => ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: Text(n['body']?.toString() ?? ''),
+            subtitle: Text(n['created_at']?.toString() ?? ''),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _noteInput,
+          decoration: const InputDecoration(
+            hintText: 'Add staff-only note…',
+            border: OutlineInputBorder(),
+          ),
+          minLines: 2,
+          maxLines: 4,
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton(
+            onPressed: () async {
+              final uid = profile['user_id']?.toString();
+              if (uid == null || _noteInput.text.trim().isEmpty) return;
+              await _repo.addCustomerNote(
+                customerUserId: uid,
+                body: _noteInput.text.trim(),
+              );
+              _noteInput.clear();
+              final ws = await _repo.getCustomerWorkspace(uid);
+              if (!mounted) return;
+              setState(() => _customerWorkspace = ws);
+            },
+            child: const Text('Save note'),
+          ),
+        ),
       ],
     );
   }
@@ -226,7 +554,9 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
               ),
               title: Text(b.itemName,
                   maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text('${b.statusLabel} · ${b.itemType}'),
+              subtitle: Text(
+                '${b.statusLabel} · ${destinyProductTypeLabel(b.itemType)} · ${b.paymentStatus}',
+              ),
               trailing: Text(b.status),
               onTap: () => setState(() => _selectedBooking = b),
             );
@@ -304,8 +634,14 @@ class _StaffOpsScreenState extends State<StaffOpsScreen>
                   color: selected ? AppTheme.primary : AppTheme.border,
                 ),
               ),
-              title: Text(route.trim().isEmpty ? e.kind : route),
-              subtitle: Text(e.statusLabel),
+              title: Text(
+                route.trim().isEmpty
+                    ? destinyProductTypeLabel(e.kind)
+                    : route,
+              ),
+              subtitle: Text(
+                '${destinyProductTypeLabel(e.kind)} · ${e.statusLabel}',
+              ),
               onTap: () => setState(() => _selectedEnquiry = e),
             );
           },
@@ -441,7 +777,8 @@ class _BookingDetailPanelState extends State<_BookingDetailPanel> {
             spacing: 8,
             children: [
               Chip(label: Text(b.statusLabel)),
-              Chip(label: Text(b.itemType)),
+              Chip(label: Text(destinyProductTypeLabel(b.itemType))),
+              Chip(label: Text('Payment: ${b.paymentStatus}')),
               if (b.requestedTotal != null)
                 Chip(
                   label: Text(
@@ -458,8 +795,29 @@ class _BookingDetailPanelState extends State<_BookingDetailPanel> {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Customer UID: ${b.firebaseUid}',
+          Text('Customer: ${b.userId.isNotEmpty ? b.userId : '—'}',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          if (b.itemType == 'flight') ...[
+            const SizedBox(height: 16),
+            Text('Flight details',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 8),
+            FlightItinerarySummary(
+              snapshot: b.itinerarySnapshot,
+              payload: {
+                'origin': b.itinerarySnapshot['origin'],
+                'destination': b.itinerarySnapshot['destination'],
+                'departure_date': b.startDate?.toIso8601String(),
+                'return_date': b.endDate?.toIso8601String(),
+              },
+              passengers: b.passengerSummary,
+              providerRef: b.providerOfferRef,
+              validatedAmount: b.validatedAmount,
+              validatedCurrency: b.validatedCurrency,
+            ),
+          ],
           if (b.customerNotes.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text('Customer notes: ${b.customerNotes}'),
@@ -546,7 +904,7 @@ class _BookingDetailPanelState extends State<_BookingDetailPanel> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Payment capture is M3D — awaiting_payment does not mean paid.',
+            'Operational confirm does not record a payment. Prefer customer checkout; only trusted payment verification marks a booking paid.',
             style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
           ),
         ],
@@ -608,18 +966,53 @@ class _EnquiryDetailPanelState extends State<_EnquiryDetailPanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${e.kind} · ${e.statusLabel}',
+            '${destinyProductTypeLabel(e.kind)} · ${e.statusLabel}',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppTheme.navy,
                 ),
           ),
           const SizedBox(height: 12),
-          Text('Customer UID: ${e.firebaseUid}',
+          Text('Customer: ${e.userId.isNotEmpty ? e.userId : e.firebaseUid}',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
           const SizedBox(height: 12),
-          Text(e.payload.toString(),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+          if (e.kind == 'flight')
+            FlightItinerarySummary(
+              snapshot: e.itinerarySnapshot,
+              payload: e.payload,
+              passengers: e.passengerSummary,
+              providerRef: e.providerOfferRef,
+              validatedAmount: e.validatedAmount,
+              validatedCurrency: e.validatedCurrency,
+            )
+          else
+            Text(
+              e.payload.entries
+                  .where((kv) => kv.key != 'destina')
+                  .map((kv) => '${kv.key}: ${kv.value}')
+                  .join('\n'),
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
+          if (e.payload['destina'] is Map) ...[
+            const SizedBox(height: 16),
+            Text('Destina brief',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 6),
+            Text(
+              () {
+                final d = Map<String, dynamic>.from(e.payload['destina'] as Map);
+                final summary = d['summary']?.toString() ?? '';
+                final reason = d['handoff_reason']?.toString() ?? '';
+                return [
+                  if (reason.isNotEmpty) 'Handoff: $reason',
+                  if (summary.isNotEmpty) summary,
+                ].join('\n');
+              }(),
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
+          ],
           const SizedBox(height: 20),
           Wrap(
             spacing: 8,

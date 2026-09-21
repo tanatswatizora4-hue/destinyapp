@@ -1,10 +1,8 @@
-// File: auth_wrapper.dart
-// Root: destiny/lib/screens/
 import 'package:destiny/screens/login_screen.dart';
 import 'package:destiny/screens/navigation_screen.dart';
 import 'package:destiny/services/auth_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({Key? key}) : super(key: key);
@@ -14,7 +12,8 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: AuthService().authStateChanges,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.active) {
+        if (snapshot.connectionState == ConnectionState.active ||
+            snapshot.hasData) {
           final User? user = snapshot.data;
           if (user == null) {
             return const LoginScreen();
