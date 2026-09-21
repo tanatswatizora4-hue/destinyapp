@@ -19,6 +19,7 @@ import {
   extractBearerToken,
   verifySupabaseAccessToken,
 } from "./supabase_auth.ts";
+import { handleStaffM5Action } from "./staff_m5_actions.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -127,7 +128,17 @@ type Action =
   | "list_enquiries"
   | "get_enquiry"
   | "update_enquiry"
-  | "convert_enquiry";
+  | "convert_enquiry"
+  | "search_customers"
+  | "get_customer_workspace"
+  | "add_customer_note"
+  | "work_queue"
+  | "assign_enquiry"
+  | "set_enquiry_follow_up"
+  | "ops_dashboard"
+  | "list_customer_documents"
+  | "get_customer_document_url"
+  | "verify_customer_document";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -180,6 +191,11 @@ Deno.serve(async (req) => {
       });
     }
     const staff = authz.staff;
+
+    const m5 = await handleStaffM5Action(db, staff, action, body);
+    if (m5) {
+      return json(m5.status, m5.body);
+    }
 
     switch (action) {
       case "staff_me": {

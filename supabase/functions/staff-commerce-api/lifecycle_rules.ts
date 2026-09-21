@@ -17,9 +17,13 @@ export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 export const ENQUIRY_STATUSES = [
   "received",
   "in_review",
+  "contacted",
+  "researching",
   "quoted",
+  "awaiting_customer",
   "converted",
   "closed",
+  "cancelled",
 ] as const;
 
 export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
@@ -45,11 +49,22 @@ export const STAFF_ENQUIRY_TRANSITIONS: Record<
   EnquiryStatus,
   ReadonlyArray<EnquiryStatus>
 > = {
-  received: ["in_review", "closed"],
-  in_review: ["quoted", "closed"],
-  quoted: ["converted", "closed"],
+  received: ["in_review", "contacted", "cancelled", "closed"],
+  in_review: [
+    "contacted",
+    "researching",
+    "quoted",
+    "awaiting_customer",
+    "cancelled",
+    "closed",
+  ],
+  contacted: ["researching", "quoted", "awaiting_customer", "cancelled", "closed"],
+  researching: ["quoted", "awaiting_customer", "cancelled", "closed"],
+  quoted: ["awaiting_customer", "converted", "cancelled", "closed"],
+  awaiting_customer: ["quoted", "converted", "cancelled", "closed"],
   converted: [],
   closed: [],
+  cancelled: [],
 };
 
 export const CUSTOMER_CANCELABLE: ReadonlySet<BookingStatus> = new Set([
