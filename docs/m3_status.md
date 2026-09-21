@@ -14,19 +14,11 @@
 | M3D | Payment-ready architecture — **LIVE** (mock QA; real PSPs pending docs) |
 | M3E | Commerce completion + legacy cleanup — **LIVE** |
 
-## Current: M4 Destina production assistant
+## Current: M5 Internal operations (in repo)
 
-Branch: `cursor/m3b5-supabase-auth-migration-194a`
-
-- `destina-api` + Gemini 3.6 Flash (`gemini-3.6-flash`)
-- Conversational-first consultant: tools only for live/authoritative data or actions
-- Allowlisted tools over Travelport + Destiny catalog + commerce
-- Destina chat UI wired from Home / Flights / Tours / Stays / Vehicles / Bookings
-- Tool loop replays opaque Gemini thought signatures; never user-facing
-- Human place names in trip state; IATA resolved only at flight-search boundary
-- M4.2: request_id observability, classified failures, fewer redundant Gemini turns,
-  Japan/city ambiguity clarification, one Gemini retry for transient errors
-- See `docs/m4_destina.md`
+- M4 Destina remains live; Gemini quota is an external M4 concern (not M5)
+- M5A–E implemented in repository — apply migrations + redeploy customer-api / staff-commerce-api
+- See `docs/m5_internal_ops.md`
 
 ## Travelport
 
@@ -42,7 +34,7 @@ M3D schema + `payment-commerce-api` are live. Platform fee is 0. Mock provider i
 
 ## Later
 
-- Redeploy `destina-api` for M4.2 latency/observability
+- Apply M5 migrations + deploy `customer-api` / `staff-commerce-api`
+- Optional: migrate legacy bymapara travel-doc binaries (requires operator credentials)
 - Live PSP integration after official docs + credentials
-- Private travel-document bucket (product decision)
 - Optional Google OAuth on Supabase Auth

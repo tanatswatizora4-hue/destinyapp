@@ -39,9 +39,9 @@
 - Allowlisted tools: live flights, Destiny catalog, enquiries, consultant handoff
 - See `docs/m4_destina.md`
 
-## M5 — Private customer documents storage
-- Separate private bucket (not `destiny-media`)
+## M5 — Internal operations & private documents — IN REPO
+- Private travel-document bucket + customer-api actions
+- Staff CRM workspace, work queue, ops dashboard
+- See `docs/m5_internal_ops.md`
 
-## M6 — Ops / agent tooling
-
-## M7 — Growth / personalization
+## M6 — Growth / personalization (next)
