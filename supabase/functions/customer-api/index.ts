@@ -24,6 +24,17 @@ import {
   extractBearerToken,
   verifySupabaseAccessToken,
 } from "./supabase_auth.ts";
+import {
+  DocumentValidationError,
+  sanitizeCreateTravelDocument,
+} from "./document_rules.ts";
+import {
+  archiveTravelDocument,
+  createDocumentSignedUrl,
+  createPendingTravelDocument,
+  finalizeTravelDocument,
+  listTravelDocumentsForCustomer,
+} from "./document_service.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -59,7 +70,12 @@ type Action =
   | "list_bookings"
   | "cancel_booking"
   | "create_flight_enquiry"
-  | "close_enquiry";
+  | "close_enquiry"
+  | "list_travel_documents"
+  | "create_travel_document_upload"
+  | "finalize_travel_document"
+  | "get_travel_document_url"
+  | "delete_travel_document";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -430,6 +446,124 @@ Deno.serve(async (req) => {
           .single();
         if (error) throw error;
         return json(200, { status: "success", data });
+      }
+
+      case "list_travel_documents": {
+        const data = await listTravelDocumentsForCustomer(db, uid);
+        return json(200, { status: "success", data });
+      }
+
+      case "create_travel_document_upload": {
+        let input;
+        try {
+          input = sanitizeCreateTravelDocument(body);
+        } catch (e) {
+          if (e instanceof DocumentValidationError) {
+            return json(400, {
+              status: "error",
+              code: e.code,
+              message: e.message,
+            });
+          }
+          throw e;
+        }
+        const created = await createPendingTravelDocument(db, uid, input);
+        return json(200, {
+          status: "success",
+          data: {
+            document: {
+              id: created.row.id,
+              document_type: created.row.document_type,
+              display_name: created.row.display_name,
+              mime_type: created.row.mime_type,
+              file_size: created.row.file_size,
+              upload_status: created.row.upload_status,
+              verification_status: created.row.verification_status,
+              expiry_date: created.row.expiry_date ?? null,
+              created_at: created.row.created_at,
+            },
+            upload: created.upload,
+            // Never return a permanent public URL.
+            public_url: null,
+          },
+        });
+      }
+
+      case "finalize_travel_document": {
+        const documentId = String(body.document_id ?? "");
+        if (!documentId) {
+          return json(400, { status: "error", message: "document_id required" });
+        }
+        try {
+          const row = await finalizeTravelDocument(db, uid, documentId);
+          return json(200, {
+            status: "success",
+            data: {
+              id: row.id,
+              upload_status: row.upload_status,
+              verification_status: row.verification_status,
+            },
+          });
+        } catch (e) {
+          const status = (e as { status?: number }).status ?? 500;
+          if (status === 404) {
+            return json(404, { status: "error", message: "Document not found" });
+          }
+          throw e;
+        }
+      }
+
+      case "get_travel_document_url": {
+        const documentId = String(body.document_id ?? "");
+        if (!documentId) {
+          return json(400, { status: "error", message: "document_id required" });
+        }
+        try {
+          const signed = await createDocumentSignedUrl(db, {
+            documentId,
+            actorUserId: uid,
+            actorType: "customer",
+            requireOwnerUserId: uid,
+          });
+          return json(200, {
+            status: "success",
+            data: {
+              signed_url: signed.signed_url,
+              expires_in: signed.expires_in,
+              document: signed.document,
+              public_url: null,
+            },
+          });
+        } catch (e) {
+          const status = (e as { status?: number }).status ?? 500;
+          if (status === 404) {
+            return json(404, { status: "error", message: "Document not found" });
+          }
+          if (status === 409) {
+            return json(409, {
+              status: "error",
+              message: (e as Error).message,
+            });
+          }
+          throw e;
+        }
+      }
+
+      case "delete_travel_document": {
+        const documentId = String(body.document_id ?? "");
+        if (!documentId) {
+          return json(400, { status: "error", message: "document_id required" });
+        }
+        try {
+          await archiveTravelDocument(db, uid, documentId);
+          return json(200, { status: "success", data: { deleted: true } });
+        } catch (e) {
+          const status = (e as { status?: number }).status ?? 500;
+          if (status === 404) {
+            return json(404, { status: "error", message: "Document not found" });
+          }
+          throw e;
+        }
       }
 
       default:

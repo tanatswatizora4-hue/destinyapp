@@ -35,7 +35,6 @@ class NavigationScreen extends StatefulWidget {
 
 class _NavigationScreenState extends State<NavigationScreen> {
   int _selectedIndex = 0;
-  int? _sqlUserId;
   User? _authUser;
   late StreamSubscription<AuthState> _authSubscription;
   final ApiService _apiService = ApiService();
@@ -100,13 +99,12 @@ class _NavigationScreenState extends State<NavigationScreen> {
         }
         if (!mounted) return;
         setState(() => _isLoadingAuth = false);
-        // Travel documents remain on the isolated legacy SQL link.
-        // Failure must not block Destiny commerce (bookings/payments/flights).
+        // Best-effort legacy SQL sync for historical tooling only.
+        // Travel Docs now use Supabase Auth + customer-api private documents.
         unawaited(_syncLegacyTravelDocs(user.id, displayName, email));
       } else {
         if (!mounted) return;
         setState(() {
-          _sqlUserId = null;
           _isLoadingAuth = false;
         });
       }
@@ -125,14 +123,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
     String email,
   ) async {
     try {
-      final userData = await _apiService.syncUserWithSql(
+      await _apiService.syncUserWithSql(
         userId,
         displayName,
         email,
       );
-      final sqlId = userData['id'];
-      if (!mounted) return;
-      setState(() => _sqlUserId = sqlId is int ? sqlId : int.tryParse('$sqlId'));
     } catch (e) {
       debugPrint('Legacy travel-docs sync deferred: $e');
     }
@@ -170,12 +165,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
       signedIn
           ? const MyBookingsScreen()
           : _buildPlaceholder('Please sign in to view your bookings.'),
-      (_sqlUserId != null)
-          ? TravelDocumentsScreen(userId: _sqlUserId!)
+      signedIn
+          ? const TravelDocumentsScreen()
           : _buildPlaceholder(
-              signedIn
-                  ? 'Travel documents still use a separate legacy account link and are not stored in Destiny public media. If this stays empty, contact Destiny support. Bookings and payments are not affected.'
-                  : 'Please sign in to view your travel documents.',
+              'Please sign in to view your travel documents.',
             ),
       signedIn
           ? const ProfileScreen()
