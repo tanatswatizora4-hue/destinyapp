@@ -16,8 +16,12 @@ import { DestinaModelProvider } from "./destina_domain.ts";
 export const DESTINA_MODEL_UNAVAILABLE_MESSAGE =
   "I couldn't reach Destina's language model just now. I can try again, or send this to our travel team.";
 
+export const DESTINA_MODEL_TIMEOUT_MESSAGE =
+  "I couldn't finish that just now. I can try again, or I can send this to our travel team.";
+
 export type GeminiLogEvent = {
   event: "destina_model_provider_error";
+  request_id?: string;
   provider: "gemini";
   model: string;
   http_status: number;
@@ -32,6 +36,10 @@ type GeminiOpts = {
   apiKey: string;
   model: string;
   log?: GeminiLogger;
+  requestId?: string;
+  onRetry?: (info: { reason: string; retry_number: number }) => void;
+  maxRetries?: number;
+  retryBackoffMs?: number;
 };
 
 const SECRET_LIKE =
@@ -309,12 +317,20 @@ export class GeminiDestinaProvider implements DestinaModelProvider {
   private readonly apiKey: string;
   private readonly fetchImpl: typeof fetch;
   private readonly log: GeminiLogger;
+  private readonly requestId?: string;
+  private readonly onRetry?: (info: { reason: string; retry_number: number }) => void;
+  private readonly maxRetries: number;
+  private readonly retryBackoffMs: number;
 
   constructor(opts: GeminiOpts, fetchImpl: typeof fetch = fetch) {
     this.apiKey = opts.apiKey;
     this.model = opts.model;
     this.fetchImpl = fetchImpl;
     this.log = opts.log ?? defaultLog;
+    this.requestId = opts.requestId;
+    this.onRetry = opts.onRetry;
+    this.maxRetries = opts.maxRetries ?? 1;
+    this.retryBackoffMs = opts.retryBackoffMs ?? 400;
   }
 
   async generate(
@@ -331,14 +347,46 @@ export class GeminiDestinaProvider implements DestinaModelProvider {
         provider_code: null,
         provider_message: "function_call continuation missing",
       });
-      if (e instanceof DestinaError) throw e;
+      if (e instanceof DestinaError) {
+        throw new DestinaError(
+          e.code === "model_unavailable" ? "missing_provider_continuation" : e.code,
+          DESTINA_MODEL_UNAVAILABLE_MESSAGE,
+          503,
+          "model",
+        );
+      }
       throw new DestinaError(
-        "model_unavailable",
+        "missing_provider_continuation",
         DESTINA_MODEL_UNAVAILABLE_MESSAGE,
         503,
+        "model",
       );
     }
 
+    let attempt = 0;
+    while (true) {
+      try {
+        return await this.generateOnce(url, body);
+      } catch (e) {
+        if (!(e instanceof DestinaError) || !isRetryableModelError(e)) {
+          throw e;
+        }
+        if (attempt >= this.maxRetries) throw e;
+        attempt += 1;
+        try {
+          this.onRetry?.({ reason: e.code, retry_number: attempt });
+        } catch {
+          // ignore
+        }
+        await sleep(this.retryBackoffMs + Math.floor(Math.random() * 200));
+      }
+    }
+  }
+
+  private async generateOnce(
+    url: string,
+    body: Record<string, unknown>,
+  ): Promise<DestinaModelGenerateResult> {
     let res: Response;
     try {
       res = await this.fetchImpl(url, {
@@ -359,9 +407,10 @@ export class GeminiDestinaProvider implements DestinaModelProvider {
         ),
       });
       throw new DestinaError(
-        "model_unavailable",
+        "model_network_error",
         DESTINA_MODEL_UNAVAILABLE_MESSAGE,
         503,
+        "model",
       );
     }
 
@@ -379,11 +428,7 @@ export class GeminiDestinaProvider implements DestinaModelProvider {
         provider_code: parsed.provider_code,
         provider_message: parsed.provider_message,
       });
-      throw new DestinaError(
-        "model_unavailable",
-        DESTINA_MODEL_UNAVAILABLE_MESSAGE,
-        503,
-      );
+      throw classifyHttpModelError(res.status);
     }
 
     const json = await res.json() as Record<string, unknown>;
@@ -426,10 +471,11 @@ export class GeminiDestinaProvider implements DestinaModelProvider {
   }
 
   private emitProviderError(
-    fields: Omit<GeminiLogEvent, "event" | "provider" | "model">,
+    fields: Omit<GeminiLogEvent, "event" | "provider" | "model" | "request_id">,
   ): void {
     const event = assertSafeLogEvent({
       event: "destina_model_provider_error",
+      request_id: this.requestId,
       provider: "gemini",
       model: this.model,
       ...fields,
@@ -440,4 +486,35 @@ export class GeminiDestinaProvider implements DestinaModelProvider {
       // Logging must never change the client-facing failure.
     }
   }
+}
+
+function classifyHttpModelError(status: number): DestinaError {
+  if (status === 429) {
+    return new DestinaError("model_429", DESTINA_MODEL_UNAVAILABLE_MESSAGE, 503, "model");
+  }
+  if (status === 401 || status === 403) {
+    return new DestinaError("model_auth_error", DESTINA_MODEL_UNAVAILABLE_MESSAGE, 503, "model");
+  }
+  if (status === 400) {
+    return new DestinaError(
+      "model_invalid_argument",
+      DESTINA_MODEL_UNAVAILABLE_MESSAGE,
+      503,
+      "model",
+    );
+  }
+  if (status >= 500) {
+    return new DestinaError("model_5xx", DESTINA_MODEL_UNAVAILABLE_MESSAGE, 503, "model");
+  }
+  return new DestinaError("model_unavailable", DESTINA_MODEL_UNAVAILABLE_MESSAGE, 503, "model");
+}
+
+function isRetryableModelError(err: DestinaError): boolean {
+  return err.code === "model_429" ||
+    err.code === "model_5xx" ||
+    err.code === "model_network_error";
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

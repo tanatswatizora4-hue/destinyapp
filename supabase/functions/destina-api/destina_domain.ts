@@ -138,6 +138,7 @@ export class DestinaError extends Error {
     public readonly code: string,
     message: string,
     public readonly status = 400,
+    public readonly stage?: string,
   ) {
     super(message);
     this.name = "DestinaError";

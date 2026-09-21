@@ -154,6 +154,36 @@ export class ScriptedDestinaProvider implements DestinaModelProvider {
       };
     }
 
+    // Multi-turn flight follow-up: origin/date only, destination already in trip state.
+    if (
+      trip.destination &&
+      (trip.flight_required || /japan|zanzibar|johannesburg/i.test(trip.destination)) &&
+      /harare|hre|johannesburg|joburg|cape town|december|january|february|march|april|may|june|july|august|september|october|november|\d{4}-\d{2}-\d{2}/i
+        .test(lower) &&
+      !/pack|october\?|places to visit|tell me about|haha/i.test(lower)
+    ) {
+      const fromHarare = /harare|hre/i.test(lower);
+      const dateIso = (user.match(/\d{4}-\d{2}-\d{2}/) ?? [null])[0];
+      const flexibleDate = !dateIso
+        ? String(user.match(
+          /((?:early|late|mid[-\s]?)?\s*(?:january|february|march|april|may|june|july|august|september|october|november|december)\s*(?:first|second|third|\d{1,2}(?:st|nd|rd|th)?)?)/i,
+        )?.[1] ?? "").trim() || null
+        : null;
+      const origin = fromHarare ? "Harare" : trip.origin;
+      const departureDate = dateIso ?? flexibleDate ?? trip.departure_date;
+      if (origin && trip.destination && departureDate) {
+        return {
+          text: "",
+          toolCalls: [call("search_flights", {
+            origin,
+            destination: trip.destination,
+            departure_date: departureDate,
+            adults: 1,
+          })],
+        };
+      }
+    }
+
     if (/talk to (a |an )?(human|person|consultant|agent)|send this to (a |the )?(consultant|team)/i.test(lower)) {
       return {
         text: "",
@@ -179,18 +209,29 @@ export class ScriptedDestinaProvider implements DestinaModelProvider {
     }
 
     if (
-      /search flights|find (me )?(a )?flights?|flight from /i.test(lower) ||
+      /search flights|find (me )?(a )?flights?|flight from |how much .{0,60}flights?|flights? (to|from|for)\b/i
+        .test(lower) ||
       (/HRE/.test(user) && /JNB/.test(user) && /search flights|find/i.test(lower))
     ) {
       const fromHarare = /harare|hre/i.test(lower);
       const toJnb = /johannesburg|joburg|jnb/i.test(lower);
       const toZnz = /zanzibar|znz/i.test(lower);
+      const toJapan = /japan/i.test(lower);
       const date = (user.match(/\d{4}-\d{2}-\d{2}/) ?? [null])[0];
+      const flexibleDate = !date &&
+          /december|january|february|march|april|may|june|july|august|september|october|november/i
+            .test(lower)
+        ? String(user.match(
+          /(?:departing\s+)?((?:early|late|mid[-\s]?)?\s*(?:january|february|march|april|may|june|july|august|september|october|november|december)\s*(?:first|second|third|\d{1,2}(?:st|nd|rd|th)?)?)/i,
+        )?.[1] ?? "").trim() || null
+        : null;
       const origin = fromHarare ? "Harare" : trip.origin;
-      const destination = toZnz
+      const destination = toJapan
+        ? "Japan"
+        : toZnz
         ? "Zanzibar"
         : (toJnb ? "Johannesburg" : trip.destination);
-      const departureDate = date ?? trip.departure_date;
+      const departureDate = date ?? flexibleDate ?? trip.departure_date;
       if (fromHarare && (toJnb || toZnz) && date) {
         return {
           text: "",
@@ -213,6 +254,26 @@ export class ScriptedDestinaProvider implements DestinaModelProvider {
           })],
         };
       }
+      // Multi-turn: origin+date supplied while destination already Japan (ambiguous country).
+      if (
+        origin && destination && departureDate &&
+        !missingFlightFields({
+          ...trip,
+          origin,
+          destination,
+          departure_date: departureDate,
+        }).length
+      ) {
+        return {
+          text: "",
+          toolCalls: [call("search_flights", {
+            origin,
+            destination,
+            departure_date: departureDate,
+            adults: 1,
+          })],
+        };
+      }
       const missing = missingFlightFields({
         ...trip,
         origin,
@@ -220,15 +281,19 @@ export class ScriptedDestinaProvider implements DestinaModelProvider {
         departure_date: departureDate,
       });
       if (missing.length) {
+        const japanAsk = toJapan || /japan/i.test(String(destination ?? ""));
         return {
           text: missing.includes("origin")
-            ? "Sure. Which city are you flying from?"
+            ? (japanAsk
+              ? "Sure — I can look up live flights to Japan. Which city are you flying from, and what's your preferred departure date?"
+              : "Sure. Which city are you flying from?")
             : missing.includes("destination")
             ? "Where would you like to fly to?"
             : "When would you like to fly?",
           toolCalls: [call("update_trip_state", {
             origin: origin ?? undefined,
             destination: destination ?? undefined,
+            departure_date: departureDate ?? undefined,
             flight_required: true,
           })],
         };

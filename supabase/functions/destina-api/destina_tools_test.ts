@@ -204,7 +204,7 @@ Deno.test("Travelport failure is not invented as availability", async () => {
     { origin: "HRE", destination: "JNB", departure_date: "2026-11-20" },
   );
   assertEquals(result.status, "error");
-  assertEquals(result.error_code, "travelport_failure");
+  assertEquals(result.error_code, "travelport_timeout");
 });
 
 Deno.test("catalog search is labeled not-live-hold", async () => {

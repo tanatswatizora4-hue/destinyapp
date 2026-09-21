@@ -25,6 +25,14 @@ Deno.test("London is a valid place but is not invented as an IATA code", () => {
   assertEquals(resolvedIataOrNull("London"), null);
 });
 
+Deno.test("Japan and Tokyo are ambiguous and never invent a single IATA", () => {
+  assertEquals(resolveAirport("Japan").status, "ambiguous");
+  assertEquals(resolveAirport("Tokyo").status, "ambiguous");
+  assertEquals(resolvedIataOrNull("Japan"), null);
+  assertEquals(resolvedIataOrNull("Narita"), "NRT");
+  assertEquals(resolvedIataOrNull("Osaka"), "KIX");
+});
+
 Deno.test("unknown natural names are not invented", () => {
   assertEquals(resolveAirport("Narnia").status, "unresolved");
   assertEquals(resolvedIataOrNull("Atlantis"), null);

@@ -35,6 +35,13 @@ export type DestinaToolContext = {
   conversationId: string;
   flightSearchesUsed: number;
   catalogCallsUsed: number;
+  requestId?: string;
+  onTravelport?: (info: {
+    duration_ms: number;
+    outcome: "ok" | "error";
+    error_code?: string | null;
+    offer_count: number;
+  }) => void;
 };
 
 export type FlightSearchFn = (
@@ -104,7 +111,7 @@ export const DESTINA_TOOL_SPECS: DestinaToolSpec[] = [
   {
     name: "search_flights",
     description:
-      "ONLY if the customer asked to find or search live flights. City names are OK. Requires origin, destination, and departure date. Never invent fares. Do not call for destination inspiration.",
+      "ONLY if the customer asked to find or search live flights. Pass origin, destination city/airport, and departure_date directly — do not call update_trip_state first for the same facts. City names are OK. Never invent fares. Do not call for destination inspiration. For multi-airport countries (Japan), ask which city first.",
     parameters: {
       type: "object",
       properties: {
@@ -365,12 +372,38 @@ export async function executeDestinaTool(
       }
       const originRes = resolveAirport(tripState.origin);
       const destRes = resolveAirport(tripState.destination);
+      if (originRes.status === "ambiguous") {
+        return {
+          tripState,
+          result: needs(tool, "Need a departure city…", originRes.prompt, {
+            data: {
+              field: "origin",
+              source: "none",
+              suggestions: originRes.suggestions,
+            },
+            error_code: "airport_ambiguous",
+          }),
+        };
+      }
       if (originRes.status !== "resolved") {
         return {
           tripState,
           result: needs(tool, "Need a departure city…", DESTINA_PLACE_COPY.flyFrom, {
             data: { field: "origin", source: "none" },
             error_code: "airport_unresolved",
+          }),
+        };
+      }
+      if (destRes.status === "ambiguous") {
+        return {
+          tripState,
+          result: needs(tool, "Need an arrival city…", destRes.prompt, {
+            data: {
+              field: "destination",
+              source: "none",
+              suggestions: destRes.suggestions,
+            },
+            error_code: "airport_ambiguous",
           }),
         };
       }
@@ -401,6 +434,7 @@ export async function executeDestinaTool(
           },
         };
       }
+      const tpStarted = Date.now();
       try {
         const request = sanitizeSearchRequest({
           origin: originRes.iata,
@@ -429,6 +463,11 @@ export async function executeDestinaTool(
           0,
           DESTINA_LIMITS.maxCatalogResults,
         );
+        ctx.onTravelport?.({
+          duration_ms: Date.now() - tpStarted,
+          outcome: "ok",
+          offer_count: offers.length,
+        });
         const cards: DestinaCard[] = offers.map((offer) => ({
           kind: "flight_offer",
           source: "live_travelport",
@@ -453,7 +492,14 @@ export async function executeDestinaTool(
           ),
         };
       } catch (e) {
+        const durationMs = Date.now() - tpStarted;
         if (e instanceof FlightProviderError && e.code === "validation_error") {
+          ctx.onTravelport?.({
+            duration_ms: durationMs,
+            outcome: "error",
+            error_code: "invalid_flight_request",
+            offer_count: 0,
+          });
           return {
             tripState,
             result: needs(
@@ -466,6 +512,27 @@ export async function executeDestinaTool(
             ),
           };
         }
+        let errorCode = "travelport_provider_error";
+        if (e instanceof FlightProviderError) {
+          if (
+            e.code === "provider_timeout" || /timeout/i.test(e.message)
+          ) {
+            errorCode = "travelport_timeout";
+          } else if (
+            e.code === "auth_failed" || e.code === "unauthorized" ||
+            e.code === "forbidden" || /auth|credential|401|403/i.test(e.message)
+          ) {
+            errorCode = "travelport_auth";
+          }
+        } else if (e instanceof Error && /timeout/i.test(e.message)) {
+          errorCode = "travelport_timeout";
+        }
+        ctx.onTravelport?.({
+          duration_ms: durationMs,
+          outcome: "error",
+          error_code: errorCode,
+          offer_count: 0,
+        });
         return {
           tripState,
           result: {
@@ -474,7 +541,7 @@ export async function executeDestinaTool(
             activity: "Live flight search unavailable",
             summary:
               "I couldn't complete the live flight search just now. I can try again, or I can send the request to our travel team.",
-            error_code: "travelport_failure",
+            error_code: errorCode,
           },
         };
       }

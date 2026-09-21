@@ -32,6 +32,7 @@ export function withTimeout<T>(
           "model_timeout",
           "I couldn't finish that just now. I can try again, or I can send this to our travel team.",
           504,
+          "model",
         ),
       );
     }, ms);
@@ -50,6 +51,20 @@ export function withTimeout<T>(
 
 export function createDestinaModelProvider(
   env: EnvLike = Deno.env.toObject(),
+  opts: {
+    requestId?: string;
+    onRetry?: (info: { reason: string; retry_number: number }) => void;
+    log?: (event: {
+      event: "destina_model_provider_error";
+      request_id?: string;
+      provider: "gemini";
+      model: string;
+      http_status: number;
+      provider_status: string | null;
+      provider_code: string | number | null;
+      provider_message: string;
+    }) => void;
+  } = {},
 ): DestinaModelProvider {
   const provider = (env.DESTINA_MODEL_PROVIDER ?? "gemini").trim().toLowerCase();
   const model = (env.DESTINA_MODEL ?? DEFAULT_DESTINA_MODEL).trim() ||
@@ -69,7 +84,15 @@ export function createDestinaModelProvider(
 
   if (provider === "gemini") {
     if (!key) throw new ModelNotConfiguredError();
-    return new GeminiDestinaProvider({ apiKey: key, model });
+    return new GeminiDestinaProvider({
+      apiKey: key,
+      model,
+      requestId: opts.requestId,
+      onRetry: opts.onRetry,
+      log: opts.log,
+      maxRetries: DESTINA_LIMITS.geminiMaxRetries,
+      retryBackoffMs: DESTINA_LIMITS.geminiRetryBackoffMs,
+    });
   }
 
   throw new DestinaError(

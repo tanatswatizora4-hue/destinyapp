@@ -492,6 +492,16 @@ async function assertProviderHttpError(
   status: number,
   google: Record<string, unknown>,
   expectedStatus: string,
+  expectedCode =
+    status === 429
+      ? "model_429"
+      : status === 401 || status === 403
+      ? "model_auth_error"
+      : status === 400
+      ? "model_invalid_argument"
+      : status >= 500
+      ? "model_5xx"
+      : "model_unavailable",
 ) {
   const logs: GeminiLogEvent[] = [];
   const model = providerWith(async () => jsonResponse(status, google), logs);
@@ -499,10 +509,10 @@ async function assertProviderHttpError(
     () => model.generate(sampleRequest()),
     DestinaError,
   );
-  assertEquals(err.code, "model_unavailable");
+  assertEquals(err.code, expectedCode);
   assertEquals(err.status, 503);
   assertEquals(err.message, DESTINA_MODEL_UNAVAILABLE_MESSAGE);
-  assertEquals(logs.length, 1);
+  assertEquals(logs.length >= 1, true);
   assertEquals(logs[0].event, "destina_model_provider_error");
   assertEquals(logs[0].provider, "gemini");
   assertEquals(logs[0].model, MODEL);

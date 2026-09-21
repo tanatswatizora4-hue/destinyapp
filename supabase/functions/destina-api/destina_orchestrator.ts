@@ -1,5 +1,6 @@
 /**
  * Destina model loop: reason → allowlisted tools → structured reply.
+ * Conversational-first: skip redundant Gemini turns when safe.
  */
 
 import {
@@ -8,6 +9,7 @@ import {
   DestinaHandoff,
   DestinaModelProvider,
   DestinaSuggestedAction,
+  DestinaToolCall,
   DestinaToolResult,
   DestinaTurnResponse,
   TripState,
@@ -25,6 +27,11 @@ import {
   DESTINA_TOOL_SPECS,
   executeDestinaTool,
 } from "./destina_tools.ts";
+import {
+  DestinaLoopMetrics,
+  DestinaRequestTrace,
+  emptyLoopMetrics,
+} from "./destina_observability.ts";
 
 export type DestinaLoopInput = {
   model: DestinaModelProvider;
@@ -34,6 +41,7 @@ export type DestinaLoopInput = {
   tripState: TripState;
   history: DestinaChatMessage[];
   userMessage: string;
+  trace?: DestinaRequestTrace;
 };
 
 export type DestinaLoopOutput = {
@@ -41,6 +49,7 @@ export type DestinaLoopOutput = {
   assistantContent: string;
   toolRuns: DestinaToolResult[];
   tripState: TripState;
+  metrics: DestinaLoopMetrics;
 };
 
 function suggested(results: DestinaToolResult[], authRequired: boolean): DestinaSuggestedAction[] {
@@ -55,7 +64,7 @@ function suggested(results: DestinaToolResult[], authRequired: boolean): Destina
     actions.push({ id: "ask_item", label: "Ask about this" });
     actions.push({ id: "send_item", label: "Send to consultant" });
   }
-  if (results.some((r) => r.status === "error")) {
+  if (results.some((r) => r.status === "error" || r.status === "needs_input")) {
     actions.push({ id: "retry", label: "Try again" });
     actions.push({ id: "handoff", label: "Send to travel team" });
   }
@@ -76,9 +85,28 @@ function handoffFrom(results: DestinaToolResult[]): DestinaHandoff | null {
   };
 }
 
+function onlyStateUpdates(calls: DestinaToolCall[]): boolean {
+  return calls.length > 0 && calls.every((c) => c.name === "update_trip_state");
+}
+
+function canParallelize(calls: DestinaToolCall[]): boolean {
+  if (calls.length < 2) return false;
+  // Never parallelize side-effecting or dependent tools.
+  const forbidden = new Set([
+    "search_flights",
+    "update_trip_state",
+    "create_travel_enquiry",
+    "create_flight_enquiry",
+    "handoff_to_consultant",
+  ]);
+  if (calls.some((c) => forbidden.has(c.name))) return false;
+  return true;
+}
+
 export async function runDestinaLoop(
   input: DestinaLoopInput,
 ): Promise<DestinaLoopOutput> {
+  const trace = input.trace;
   const messages: DestinaChatMessage[] = [
     ...input.history.slice(-DESTINA_LIMITS.maxHistoryMessages),
     { role: "user", content: input.userMessage },
@@ -89,10 +117,26 @@ export async function runDestinaLoop(
   let catalogCallsUsed = 0;
   let assistantContent = "";
   let authRequired = false;
+  const metrics = emptyLoopMetrics();
 
+  const loopStarted = Date.now();
   for (let i = 0; i < DESTINA_LIMITS.maxModelIterations; i++) {
     if (toolRuns.length >= DESTINA_LIMITS.maxToolCalls) break;
+    const elapsed = Date.now() - loopStarted;
+    if (elapsed >= DESTINA_LIMITS.requestBudgetMs) {
+      throw new DestinaError(
+        "orchestration_limit",
+        "I couldn't finish that just now. I can try again, or I can send this to our travel team.",
+        504,
+        "orchestration",
+      );
+    }
     let generated;
+    const modelStarted = Date.now();
+    const modelBudget = Math.min(
+      DESTINA_LIMITS.modelTimeoutMs,
+      Math.max(1000, DESTINA_LIMITS.requestBudgetMs - elapsed),
+    );
     try {
       generated = await withTimeout(
         input.model.generate({
@@ -100,13 +144,39 @@ export async function runDestinaLoop(
           messages,
           tools: DESTINA_TOOL_SPECS,
         }),
+        modelBudget,
       );
+      const duration = Date.now() - modelStarted;
+      metrics.model_calls += 1;
+      metrics.total_model_ms += duration;
+      metrics.model_iterations = i + 1;
+      trace?.modelCompleted({
+        iteration: i,
+        duration_ms: duration,
+        outcome: "ok",
+        tool_call_count: generated.toolCalls.length,
+        provider: input.model.provider,
+        model: input.model.model,
+      });
     } catch (e) {
+      const duration = Date.now() - modelStarted;
+      metrics.model_calls += 1;
+      metrics.total_model_ms += duration;
+      metrics.model_iterations = i + 1;
+      trace?.modelCompleted({
+        iteration: i,
+        duration_ms: duration,
+        outcome: "error",
+        tool_call_count: 0,
+        provider: input.model.provider,
+        model: input.model.model,
+      });
       if (e instanceof DestinaError) throw e;
       throw new DestinaError(
         "model_unavailable",
         "I couldn't complete that just now. I can try again, or I can send the request to our travel team.",
         503,
+        "model",
       );
     }
 
@@ -116,15 +186,19 @@ export async function runDestinaLoop(
       break;
     }
 
+    const naturalText = generated.text.trim();
+    const stateOnly = onlyStateUpdates(generated.toolCalls);
+
     messages.push({
       role: "assistant",
-      content: generated.text.trim() ||
+      content: naturalText ||
         generated.toolCalls.map((c) => `tool:${c.name}`).join(","),
       providerTurn: generated.providerTurn,
     });
 
-    for (const call of generated.toolCalls) {
-      if (toolRuns.length >= DESTINA_LIMITS.maxToolCalls) break;
+    const runOne = async (call: DestinaToolCall) => {
+      const toolStarted = Date.now();
+      trace?.toolStarted(call.name);
       let result: DestinaToolResult;
       try {
         const args = parseToolArguments(call.arguments);
@@ -136,6 +210,12 @@ export async function runDestinaLoop(
             conversationId: input.conversationId,
             flightSearchesUsed,
             catalogCallsUsed,
+            requestId: trace?.requestId,
+            onTravelport: (info) => {
+              metrics.travelport_calls += 1;
+              metrics.travelport_ms += info.duration_ms;
+              trace?.travelportCompleted(info);
+            },
           },
           call.name,
           args,
@@ -162,6 +242,33 @@ export async function runDestinaLoop(
           };
         }
       }
+      const duration = Date.now() - toolStarted;
+      metrics.tool_calls += 1;
+      metrics.total_tool_ms += duration;
+      trace?.toolCompleted({
+        tool_name: call.name,
+        duration_ms: duration,
+        outcome: result.status,
+        error_code: result.error_code ?? null,
+      });
+      return { call, result };
+    };
+
+    const batch = generated.toolCalls.slice(
+      0,
+      DESTINA_LIMITS.maxToolCalls - toolRuns.length,
+    );
+    const executed = canParallelize(batch)
+      ? await Promise.all(batch.map((c) => runOne(c)))
+      : await (async () => {
+        const out: { call: DestinaToolCall; result: DestinaToolResult }[] = [];
+        for (const call of batch) {
+          out.push(await runOne(call));
+        }
+        return out;
+      })();
+
+    for (const { call, result } of executed) {
       toolRuns.push(result);
       if (call.name === "search_flights" && result.status !== "needs_input") {
         flightSearchesUsed += 1;
@@ -182,6 +289,24 @@ export async function runDestinaLoop(
         }),
       });
     }
+
+    // Optimization: conversational text + only update_trip_state → return now.
+    if (stateOnly && naturalText) {
+      assistantContent = naturalText;
+      break;
+    }
+
+    // If tools asked for clarification, prefer natural text or tool summary.
+    if (
+      executed.every((e) =>
+        e.result.status === "needs_input" || e.result.status === "auth_required"
+      )
+    ) {
+      assistantContent = naturalText ||
+        executed[executed.length - 1]?.result.summary ||
+        "I need a little more detail before I can continue.";
+      break;
+    }
   }
 
   if (!assistantContent) {
@@ -190,10 +315,15 @@ export async function runDestinaLoop(
       "How else can I help plan this trip?";
   }
 
+  if (trace) {
+    Object.assign(trace.metrics, metrics);
+  }
+
   return {
     assistantContent,
     toolRuns,
     tripState,
+    metrics,
     response: {
       conversation_id: input.conversationId,
       message: { role: "assistant", content: assistantContent },

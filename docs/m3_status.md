@@ -24,6 +24,8 @@ Branch: `cursor/m3b5-supabase-auth-migration-194a`
 - Destina chat UI wired from Home / Flights / Tours / Stays / Vehicles / Bookings
 - Tool loop replays opaque Gemini thought signatures; never user-facing
 - Human place names in trip state; IATA resolved only at flight-search boundary
+- M4.2: request_id observability, classified failures, fewer redundant Gemini turns,
+  Japan/city ambiguity clarification, one Gemini retry for transient errors
 - See `docs/m4_destina.md`
 
 ## Travelport
@@ -40,7 +42,7 @@ M3D schema + `payment-commerce-api` are live. Platform fee is 0. Mock provider i
 
 ## Later
 
-- Redeploy `destina-api` for conversational-first Destina (M4.1)
+- Redeploy `destina-api` for M4.2 latency/observability
 - Live PSP integration after official docs + credentials
 - Private travel-document bucket (product decision)
 - Optional Google OAuth on Supabase Auth

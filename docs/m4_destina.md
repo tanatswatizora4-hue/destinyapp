@@ -58,14 +58,20 @@ never asks customers for IATA codes.
 
 No arbitrary SQL, HTTP, or Edge Function names.
 
-`update_trip_state` is optional supporting state. A state-only tool call is
-followed by another Gemini turn so Destina can still answer naturally.
+`update_trip_state` is optional supporting state. When Gemini returns useful
+natural text **and** only `update_trip_state`, Destina executes the state
+update and returns that text — it does **not** call Gemini again solely to
+rephrase. A state-only call with no usable text still gets a continuation
+turn.
 
-`search_flights` requires origin, destination, and departure date. Human place
-names are resolved with a bounded alias list (Harare→HRE, Johannesburg→JNB,
-Zanzibar→ZNZ, Cape Town→CPT, Victoria Falls→VFA, Dubai→DXB). Unknown or
-ambiguous airports ask a natural clarification and never reach Travelport.
-IATA validation stays at the flight-provider boundary and is never shown as
+`search_flights` should be called directly for complete flight requests (no
+redundant `update_trip_state` round trip). The flight tool updates trip state
+from validated arguments. Human place names are resolved with a bounded alias
+list (Harare→HRE, Johannesburg→JNB, Zanzibar→ZNZ, Cape Town→CPT, Victoria
+Falls→VFA, Dubai→DXB). Countries / multi-airport cities (Japan, Tokyo) stay
+ambiguous until the customer names a city/airport — Destina asks naturally and
+never invents NRT/HND/KIX. Unknown airports never reach Travelport. IATA
+validation stays at the flight-provider boundary and is never shown as
 developer copy in chat.
 
 Enquiries require customer confirmation and a signed-in user. Anonymous users
@@ -133,6 +139,71 @@ Logged-out discovery works. Customer-owned tools still call `auth.getUser`.
 
 4 model iterations / 6 tools / 2 live flight searches per turn.
 Catalog results capped at 5. History truncated to 16 messages.
+Per-model-call timeout 20s; soft request budget 45s.
+One bounded Gemini retry for 429 / transient 5xx / network only.
+Do not raise timeouts to hide latency.
+
+## Observability (M4.2)
+
+Every Destina chat request gets a `request_id` and emits sanitized structured
+events (no customer text, prompts, thought signatures, JWTs, or secrets):
+
+- `destina_request_started`
+- `destina_model_call_completed` / `destina_model_retry`
+- `destina_tool_started` / `destina_tool_completed`
+- `destina_travelport_search_completed`
+- `destina_request_completed`
+- `destina_request_failed` — **required** for any customer-visible generic
+  fallback (`couldn't finish…`, `couldn't reach Destina's language model…`)
+
+Failure stages: `model` | `tool` | `travelport` | `orchestration` |
+`persistence` | `airport_resolution` | `unknown_internal`.
+
+Safe error codes include `model_timeout`, `model_429`, `model_5xx`,
+`model_invalid_argument`, `model_network_error`, `model_auth_error`,
+`airport_ambiguous`, `travelport_timeout`, `travelport_auth`,
+`travelport_provider_error`, `orchestration_limit`, `persistence_error`.
+
+## Expected request paths (post M4.2)
+
+### NORMAL CHAT
+
+model calls: 1  
+tool calls: 0  
+DB operations: load/create conversation, insert user + assistant messages,
+turn event  
+expected sequential external network hops: Flutter → destina-api → Gemini →
+Flutter
+
+### FLIGHT SEARCH (complete explicit request)
+
+model calls: typically 2 (tool call + final synthesis)  
+tool calls: 1× `search_flights` (updates trip state from args)  
+Travelport calls: 1  
+DB operations: same persistence as chat + tool_run row  
+expected sequential external network hops: Flutter → destina-api → Gemini →
+Travelport → Gemini → Flutter
+
+### CATALOG SEARCH
+
+model calls: typically 2  
+tool calls: 1× catalog search  
+DB operations: published catalog read + message persistence  
+expected sequential external network hops: Flutter → destina-api → Gemini →
+Supabase catalog → Gemini → Flutter
+
+### MULTI-TURN INCOMPLETE FLIGHT REQUEST
+
+model calls: 1 per turn (clarification turns stay lightweight)  
+tool calls: `update_trip_state` and/or `search_flights` when enough fields exist  
+clarification behavior: keep destination (e.g. Japan); ask origin/date; if
+destination airport is ambiguous, ask city (Tokyo / Osaka / …) — never call
+Travelport until airports resolve
+
+### Token streaming
+
+Not in this checkpoint. Would need SSE/WebSocket from destina-api plus Flutter
+stream consumer; defer to a later enhancement.
 
 ## Human handoff
 
@@ -148,14 +219,16 @@ npx deno@2.1.4 test supabase/functions/destina-api
 Deterministic scripted model and mocked Gemini HTTP. No paid Gemini calls
 in CI.
 
-Live `destina-api` logs `destina_model_provider_error` (`http_status`,
-`provider_status`, sanitized `provider_message`) and never returns Google
-errors, thought signatures, or chain-of-thought to Flutter.
+Live `destina-api` logs structured `destina_*` timing/failure events plus
+`destina_model_provider_error` (`http_status`, `provider_status`, sanitized
+`provider_message`) and never returns Google errors, thought signatures, or
+chain-of-thought to Flutter.
 
 ## Known limitations
 
 - Live Destina replies need `DESTINA_API_KEY` on the Edge Function secrets
-- Redeploy `destina-api` for conversational-first Destina (M4.1)
+- Redeploy `destina-api` for M4.2 latency/observability
 - Real PSPs still unimplemented (M3D)
 - Travelport ticketing not implemented
 - Private travel-document storage remains a product decision
+- Token streaming deferred (see above)
